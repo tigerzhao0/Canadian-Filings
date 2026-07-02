@@ -73,6 +73,17 @@ sec:
   # SEC fair-access asks for a User-Agent identifying you with a contact email.
   user_agent: "CanadianARFinder/1.0 (contact: you@example.com)"
 
+# Content verification of first-party PDFs. When on, a candidate that validates
+# as a reachable PDF is also downloaded and its text checked to confirm it reads
+# like a financial statement / annual report — rejecting cover letters, "annual
+# filing coming soon" notices, and terms pages that a filename heuristic can be
+# fooled by. Only rejects clear non-statements; scanned/unparseable PDFs are
+# accepted. Applies to first-party sources (crawl / PDF search / render); the
+# exchange sources (CSE/TMX) already return regulator-categorised statements.
+verify:
+  content_check: true
+  max_pdf_mb: 40          # skip verification for PDFs larger than this
+
 # CSE (Canadian Securities Exchange / XCNQ) filings fallback. For CSE-listed
 # companies with no first-party PDF, pulls the latest ANNUAL_FINANCIAL_STATEMENTS
 # from the exchange's own public API and records it tagged discovery_method

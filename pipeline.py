@@ -29,6 +29,7 @@ import sec_edgar
 import cse_filings
 from search_provider import SearchProvider, SearchRateLimited, SearchError
 from validate import validate_pdf
+from verify_pdf import looks_like_financial_statement
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
@@ -177,13 +178,20 @@ class Store:
 # --------------------------------------------------------------------------- #
 # Shared validation
 # --------------------------------------------------------------------------- #
-async def _first_validating(cands: list[PDFCandidate], client, ua, timeout, browser_ua=None, limit=3):
+async def _first_validating(cands: list[PDFCandidate], client, ua, timeout,
+                            browser_ua=None, limit=3, verify_content=True):
     """Pick the best confident candidate.
 
     Returns (candidate, verified) where verified is True for a confirmed PDF and
     False for a 'blocked' one (exists but the CDN forbids bots — accepted as an
     unverified find since these are trusted own-domain annual-report filenames).
     Returns (None, False) if nothing usable.
+
+    When verify_content is on, a candidate that validates as a reachable PDF is
+    also downloaded and content-checked; if it reads like a cover letter/notice
+    rather than a financial statement it is skipped and the next candidate tried.
+    (Bot-blocked candidates can't be downloaded to inspect, so they're accepted
+    unverified as before.)
     """
     blocked: PDFCandidate | None = None
     for cand in cands[:limit]:
@@ -191,6 +199,11 @@ async def _first_validating(cands: list[PDFCandidate], client, ua, timeout, brow
             continue
         state, _reason = await validate_pdf(client, cand.url, ua, timeout, browser_ua)
         if state == "ok":
+            if verify_content:
+                accept, _r = await looks_like_financial_statement(
+                    client, cand.url, browser_ua or ua, timeout)
+                if not accept:
+                    continue  # cover letter / notice / terms -> try next candidate
             return cand, True
         if state == "blocked" and blocked is None:
             blocked = cand
@@ -208,6 +221,7 @@ async def _tier1(company, *, provider, crawler, client, store, blocklist, cfg) -
     ua = cfg["crawl"]["user_agent"]
     browser_ua = cfg["crawl"].get("browser_user_agent")
     timeout = float(cfg["crawl"]["timeout_seconds"])
+    verify_content = bool(cfg.get("verify", {}).get("content_check", True))
     query = cfg["search"]["query_template"].format(name=company.legal_name)
     max_results = int(cfg["search"]["max_results"])
     base = dict(ticker=ticker, company_name=company.legal_name, exchange=company.exchange)
@@ -247,7 +261,8 @@ async def _tier1(company, *, provider, crawler, client, store, blocklist, cfg) -
             crawl_pdf_cand = None
 
     good, verified = await _first_validating(
-        [crawl_pdf_cand] if crawl_pdf_cand else [], client, ua, timeout, browser_ua)
+        [crawl_pdf_cand] if crawl_pdf_cand else [], client, ua, timeout, browser_ua,
+        verify_content=verify_content)
     if good:
         m, reason = _finalize(method, verified, good.year)
         await store.upsert(**base, ir_homepage_url=homepage_url, pdf_url=good.url,
@@ -257,7 +272,8 @@ async def _tier1(company, *, provider, crawler, client, store, blocklist, cfg) -
 
     # Stage 3b: direct PDF search fallback (one extra query).
     pdf_cands = await direct_pdf_search(provider, company, blocklist, reg, cfg)
-    good, verified = await _first_validating(pdf_cands, client, ua, timeout, browser_ua)
+    good, verified = await _first_validating(pdf_cands, client, ua, timeout, browser_ua,
+                                             verify_content=verify_content)
     if good:
         # If we never found a homepage, derive one from the PDF's own host.
         ir_url = homepage_url
@@ -308,8 +324,10 @@ async def _tier2(row, *, renderer, provider, client, store, blocklist, cfg) -> b
     if not homepage:
         return False  # nothing renderable; leave Tier-1 status untouched
 
+    verify_content = bool(cfg.get("verify", {}).get("content_check", True))
     pdf = await renderer.find_annual_report_pdf(homepage)
-    good, verified = await _first_validating([pdf] if pdf else [], client, ua, timeout, browser_ua)
+    good, verified = await _first_validating([pdf] if pdf else [], client, ua, timeout,
+                                             browser_ua, verify_content=verify_content)
     if good:
         m, reason = _finalize("render", verified, good.year)
         await store.upsert(**base, ir_homepage_url=homepage, pdf_url=good.url,

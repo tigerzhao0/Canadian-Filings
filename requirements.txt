@@ -8,6 +8,7 @@ ddgs>=6.0              # DuckDuckGo search (default, keyless search backend)
 PyYAML>=6.0            # config file parsing
 openpyxl>=3.1          # read the GuruFocus .xlsx input
 tenacity>=8.2          # exponential backoff / retry
+pypdf>=4.0             # PDF text extraction for content verification
 
 # Tier-2 headless-browser pass for JS-heavy IR sites. Recommended for the
 # highest success rate; Tier 1 runs fine without it. After installing, download

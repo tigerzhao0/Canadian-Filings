@@ -63,6 +63,10 @@ NEGATIVE_HINTS = ("proxy", "circular", "information circular", "presentation",
 MIN_FOUND_SCORE = 2.0
 
 _YEAR_RE = re.compile(r"(19|20)\d{2}")
+# Quarter markers (q1..q4) as whole tokens — catches "…-q3.pdf", "q2_2025",
+# "Q1 2026" regardless of trailing punctuation, which the plain substring hints
+# ("q3-", "q3 ") miss. An interim quarterly report is never the annual report.
+_QUARTER_RE = re.compile(r"\bq[1-4]\b")
 
 
 @dataclass
@@ -257,7 +261,8 @@ def rank_nav_links(links: list[tuple[str, str]], start_reg_domain: str) -> list[
 
 
 def score_pdf(href: str, text: str) -> PDFCandidate:
-    blob = (text + " " + urlparse(href).path).lower()
+    path = urlparse(href).path.lower()
+    blob = (text + " " + path).lower()
     score = 0.0
     has_ar = any(h in blob for h in AR_HINTS) or bool(_AR_FILENAME_RE.search(blob))
     has_fin = any(h in blob for h in FINANCIAL_HINTS)
@@ -265,15 +270,26 @@ def score_pdf(href: str, text: str) -> PDFCandidate:
         score += 4.0
     if has_fin:
         score += 2.0
-    year = _latest_year(blob)
+    year = _pdf_year(text.lower(), path)
     if year:
         # Recency is a bonus ON TOP of a real report hint — a recent date alone
         # (e.g. a press release dated this year) must not qualify a PDF.
         score += max(0, 3 - (CURRENT_YEAR - year))
-    if any(bad in blob for bad in NEGATIVE_HINTS):
+    if any(bad in blob for bad in NEGATIVE_HINTS) or _QUARTER_RE.search(blob):
         score -= 3.0
     return PDFCandidate(url=href, link_text=text, score=score, year=year,
                         has_report_hint=has_ar or has_fin)
+
+
+def _pdf_year(text: str, path: str) -> int | None:
+    """Determine the report's FISCAL year. The year in the FILENAME names the
+    document's fiscal year (e.g. MON_FS_2022.pdf), whereas a year in the
+    directory path is usually just an upload date — WordPress serves everything
+    from /wp-content/uploads/<YYYY>/<MM>/, so 'MON_FS_2022.pdf' uploaded in
+    2026 must read as 2022, not 2026. Filename wins, then link text, then the
+    rest of the path as a last resort."""
+    filename = path.rsplit("/", 1)[-1]
+    return _latest_year(filename) or _latest_year(text) or _latest_year(path)
 
 
 def _latest_year(blob: str) -> int | None:
