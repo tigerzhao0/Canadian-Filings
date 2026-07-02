@@ -93,7 +93,8 @@ cse:
 tmx:
   enabled: true
   concurrency: 2          # headless pages in parallel (heavy; keep low)
-  max_months: 14          # how many months to page back looking for the annual
+  max_months: 24          # how many months to page back looking for the annual
+                          # (kept generous so sparse/late filers aren't missed)
 
 storage:
   # SQLite database file (created if missing).

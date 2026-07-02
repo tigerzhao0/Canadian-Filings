@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from crawl_pdf import PDFCandidate, score_pdf
+from crawl_pdf import PDFCandidate, rank_pdfs, score_pdf
 from discover_ir import _is_blocked, _registrable_domain
 from ingest import name_tokens
 from search_provider import SearchError, SearchRateLimited
@@ -40,7 +40,7 @@ async def direct_pdf_search(
     tokens = set(name_tokens(name))
     acronym = "".join(t[0] for t in name_tokens(name))
 
-    scored: list[tuple[float, PDFCandidate]] = []
+    candidates: list[PDFCandidate] = []
     seen: set[str] = set()
     for res in results:
         url = res.url
@@ -73,7 +73,9 @@ async def direct_pdf_search(
             boost += 2.0
         if boost == 0.0:
             continue  # untrusted third-party domain -> skip
-        scored.append((cand.score + boost, cand))
+        cand.score += boost  # bake the domain-trust boost in before ranking
+        candidates.append(cand)
 
-    scored.sort(key=lambda x: x[0], reverse=True)
-    return [c for _, c in scored]
+    # rank_pdfs puts the most recent confident candidate first (score decides
+    # confidence/trust, not which year wins once a document IS an annual report).
+    return rank_pdfs(candidates)

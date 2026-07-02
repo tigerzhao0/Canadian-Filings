@@ -41,7 +41,14 @@ For each company, **Tier 1 (fast, no browser)**:
 4. If the crawl finds nothing, runs one **direct PDF search**
    (`"<name>" annual report filetype:pdf`) and keeps only hits on the company's
    own domain.
-5. **Validates** the best candidate (HTTP HEAD → ranged GET → `%PDF` sniff).
+5. **Validates** candidates in order (HTTP HEAD → ranged GET → `%PDF` sniff).
+
+Every source (crawl, PDF search, render, CSE, TMX) returns a **ranked list** of
+candidates, not just one: once a document is confirmed to actually be an annual
+report, the **most recent year wins outright** (not whichever scored marginally
+higher on keyword match), and if the top pick turns out dead or blocked,
+validation automatically retries the next one down the list — a single bad link
+no longer sinks an otherwise-successful crawl.
 
 Then **Tier 2 (headless Chromium, Playwright)** runs only over the companies
 Tier 1 couldn't resolve, re-running the same heuristics on the *rendered* DOM so
@@ -58,12 +65,16 @@ Many Canadian issuers (Shopify, Tilray, …) file their financials with the **SE
 After the first-party cascade above fails for such a company, a final pass checks
 SEC EDGAR (via the free `company_tickers.json` + submissions API — never SEDAR).
 If it's an SEC filer, the row is marked `status='not_found'`, `sec_filer=1`,
-`failure_reason='sec_filer'`, with `sec_filing_url` pointing at the **latest
-10-K/40-F/20-F on EDGAR** — and it's kept **out of the manual-review queue** (the
-end-of-run summary counts these separately). A first-party PDF is always
-preferred: if the IR site does host one, that wins and the row is a normal
-`found`. List them with:
-`SELECT ticker, sec_filing_url FROM filings WHERE sec_filer = 1;`
+`failure_reason='sec_filer'`, `sec_filing_form`/`sec_filing_date` record which
+filing it is, and `sec_filing_url` points at the **latest 10-K/40-F/20-F on
+EDGAR** — kept **out of the manual-review queue** (the end-of-run summary counts
+these separately). Since the company already has its financials on EDGAR under a
+different regime, `pdf_url` deliberately does **not** duplicate that link —
+instead it holds a plain-text note (e.g. *"SEC cross-listed -- see EDGAR CIK
+1594805 (latest 10-K/A, filed 2026-04-29)"*) so it isn't mistaken for a normal
+first-party/exchange PDF. A first-party PDF is always preferred: if the IR site
+does host one, that wins and the row is a normal `found`. List SEC rows with:
+`SELECT ticker, sec_filing_url, sec_filing_form, sec_filing_date FROM filings WHERE sec_filer = 1;`
 
 ### Sure-match first-party, exchange fallback for the rest
 A company's own IR site is accepted as a first-party source **only for a sure
@@ -90,13 +101,16 @@ TMX has no clean filings API (its Money site exposes only a shallow, gated
 QuoteMedia widget), so for a TSX/TSXV company with no first-party PDF — and not
 already flagged as an SEC filer — a **browser-driven** pass opens
 `money.tmx.com/en/quote/<SYM>/financials-filings`, activates the Filings tab, and
-pages the month carousel backwards (with "Load More") until the latest
-**Audited annual financial statements** appears, recording its portable download
-URL tagged `discovery_method='tmx_filings'`. These documents originate from SEDAR
-(TMX/QuoteMedia-hosted, `app.quotemedia.com/data/downloadFiling`); `sedarplus.ca`
-is never accessed. This pass is **slow** (a headless browser navigating months
-per company), so it runs last and only on the leftover TSX/TSXV tail. Requires
-Playwright. List them with
+pages the month carousel backwards (up to `tmx.max_months`, default 24, with
+"Load More" per month) until the latest **Audited annual financial statements**
+appears, recording its portable download URL tagged `discovery_method='tmx_filings'`.
+If nothing matches that strict category within the scanned window, it falls back
+to a broader match (an Annual Information Form or an unlabelled "audited
+financial statements") for issuers that only file one of those. These documents
+originate from SEDAR (TMX/QuoteMedia-hosted, `app.quotemedia.com/data/downloadFiling`);
+`sedarplus.ca` is never accessed. This pass is **slow** (a headless browser
+navigating months per company), so it runs last and only on the leftover
+TSX/TSXV tail. Requires Playwright. List them with
 `SELECT ticker, pdf_url FROM filings WHERE discovery_method LIKE 'tmx_filings%';`.
 
 ### Verified vs. unverified finds
