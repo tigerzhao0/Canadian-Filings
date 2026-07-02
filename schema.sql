@@ -13,7 +13,9 @@ CREATE TABLE IF NOT EXISTS filings (
     status            TEXT CHECK(status IN ('found','not_found','needs_review')),
     failure_reason    TEXT,
     sec_filer         INTEGER DEFAULT 0,   -- 1 = files with the SEC (EDGAR)
-    sec_filing_url    TEXT,                -- pointer to latest 10-K/40-F/20-F
+    sec_filing_url    TEXT,                -- pointer to latest 10-K/40-F/20-F (mirrored into pdf_url too)
+    sec_filing_form   TEXT,                -- e.g. '10-K', '40-F', '20-F'
+    sec_filing_date   TEXT,                -- filing date of that annual filing, YYYY-MM-DD
     last_checked      TIMESTAMP
 );
 

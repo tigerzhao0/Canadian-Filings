@@ -129,7 +129,28 @@ def main() -> None:
     sec = summary.get("sec_filer", 0)
     cse = summary.get("cse_filings", 0)
     tmx = summary.get("tmx_filings", 0)
+    stage_stats = summary.get("_stage_stats", [])
+    elapsed_total = summary.get("_elapsed_total", 0.0)
     total = summary["found"] + summary["needs_review"] + summary["not_found"]
+
+    def _fmt(s: float) -> str:
+        if s < 60:
+            return f"{s:.1f}s"
+        m, sec_ = divmod(int(s), 60)
+        return f"{m}m{sec_:02d}s"
+
+    def _pct(n: int, d: int) -> float:
+        return (n / d * 100.0) if d else 0.0
+
+    if stage_stats:
+        print("\n" + "-" * 60)
+        print("  Stage breakdown (found / attempted this run)")
+        print("-" * 60)
+        for label, attempted, resolved, elapsed in stage_stats:
+            print(f"  {label:<32} {resolved:>4}/{attempted:<5} "
+                 f"({_pct(resolved, attempted):5.1f}%)  {_fmt(elapsed):>7}")
+        print("-" * 60)
+
     print("\n" + "=" * 44)
     print("  Run complete — results by status")
     print("=" * 44)
@@ -141,12 +162,16 @@ def main() -> None:
     print(f"  needs_review   : {summary['needs_review']}")
     print(f"  not_found      : {summary['not_found']}")
     if sec:
-        print(f"    of which SEC filers (flagged, not review) : {sec}")
+        print(f"    of which SEC cross-listed (flagged, not review) : {sec}")
     print(f"  -----------------------------")
     print(f"  total in DB    : {total}")
     print("=" * 44)
+    print(f"  total run time : {_fmt(elapsed_total)}")
+    print("=" * 44)
     print(f"\nDetails in {cfg.get('storage', {}).get('db_path', 'filings.db')} "
-          "(table 'filings'). Re-run with --resume to retry non-found rows.")
+          "(table 'filings'). Re-run with --resume to retry non-found rows.\n"
+          "Tip: rows tagged '+stale' in discovery_method have an annual report "
+          "older than expected -- worth a spot check.")
 
 
 if __name__ == "__main__":
