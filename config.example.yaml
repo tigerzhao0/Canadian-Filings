@@ -1,0 +1,95 @@
+# Canadian Annual Report PDF Finder — example configuration.
+#
+# Copy to config.yaml to customise (config.yaml is git-ignored so real keys
+# never get committed). If you don't create config.yaml, these defaults are
+# used as-is and the pipeline runs with NO keys via the DuckDuckGo backend.
+
+search:
+  # Which SearchProvider backend to use: "duckduckgo" (default, keyless,
+  # can finish the whole list in one session) or "google_cse" (official API,
+  # but the free tier caps at 100 queries/day so it can't finish in one run).
+  provider: duckduckgo
+
+  # Search query template. {name} is replaced with the company's legal name.
+  query_template: '"{name}" investor relations annual report'
+
+  # Max search results to consider per company.
+  max_results: 8
+
+  # Politeness for the search stage. DuckDuckGo throttles aggressively under
+  # thousands of queries, so searches are serialised (never concurrent) with
+  # at least this many seconds between them.
+  min_delay_seconds: 2.5
+
+  # Retry/backoff when a search is rate-limited before giving up on a company
+  # (the company then lands in needs_review with failure_reason=search_rate_limited).
+  max_retries: 4
+  backoff_base_seconds: 5.0    # 5, 10, 20, 40 ... with jitter
+  backoff_max_seconds: 120.0
+
+  # Google Custom Search — only used when provider: google_cse.
+  # Leave blank to use the environment variables GOOGLE_CSE_API_KEY / GOOGLE_CSE_CX.
+  google_cse:
+    api_key: ""
+    cx: ""     # Custom Search Engine id, configured to "search the entire web"
+
+crawl:
+  # Global cap on concurrent HTTP requests across all target domains.
+  max_concurrency: 8
+  # Minimum seconds between requests to the SAME domain.
+  per_domain_delay_seconds: 1.0
+  # How many hops to follow from the IR homepage toward a reports page.
+  max_hops: 3
+  # Max pages fetched per company during the static crawl (safety cap).
+  max_pages: 25
+  # Per-request timeout (seconds).
+  timeout_seconds: 20
+  # Honest, descriptive User-Agent for the polite static crawl + robots.txt.
+  user_agent: "CanadianARFinder/1.0 (+annual-report research bot; contact: you@example.com)"
+  # Realistic browser User-Agent used by the headless-browser render pass and as
+  # a fallback when a CDN returns 403 to the bot UA during PDF validation (many
+  # IR-site CDNs block non-browser clients outright).
+  browser_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+  # Respect robots.txt (strongly recommended; leave true).
+  respect_robots: true
+
+# Tier-2 headless-browser pass (Playwright) for JS-heavy IR sites. Runs only
+# over companies Tier 1 couldn't resolve. Requires a one-time:
+#   pip install playwright && playwright install chromium
+# If Playwright isn't installed this tier is skipped automatically.
+render:
+  enabled: true
+  concurrency: 3          # concurrent headless pages (heavier than plain HTTP)
+  max_hops: 3             # hops to follow within the rendered IR site
+  max_pages: 16           # page-render cap per company
+  timeout_seconds: 30
+
+# SEC EDGAR flagging. Companies that file with the SEC (10-K/40-F/20-F) and have
+# no first-party PDF are flagged as sec_filer (with a link to their latest annual
+# filing) and excluded from the manual-review queue — a first-party IR PDF is
+# still preferred and used when found. Never uses SEDAR.
+sec:
+  enabled: true
+  # SEC fair-access asks for a User-Agent identifying you with a contact email.
+  user_agent: "CanadianARFinder/1.0 (contact: you@example.com)"
+
+# CSE (Canadian Securities Exchange / XCNQ) filings fallback. For CSE-listed
+# companies with no first-party PDF, pulls the latest ANNUAL_FINANCIAL_STATEMENTS
+# from the exchange's own public API and records it tagged discovery_method
+# 'cse_filings'. These documents originate from SEDAR (CSE-mirrored on
+# sedar-filings-backup.thecse.com); sedarplus.ca is never accessed. First-party
+# IR PDFs are always preferred and used when found.
+cse:
+  enabled: true
+  concurrency: 5
+
+storage:
+  # SQLite database file (created if missing).
+  db_path: "filings.db"
+
+# Path to the editable domain blocklist (non-corporate hosts to ignore).
+blocklist_path: "blocklist.txt"
+
+pilot:
+  # Default sample size for --pilot when --sample-size isn't given.
+  default_sample_size: 40

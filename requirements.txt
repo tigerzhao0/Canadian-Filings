@@ -1,0 +1,15 @@
+# Canadian Annual Report PDF Finder — dependencies
+# Python 3.11+ (developed/tested on 3.13)
+
+httpx>=0.27            # async HTTP for crawl + PDF HEAD validation
+beautifulsoup4>=4.12   # HTML link extraction
+lxml>=5.0              # fast parser backend for BeautifulSoup
+ddgs>=6.0              # DuckDuckGo search (default, keyless search backend)
+PyYAML>=6.0            # config file parsing
+openpyxl>=3.1          # read the GuruFocus .xlsx input
+tenacity>=8.2          # exponential backoff / retry
+
+# Tier-2 headless-browser pass for JS-heavy IR sites. Recommended for the
+# highest success rate; Tier 1 runs fine without it. After installing, download
+# the browser once:  playwright install chromium
+playwright>=1.44

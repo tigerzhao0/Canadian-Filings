@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"C:\\\\Users\\\\tiger\\\\OneDrive\\\\Documents\\\\Workspace\\\\GuruFocus\\\\Canadian Filings\" 2>/dev/null; echo \"---CSV search---\"; ls \"C:\\\\Users\\\\tiger\\\\OneDrive\\\\Documents\\\\Workspace\\\\GuruFocus\\\\Canadian Filings\"/*.csv 2>/dev/null; echo \"---downloads csv---\"; ls \"C:\\\\Users\\\\tiger\\\\Downloads\"/*.csv 2>/dev/null | head -20)",
+      "Bash(py --version)",
+      "Bash(py -c ' *)"
+    ]
+  }
+}

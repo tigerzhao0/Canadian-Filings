@@ -1,0 +1,22 @@
+# Real config with API keys — never commit (config.example.yaml is the template)
+config.yaml
+
+# SQLite output database(s)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Cached SEC EDGAR ticker index (re-downloaded weekly)
+.sec_company_tickers.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# OS cruft
+.DS_Store
+Thumbs.db

@@ -1,0 +1,69 @@
+# Domain blocklist — hosts that are NOT a company's own IR site.
+# One domain (or parent domain) per line. Matching is by suffix, so
+# "finance.yahoo.com" blocks any *.finance.yahoo.com host.
+# Lines starting with # are comments. Edit freely and re-run.
+
+# Encyclopedias / reference
+wikipedia.org
+wikimedia.org
+wikinvest.com
+
+# Regulators / filing aggregators (per non-goals: never use SEDAR+)
+sedarplus.ca
+sedar.com
+sec.gov
+canada.ca
+
+# Social / professional networks
+linkedin.com
+facebook.com
+twitter.com
+x.com
+instagram.com
+youtube.com
+reddit.com
+
+# Stock forums / retail aggregators
+stockhouse.com
+stocktwits.com
+ceo.ca
+agoracom.com
+seekingalpha.com
+fool.ca
+fool.com
+motleyfool.com
+
+# Finance data portals / quote sites
+finance.yahoo.com
+google.com
+bloomberg.com
+marketwatch.com
+morningstar.com
+morningstar.ca
+investing.com
+tradingview.com
+barchart.com
+wsj.com
+reuters.com
+ft.com
+simplywall.st
+marketbeat.com
+tipranks.com
+gurufocus.com
+wallmine.com
+stockanalysis.com
+finviz.com
+webull.com
+tmx.com
+tsx.com
+money.tmx.com
+
+# Newswire / PR aggregators
+newswire.ca
+globenewswire.com
+prnewswire.com
+businesswire.com
+accesswire.com
+newsfilecorp.com
+juniorminingnetwork.com
+streetinsider.com
