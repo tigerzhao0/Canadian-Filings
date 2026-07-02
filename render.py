@@ -80,6 +80,22 @@ class Renderer:
             except Exception:  # noqa: BLE001 - never let one site kill the pass
                 return None
 
+    async def tmx_annual_statement(self, symbol: str, max_months: int = 14) -> dict | None:
+        """Drive the TMX Money Filings widget to a company's latest annual
+        financial statement (returns {'url','date','year',...} or None)."""
+        assert self._sem is not None
+        from tmx_filings import annual_statement_from_page
+        async with self._sem:
+            context = await self._browser.new_context(user_agent=self._user_agent)
+            page = await context.new_page()
+            try:
+                return await annual_statement_from_page(
+                    page, symbol, max_months, int(self._timeout))
+            except Exception:  # noqa: BLE001
+                return None
+            finally:
+                await context.close()
+
     async def _crawl_rendered(self, homepage_url: str) -> PDFCandidate | None:
         start_reg = _registrable_domain(urlparse(homepage_url).netloc)
         context = await self._browser.new_context(user_agent=self._user_agent)

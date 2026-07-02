@@ -83,6 +83,18 @@ cse:
   enabled: true
   concurrency: 5
 
+# TSX / TSX-V filings fallback. For a TSX/TSXV company with no first-party PDF
+# (and not already flagged as an SEC filer), drives the money.tmx.com "Filings"
+# widget with the headless browser, paging back through months to the latest
+# "Audited annual financial statements", and records its portable download URL
+# tagged 'tmx_filings'. Browser-driven and slow, so it only runs on the leftover
+# tail. Documents originate from SEDAR (TMX/QuoteMedia-hosted); sedarplus.ca is
+# never accessed. Requires Playwright (same as the render tier).
+tmx:
+  enabled: true
+  concurrency: 2          # headless pages in parallel (heavy; keep low)
+  max_months: 14          # how many months to page back looking for the annual
+
 storage:
   # SQLite database file (created if missing).
   db_path: "filings.db"

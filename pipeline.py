@@ -91,6 +91,15 @@ class Store:
         cols = [c[0] for c in cur.description]
         return [dict(zip(cols, r)) for r in cur.fetchall()]
 
+    def rows_for_tmx_pass(self) -> list[dict]:
+        cur = self._conn.execute(
+            "SELECT ticker, company_name, exchange FROM filings "
+            "WHERE status != 'found' AND COALESCE(sec_filer, 0) = 0 "
+            "AND UPPER(exchange) IN ('TSX', 'TSXV', 'XTSE', 'XTSX')"
+        )
+        cols = [c[0] for c in cur.description]
+        return [dict(zip(cols, r)) for r in cur.fetchall()]
+
     def summary(self) -> dict[str, int]:
         cur = self._conn.execute("SELECT status, COUNT(*) FROM filings GROUP BY status")
         counts = {"found": 0, "not_found": 0, "needs_review": 0}
@@ -102,6 +111,9 @@ class Store:
         row = self._conn.execute(
             "SELECT COUNT(*) FROM filings WHERE discovery_method LIKE 'cse_filings%'").fetchone()
         counts["cse_filings"] = row[0] if row else 0
+        row = self._conn.execute(
+            "SELECT COUNT(*) FROM filings WHERE discovery_method LIKE 'tmx_filings%'").fetchone()
+        counts["tmx_filings"] = row[0] if row else 0
         return counts
 
     def close(self):
@@ -161,16 +173,20 @@ async def _tier1(company, *, provider, crawler, client, store, blocklist, cfg):
                            failure_reason=f"search_error: {str(exc)[:120]}")
         return
 
-    # Stage 2: pick the IR homepage (may be None).
+    # Stage 2: pick the IR homepage. Only accept a SURE company-domain match
+    # (real name/acronym/exact/platform signal) as a first-party source; weak
+    # rank-only guesses are dropped so the company defers to the exchange
+    # fallbacks (CSE/TMX) instead of asserting a shaky first-party find.
     candidate = choose_ir_homepage(results, company.legal_name, blocklist) if results else None
-    homepage_url = candidate.url if candidate else None
-    reg = candidate.domain if candidate else None
-    method = (f"crawl:{candidate.platform}" if candidate and candidate.platform
-              else "crawl") if candidate else None
+    sure = bool(candidate and candidate.sure)
+    homepage_url = candidate.url if sure else None
+    reg = candidate.domain if sure else None
+    method = ((f"crawl:{candidate.platform}" if candidate.platform else "crawl")
+              if sure else None)
 
-    # Stage 3: deep static crawl of the homepage.
+    # Stage 3: deep static crawl of the homepage (sure matches only).
     crawl_pdf_cand = None
-    if candidate:
+    if sure:
         try:
             crawl_pdf_cand = await crawler.find_annual_report_pdf(candidate.url)
         except Exception:  # noqa: BLE001
@@ -201,7 +217,7 @@ async def _tier1(company, *, provider, crawler, client, store, blocklist, cfg):
 
     # Not resolved in Tier 1 — record the most informative partial state.
     weak = crawl_pdf_cand or (pdf_cands[0] if pdf_cands else None)
-    if candidate is None and not pdf_cands:
+    if not sure and not pdf_cands:
         await store.upsert(**base, status="needs_review", failure_reason="no_corporate_domain")
     elif weak is not None:
         await store.upsert(**base, ir_homepage_url=homepage_url, pdf_url=weak.url,
@@ -230,7 +246,7 @@ async def _tier2(row, *, renderer, provider, client, store, blocklist, cfg):
         try:
             results = await provider.search(query, int(cfg["search"]["max_results"]))
             cand = choose_ir_homepage(results, row["company_name"], blocklist) if results else None
-            homepage = cand.url if cand else None
+            homepage = cand.url if (cand and cand.sure) else None
         except (SearchError, SearchRateLimited):
             homepage = None
     if not homepage:
@@ -308,6 +324,10 @@ async def run_pipeline(companies, provider: SearchProvider, cfg, *,
         if cfg.get("sec", {}).get("enabled", True):
             await _run_sec_pass(store, client, cfg, progress)
 
+        # ---- TMX filings fallback (TSX/TSXV tail, browser-driven) ----------- #
+        if cfg.get("tmx", {}).get("enabled", True):
+            await _run_tmx_pass(store, client, cfg, progress)
+
     summary = store.summary()
     store.close()
     return summary
@@ -348,6 +368,60 @@ async def _run_cse_pass(store, client, cfg, progress):
     await asyncio.gather(*(handle(r) for r in pending))
     if progress:
         progress(f"  CSE pass: resolved {resolved} of {len(pending)} via CSE filings.")
+
+
+async def _run_tmx_pass(store, client, cfg, progress):
+    """Resolve unresolved TSX/TSXV companies by driving the TMX Money Filings
+    widget to their latest annual financial statement (labeled 'tmx_filings').
+    Browser-driven and slow, so it runs only on the leftover tail. SEC filers
+    and CSE companies are already excluded. Never touches sedarplus.ca."""
+    pending = store.rows_for_tmx_pass()
+    if not pending:
+        return
+    from render import Renderer, RenderUnavailable, playwright_available
+    if not playwright_available():
+        if progress:
+            progress(f"TMX pass skipped ({len(pending)} TSX/TSXV rows): Playwright not "
+                     "installed. Enable with:  pip install playwright && playwright install chromium")
+        return
+    ua = cfg["crawl"].get("browser_user_agent") or cfg["crawl"]["user_agent"]
+    timeout = float(cfg["crawl"]["timeout_seconds"])
+    max_months = int(cfg.get("tmx", {}).get("max_months", 14))
+    if progress:
+        progress(f"TMX pass: navigating money.tmx.com filings for {len(pending)} "
+                 "TSX/TSXV company(ies) [slow, browser-driven] ...")
+    resolved = 0
+    try:
+        async with Renderer(cfg) as renderer:
+            sem = asyncio.Semaphore(int(cfg.get("tmx", {}).get("concurrency", 2)))
+            done = 0
+
+            async def handle(row):
+                nonlocal resolved, done
+                async with sem:
+                    res = await renderer.tmx_annual_statement(row["ticker"], max_months)
+                    if res:
+                        state, _r = await validate_pdf(client, res["url"], ua, timeout, ua)
+                        if state != "fail":
+                            method = "tmx_filings" if state == "ok" else "tmx_filings+unverified"
+                            await store.upsert(
+                                ticker=row["ticker"], company_name=row["company_name"],
+                                exchange=row["exchange"], pdf_url=res["url"],
+                                fiscal_year_guess=res.get("year"), discovery_method=method,
+                                status="found",
+                                failure_reason=None if state == "ok" else "unverified_403")
+                            resolved += 1
+                done += 1
+                if progress and (done % 20 == 0 or done == len(pending)):
+                    progress(f"  TMX pass: {done}/{len(pending)} (resolved {resolved})")
+
+            await asyncio.gather(*(handle(r) for r in pending))
+    except RenderUnavailable as exc:
+        if progress:
+            progress(f"TMX pass skipped: {exc}")
+        return
+    if progress:
+        progress(f"  TMX pass: resolved {resolved} of {len(pending)} via TMX filings.")
 
 
 async def _run_sec_pass(store, client, cfg, progress):

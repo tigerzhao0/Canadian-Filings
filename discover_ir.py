@@ -30,6 +30,7 @@ class IRCandidate:
     domain: str
     score: float
     platform: str | None  # e.g. "q4" when hosted on a known IR platform
+    sure: bool = False     # domain genuinely matches the company (not rank-only)
 
 
 def load_blocklist(path: str) -> set[str]:
@@ -104,9 +105,9 @@ def choose_ir_homepage(
             continue
         seen_domains.add(reg)
 
-        score = _score_domain(reg, tokens, acronym, rank, platform)
+        score, sure = _score_domain(reg, tokens, acronym, rank, platform)
         cand = IRCandidate(url=_homepage_of(res.url, platform), domain=reg,
-                           score=score, platform=platform)
+                           score=score, platform=platform, sure=sure)
         if best is None or cand.score > best.score:
             best = cand
 
@@ -127,9 +128,12 @@ def _homepage_of(url: str, platform: str | None) -> str:
 
 
 def _score_domain(reg_domain: str, tokens: set[str], acronym: str, rank: int,
-                  platform: str | None) -> float:
-    """Higher is better. Rewards name-token overlap with the domain label and
-    higher search rank; gives hosted IR platforms a small baseline boost."""
+                  platform: str | None) -> tuple[float, bool]:
+    """Return (score, sure). Higher score is better; `sure` is True when the
+    domain genuinely matches the company (a name token, the acronym, an exact
+    label match, or a known IR platform) rather than winning on search rank
+    alone. Callers use `sure` to accept a first-party site only for confident
+    matches, deferring weak ones to the exchange-filings fallbacks."""
     label = reg_domain.split(".")[0]
     label_compact = re.sub(r"[^a-z0-9]", "", label)
 
@@ -143,7 +147,8 @@ def _score_domain(reg_domain: str, tokens: set[str], acronym: str, rank: int,
     # A label that EXACTLY equals a name token (e.g. "shopify") or the acronym
     # (e.g. "rbc") is almost certainly the primary corporate domain — reward it
     # so it beats longer concatenations like "rbcroyalbank" (RBC's retail site).
-    if label_compact in tokens or label_compact == acronym:
+    exact = label_compact in tokens or label_compact == acronym
+    if exact:
         score += 4.5
     # Acronym match (name order), e.g. "rbc" == label for Royal Bank of Canada.
     # Also allow a short domain label to be a prefix of the acronym so
@@ -166,4 +171,6 @@ def _score_domain(reg_domain: str, tokens: set[str], acronym: str, rank: int,
     # A domain matching no name tokens, no acronym, and not a platform is weak.
     if matched == 0 and not acr_match and not platform:
         score *= 0.5
-    return score
+    # "Sure" = a real company signal, not a rank-only guess.
+    sure = bool(matched) or acr_match or exact or bool(platform)
+    return score, sure

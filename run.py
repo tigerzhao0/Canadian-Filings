@@ -128,6 +128,7 @@ def main() -> None:
 
     sec = summary.get("sec_filer", 0)
     cse = summary.get("cse_filings", 0)
+    tmx = summary.get("tmx_filings", 0)
     total = summary["found"] + summary["needs_review"] + summary["not_found"]
     print("\n" + "=" * 44)
     print("  Run complete — results by status")
@@ -135,6 +136,8 @@ def main() -> None:
     print(f"  found          : {summary['found']}")
     if cse:
         print(f"    of which via CSE mirrored-SEDAR filings : {cse}")
+    if tmx:
+        print(f"    of which via TMX mirrored-SEDAR filings : {tmx}")
     print(f"  needs_review   : {summary['needs_review']}")
     print(f"  not_found      : {summary['not_found']}")
     if sec:

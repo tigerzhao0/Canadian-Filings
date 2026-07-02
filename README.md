@@ -65,6 +65,14 @@ preferred: if the IR site does host one, that wins and the row is a normal
 `found`. List them with:
 `SELECT ticker, sec_filing_url FROM filings WHERE sec_filer = 1;`
 
+### Sure-match first-party, exchange fallback for the rest
+A company's own IR site is accepted as a first-party source **only for a sure
+domain match** — the domain genuinely matches the company (a name token, the
+acronym, an exact label, or a known IR platform), not just a top search result.
+Weak, rank-only guesses are dropped so the company defers to the exchange-filings
+fallbacks below instead of asserting a shaky first-party find. This is what makes
+the micro-cap tail land on the reliable exchange sources.
+
 ### CSE (XCNQ) companies — exchange filings fallback
 CSE-listed micro-caps frequently have no usable IR website. For a CSE/XCNQ
 company with no first-party PDF, a fallback pass queries the exchange's own
@@ -76,6 +84,20 @@ the provenance differs from a company-hosted PDF, these are counted under `found
 but reported separately in the run summary and filterable via
 `SELECT ticker, pdf_url FROM filings WHERE discovery_method LIKE 'cse_filings%';`.
 First-party IR PDFs are always preferred and used when found.
+
+### TSX / TSX-V companies — exchange filings fallback
+TMX has no clean filings API (its Money site exposes only a shallow, gated
+QuoteMedia widget), so for a TSX/TSXV company with no first-party PDF — and not
+already flagged as an SEC filer — a **browser-driven** pass opens
+`money.tmx.com/en/quote/<SYM>/financials-filings`, activates the Filings tab, and
+pages the month carousel backwards (with "Load More") until the latest
+**Audited annual financial statements** appears, recording its portable download
+URL tagged `discovery_method='tmx_filings'`. These documents originate from SEDAR
+(TMX/QuoteMedia-hosted, `app.quotemedia.com/data/downloadFiling`); `sedarplus.ca`
+is never accessed. This pass is **slow** (a headless browser navigating months
+per company), so it runs last and only on the leftover TSX/TSXV tail. Requires
+Playwright. List them with
+`SELECT ticker, pdf_url FROM filings WHERE discovery_method LIKE 'tmx_filings%';`.
 
 ### Verified vs. unverified finds
 Many IR CDNs (Akamai/Cloudflare) return **403 to any non-browser client**, so a
@@ -150,6 +172,7 @@ To use it anyway (e.g. for a small batch):
 | `render.py` | Tier-2 headless-browser (Playwright) render pass. |
 | `sec_edgar.py` | SEC-filer detection + latest-annual-filing lookup (EDGAR). |
 | `cse_filings.py` | CSE/XCNQ exchange-filings fallback (thecse.com API). |
+| `tmx_filings.py` | TSX/TSXV exchange-filings fallback (money.tmx.com Filings widget). |
 | `validate.py` | PDF reachability check + verified/blocked/fail classification. |
 | `pipeline.py` | Two-tier orchestration, concurrency, SQLite checkpointing. |
 | `ingest.py` | Loads the GuruFocus `.xlsx` or a CSV. |
