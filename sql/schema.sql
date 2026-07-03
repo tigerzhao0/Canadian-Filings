@@ -43,3 +43,28 @@ CREATE TABLE IF NOT EXISTS filing_pdfs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_filing_pdfs_ticker ON filing_pdfs(ticker);
+
+-- Step 2 (run.py --step 2) output: for each filing_pdfs row, the PDF is
+-- downloaded, its income/balance/cash-flow statement sections are extracted as
+-- TEXT (see pdf_extract.py), the file is then deleted, and the text lands here.
+-- This is the raw material for a later LLM pass that maps it into the same
+-- statement shape financials.db already holds for QuoteMedia companies.
+-- primary_block is the whole primary-statements span, kept as a fallback for
+-- when a section couldn't be isolated cleanly. scanned=1 means no text layer
+-- (needs OCR, a future branch) -- extract_ok=0 with reason explains any miss.
+CREATE TABLE IF NOT EXISTS pdf_extractions (
+    ticker            TEXT NOT NULL,
+    fiscal_year       INTEGER NOT NULL,
+    pdf_url           TEXT,
+    scanned           INTEGER,
+    income_statement  TEXT,
+    balance_sheet     TEXT,
+    cash_flow         TEXT,
+    primary_block     TEXT,
+    extract_ok        INTEGER,
+    reason            TEXT,
+    extracted_at      TIMESTAMP,
+    PRIMARY KEY (ticker, fiscal_year)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pdf_extractions_ticker ON pdf_extractions(ticker);

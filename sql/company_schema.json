@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gurufocus.local/company_schema.json",
+  "title": "Company raw fundamentals",
+  "description": "One company's raw financial fundamentals as sourced (QuoteMedia today, PDF/LLM extraction later). Deliberately NOT a GuruFocus rank/score profile -- no Financial Strength / Profitability Rank / GF Value / Piotroski / analyst-estimate sections. Just identity plus the per-year income statement, balance sheet, and cash-flow statement line items exactly as stored, so nothing is invented or null-padded. Computed ratios/ranks are a later phase.",
+  "type": "object",
+  "required": ["ticker", "financials"],
+  "additionalProperties": false,
+  "properties": {
+    "ticker":        { "type": "string" },
+    "companyName":   { "type": ["string", "null"] },
+    "exchange":      { "type": ["string", "null"] },
+    "currency":      { "type": ["string", "null"], "description": "Most-recent reporting currency." },
+    "primarySource": { "type": ["string", "null"], "description": "e.g. tmx_quotemedia | cse_quotemedia | neo_quotemedia | cse_pdf_extract" },
+    "financials": {
+      "type": "array",
+      "description": "One entry per fiscal year, most-recent first.",
+      "items": {
+        "type": "object",
+        "required": ["fiscalYear"],
+        "additionalProperties": false,
+        "properties": {
+          "fiscalYear": { "type": "integer" },
+          "periodEnd":  { "type": ["string", "null"] },
+          "currency":   { "type": ["string", "null"] },
+          "incomeStatement": { "$ref": "#/$defs/statement" },
+          "balanceSheet":    { "$ref": "#/$defs/statement" },
+          "cashFlow":        { "$ref": "#/$defs/statement" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "statement": {
+      "type": "object",
+      "description": "Raw line items, keyed by the source's own field name (e.g. TotalRevenue, NetIncome, TotalAssets, OperatingCashFlow). Open object -- whatever the source reported for this company/year, nothing invented.",
+      "additionalProperties": { "type": ["number", "null"] }
+    }
+  }
+}

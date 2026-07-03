@@ -15,8 +15,13 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import sys
 from pathlib import Path
+
+# The project modules live in src/ (kept flat so their inter-imports stay bare,
+# e.g. `from crawl_pdf import ...`). Put src/ on the path before importing them.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
 
 DEFAULT_CONFIG = Path(__file__).with_name("config.example.yaml")
 
@@ -64,8 +69,15 @@ def _die(msg: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Find Canadian companies' annual-report PDFs.")
-    ap.add_argument("--input", required=True,
-                    help="Company list (.xlsx GuruFocus export or ticker,name,exchange CSV).")
+    ap.add_argument("--step", type=int, choices=(1, 2), default=1,
+                    help="1 (default) = the pipeline: structured financials + find the "
+                         "annual-report PDFs for the tail QuoteMedia misses. 2 = process "
+                         "those found PDFs: download -> extract income/balance/cash-flow "
+                         "statement text -> delete the file -> store in pdf_extractions. "
+                         "Step 2 reads filing_pdfs from the DB and needs no --input.")
+    ap.add_argument("--input", required=False,
+                    help="Company list (.xlsx GuruFocus export or ticker,name,exchange CSV). "
+                         "Required for --step 1; ignored for --step 2.")
     mode = ap.add_mutually_exclusive_group()
     mode.add_argument("--pilot", action="store_true",
                       help="Run a small sampled subset (default mode).")
@@ -84,7 +96,7 @@ def main() -> None:
     ap.add_argument("--financials", action="store_true",
                     help="Run ONLY the structured-financials stage (TSX/TSXV/CSE/XCNQ/"
                          "NEOE via QuoteMedia -- CSE/XCNQ via a :CNX symbol suffix, "
-                         "NEOE via an ATS suffix like :OMG, ~99% coverage) and stop -- "
+                         "NEOE via an ATS suffix like :OMG, ~99%% coverage) and stop -- "
                          "skips the PDF finder entirely. Without this flag, the default "
                          "run does financials first anyway, then falls through to the "
                          "PDF finder only for whatever those exchanges didn't cover. "
@@ -97,6 +109,28 @@ def main() -> None:
         _die(f"Config file not found: {args.config}")
     cfg = _load_config(args.config)
 
+    # Step 2: PDF processing (download -> extract -> delete). Reads filing_pdfs
+    # from the DB, needs no --input, and stops without touching the finder.
+    if args.step == 2:
+        from pdf_pipeline import run_pdf_processing
+        db_path = cfg.get("storage", {}).get("db_path", "output/filings.db")
+        print(f"Step 2: PDF processing  |  DB: {db_path}")
+        result = asyncio.run(run_pdf_processing(cfg, progress=print))
+        print("\n" + "=" * 44)
+        print("  PDF processing complete")
+        print("=" * 44)
+        print(f"  PDFs attempted : {result['attempted']}")
+        print(f"  extracted ok   : {result['extracted']}")
+        print(f"  scanned (OCR)  : {result['scanned']}")
+        print(f"  failed         : {result['failed']}")
+        print(f"  elapsed        : {result['elapsed']:.1f}s")
+        print(f"  stored in      : {result['db_path']} (table 'pdf_extractions')")
+        print("=" * 44)
+        return
+
+    if not args.input:
+        _die("--step 1 needs --input (the company list). "
+             "(--step 2 reads filing_pdfs from the DB and needs no --input.)")
     input_path = Path(args.input)
     if not input_path.exists():
         _die(f"Input file not found: {input_path}\n"
@@ -152,7 +186,7 @@ def main() -> None:
         # Financials-only mode: run the structured fetch and stop -- no PDF finder.
         from financials_pipeline import run_tmx_financials
         print(f"Mode: {mode_label}  |  financials DB: "
-             f"{cfg.get('tmx_financials', {}).get('db_path', 'financials.db')}")
+             f"{cfg.get('tmx_financials', {}).get('db_path', 'output/financials.db')}")
         result = asyncio.run(run_tmx_financials(selected, cfg, progress=print))
         _print_financials_summary(result)
         return
@@ -175,7 +209,7 @@ def main() -> None:
         financials_targets = [c for c in selected if is_tmx_exchange(c.exchange)]
         print(f"\nStage 1/2: structured financials (TSX/TSXV/CSE/XCNQ/NEOE via "
              f"QuoteMedia) on {len(financials_targets)} compan(ies) -> "
-             f"{cfg.get('tmx_financials', {}).get('db_path', 'financials.db')}")
+             f"{cfg.get('tmx_financials', {}).get('db_path', 'output/financials.db')}")
         fin_result = asyncio.run(run_tmx_financials(financials_targets, cfg, progress=print))
         _print_financials_summary(fin_result)
 

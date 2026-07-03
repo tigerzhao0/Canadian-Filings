@@ -55,7 +55,8 @@ import httpx
 
 from tmx_financials import TokenExpired, fetch_annual_financials, mint_token
 
-SCHEMA_PATH = Path(__file__).with_name("schema_financials.sql")
+# src/ holds this module; the SQL schemas live in the sibling sql/ dir.
+SCHEMA_PATH = Path(__file__).resolve().parent.parent / "sql" / "schema_financials.sql"
 
 TMX_EXCHANGES = {"TSX", "TSXV", "XTSE", "XTSX"}
 CSE_EXCHANGES = {"CSE", "XCNQ"}
@@ -236,6 +237,18 @@ class FinancialsStore:
         self._conn.executemany(sql, [tuple(r[c] for c in cols[:-1]) + (now,) for r in rows])
         self._conn.commit()
 
+    def log_run(self, *, total: int, resolved: int, failed: int, excluded: int,
+               elapsed_sec: float) -> None:
+        """One row per run_tmx_financials() call -- the only place real
+        elapsed time / a genuine 'last run finished at' timestamp exists,
+        since bulk upserts stamp every row identically at write time."""
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        self._conn.execute(
+            "INSERT INTO run_log (run_at, total, resolved, failed, excluded, elapsed_sec) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (now, total, resolved, failed, excluded, elapsed_sec))
+        self._conn.commit()
+
     def close(self):
         self._conn.close()
 
@@ -285,7 +298,7 @@ async def run_tmx_financials(companies, cfg, *, progress=None) -> dict:
     ticker with no data is a genuine failure and counts against the rate.
     """
     fcfg = cfg.get("tmx_financials", {}) or {}
-    db_path = fcfg.get("db_path", "financials.db")
+    db_path = fcfg.get("db_path", "output/financials.db")
     concurrency = int(fcfg.get("concurrency", 10))
     timeout = float(fcfg.get("timeout_seconds", 20))
 
@@ -434,8 +447,10 @@ async def run_tmx_financials(companies, cfg, *, progress=None) -> dict:
     store.bulk_upsert_statement_lines(line_rows)   # level 3
     store.bulk_upsert_raw(raw_rows)                # audit
     store.bulk_upsert_status(status_rows)          # outcome
-    store.close()
     elapsed = time.monotonic() - t0
+    store.log_run(total=len(targets), resolved=resolved, failed=failed,
+                 excluded=excluded, elapsed_sec=elapsed)
+    store.close()
     if progress:
         progress(f"  fetch phase: {fetch_elapsed:.1f}s, DB write phase: "
                  f"{elapsed - fetch_elapsed:.1f}s")

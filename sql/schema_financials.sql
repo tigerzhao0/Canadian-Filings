@@ -105,3 +105,16 @@ CREATE TABLE IF NOT EXISTS tmx_financials_status (
     reason       TEXT,
     checked_at   TIMESTAMP
 );
+
+-- One row per run_tmx_financials() call, so real elapsed time / "last
+-- refreshed" is available (bulk-upsert stamps every row with the same
+-- write-time timestamp, so there's no per-row timing to derive this from --
+-- it has to be captured explicitly at the point the run actually finishes).
+CREATE TABLE IF NOT EXISTS run_log (
+    run_at        TIMESTAMP PRIMARY KEY,
+    total         INTEGER,
+    resolved      INTEGER,
+    failed        INTEGER,
+    excluded      INTEGER,
+    elapsed_sec   REAL
+);

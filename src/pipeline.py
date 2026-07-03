@@ -34,7 +34,8 @@ from search_provider import SearchProvider, SearchRateLimited, SearchError
 from validate import validate_pdf
 from verify_pdf import looks_like_financial_statement
 
-SCHEMA_PATH = Path(__file__).with_name("schema.sql")
+# src/ holds this module; the SQL schemas live in the sibling sql/ dir.
+SCHEMA_PATH = Path(__file__).resolve().parent.parent / "sql" / "schema.sql"
 
 
 # --------------------------------------------------------------------------- #
@@ -499,7 +500,7 @@ async def _tier2(row, *, renderer, provider, client, store, blocklist, cfg) -> b
 async def run_pipeline(companies, provider: SearchProvider, cfg, *,
                        use_render=True, render_only=False, progress=None):
     store = Store(cfg["storage"]["db_path"])
-    blocklist = load_blocklist(cfg.get("blocklist_path", "blocklist.txt"))
+    blocklist = load_blocklist(cfg.get("blocklist_path", "data/blocklist.txt"))
     throttle = DomainThrottle(
         max_concurrency=int(cfg["crawl"]["max_concurrency"]),
         per_domain_delay=float(cfg["crawl"]["per_domain_delay_seconds"]),

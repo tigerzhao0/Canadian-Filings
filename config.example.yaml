@@ -144,7 +144,7 @@ tmx:
 # with the PDF-finder results (and, later, the CSE LLM-extraction output)
 # downstream.
 tmx_financials:
-  db_path: "financials.db"
+  db_path: "output/financials.db"
   concurrency: 25         # EMPIRICALLY TUNED, not a guess -- benchmarked the
                           # full 1990-company batch at 5/10/15/18/20/22/25/30/
                           # 40/80/150/300 and timed each. Counterintuitively
@@ -160,10 +160,16 @@ tmx_financials:
 
 storage:
   # SQLite database file (created if missing).
-  db_path: "filings.db"
+  db_path: "output/filings.db"
 
 # Path to the editable domain blocklist (non-corporate hosts to ignore).
-blocklist_path: "blocklist.txt"
+blocklist_path: "data/blocklist.txt"
+
+# run.py --step 2 (PDF processing: download -> extract statement text -> delete).
+# Plain HTTP downloads + local pdfplumber parsing on the small leftover tail, so
+# a modest concurrency is plenty.
+pdf_processing:
+  concurrency: 6
 
 pilot:
   # Default sample size for --pilot when --sample-size isn't given.

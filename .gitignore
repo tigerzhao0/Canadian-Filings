@@ -10,6 +10,11 @@ config.yaml
 # Cached SEC EDGAR ticker index (re-downloaded weekly)
 .sec_company_tickers.json
 
+# Generated output (regenerated from the DBs any time) — keep the folder, not the files
+output/companies/
+output/*.html
+output/*.xlsx
+
 # Python
 __pycache__/
 *.pyc

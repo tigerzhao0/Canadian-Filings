@@ -9,6 +9,8 @@ PyYAML>=6.0            # config file parsing
 openpyxl>=3.1          # read the GuruFocus .xlsx input
 tenacity>=8.2          # exponential backoff / retry
 pypdf>=4.0             # PDF text extraction for content verification
+pandas>=2.0            # export_financials.py -- pivots financials.db to Excel
+pdfplumber>=0.11       # run.py --step 2 -- extract statement text from filing PDFs
 
 # Tier-2 headless-browser pass for JS-heavy IR sites. Recommended for the
 # highest success rate; Tier 1 runs fine without it. After installing, download

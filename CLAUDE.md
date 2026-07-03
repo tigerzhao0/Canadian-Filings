@@ -32,9 +32,23 @@ slowest; scraping is the last resort ("only scrape when necessary"):
 5. **Tier 2**: headless-browser (Playwright) render pass, only on companies
    Tier 1 couldn't resolve. Slowest stage; runs last.
 
+## Project layout (reorganized)
+Files are grouped into folders; `run.py` + `config.example.yaml` stay at root.
+- `run.py` (root) — entry point; puts `src/` on `sys.path` so the flat modules'
+  bare inter-imports (`from crawl_pdf import ...`) resolve unchanged.
+- `src/` — all module `.py` (kept FLAT, imports unchanged).
+- `sql/` — `schema.sql`, `schema_financials.sql`, `company_schema.json`.
+  Modules reference these via `Path(__file__).resolve().parent.parent / "sql" / ...`.
+- `data/` — `blocklist.txt`, `Canadian Companies.xlsx` (config points here).
+- `output/` — generated DBs (`filings.db`, `financials.db`), dashboard HTML,
+  Excel exports, and `output/companies/<TICKER>.json`. Config `db_path`s point
+  here; `.claude/launch.json` serves this dir.
+- `docs/` — design/plan markdown.
+
 ## Key files
-- `run.py` — CLI entrypoint (`--pilot` default / `--full` / `--resume` /
-  `--no-render` / `--render-only`)
+- `run.py` — CLI entrypoint (`--step 1` default = pipeline / `--step 2` = PDF
+  processing; plus `--pilot`/`--full`/`--resume`/`--financials`/`--no-render`/
+  `--render-only`)
 - `pipeline.py` — orchestration, SQLite (`filings.db`), per-stage console
   stats, fiscal-year tagging (`+stale`/`+unverified`)
 - `crawl_pdf.py` — scoring/ranking shared by all first-party sources

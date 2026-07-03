@@ -14,14 +14,14 @@ pip install -r requirements.txt
 playwright install chromium
 
 # 2. Run a pilot on ~40 sampled companies — NO API KEY NEEDED (uses DuckDuckGo)
-python run.py --input "C:/Users/tiger/Downloads/Canadian companies.xlsx"
+python run.py --input "data/Canadian Companies.xlsx"
 
 # 3. When the pilot looks good, run the whole list
-python run.py --input "C:/Users/tiger/Downloads/Canadian companies.xlsx" --full
+python run.py --input "data/Canadian Companies.xlsx" --full
 
 # 4. Mop up the leftovers — re-run resume a few times; found rows stick and the
 #    union grows (DuckDuckGo returns different results each pass).
-python run.py --input "C:/Users/tiger/Downloads/Canadian companies.xlsx" --resume
+python run.py --input "data/Canadian Companies.xlsx" --resume
 ```
 
 That's it — no signup, no key. Results are written to `filings.db` as they're
