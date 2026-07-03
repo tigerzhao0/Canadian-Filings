@@ -25,16 +25,18 @@ _ANNUAL_CATEGORIES = (
 )
 
 
-async def fetch_annual_statements(client, symbol: str, user_agent: str, timeout: float = 20) -> list[dict]:
-    """Return {'url','year','category','date'} candidates for the latest annual
-    financial statement on the CSE, most-recent-first (may be empty). Returning
-    more than one lets the caller retry if the top URL turns out dead/blocked.
-    Tries the ticker and its base (sans suffix)."""
+async def fetch_annual_statements(client, symbol: str, user_agent: str,
+                                  timeout: float = 20, years: int = 5) -> list[dict]:
+    """Return {'url','year','category','date'} candidates for the CSE annual
+    financial statements, most-recent-first, one per DISTINCT fiscal year, up
+    to `years` years back (may be empty). Strictly ANNUAL — interim/quarterly
+    filings are excluded (see _pick_annuals). Tries the ticker and its base
+    (sans suffix)."""
     for sym in _symbol_variants(symbol):
         filings_url = await _sedar_filings_url(client, sym, user_agent, timeout)
         if not filings_url:
             continue
-        picked = await _pick_annuals(client, filings_url, user_agent, timeout)
+        picked = await _pick_annuals(client, filings_url, user_agent, timeout, years=years)
         if picked:
             return picked
     return []
@@ -66,11 +68,26 @@ async def _sedar_filings_url(client, symbol, user_agent, timeout) -> str | None:
     return meta.get("sedar_filings")
 
 
-async def _pick_annuals(client, filings_url, user_agent, timeout, limit_per_tier: int = 3) -> list[dict]:
-    """Return up to `limit_per_tier` most-recent filings from the first category
-    tier that has any hits (ANNUAL_FINANCIAL_STATEMENTS preferred, then Financial
-    Statements, then ANNUAL_MDA) — tier preference still wins, but within a tier
-    we keep a few so a dead/blocked top URL doesn't sink the company."""
+# Markers that a filing is interim/quarterly rather than annual — belt-and-
+# braces on top of the category filter, since some issuers mis-tag and the
+# caller strictly wants annual documents only.
+_INTERIM_MARKERS = ("interim", "q1", "q2", "q3", "quarter", "three month",
+                    "six month", "nine month", "third quarter", "first quarter",
+                    "second quarter")
+
+
+def _looks_interim(item: dict) -> bool:
+    blob = " ".join(str(item.get(k, "")) for k in
+                    ("document_category", "document_type", "url", "title")).lower()
+    return any(m in blob for m in _INTERIM_MARKERS)
+
+
+async def _pick_annuals(client, filings_url, user_agent, timeout, years: int = 5) -> list[dict]:
+    """Return up to `years` filings, one per DISTINCT fiscal year (most-recent
+    first), from the first category tier that has any hits
+    (ANNUAL_FINANCIAL_STATEMENTS preferred, then Financial Statements, then
+    ANNUAL_MDA). Interim/quarterly filings are dropped even if they slip into a
+    tier, so the result is strictly annual."""
     try:
         resp = await client.get(filings_url, headers={"User-Agent": user_agent},
                                 timeout=timeout, follow_redirects=True)
@@ -82,18 +99,25 @@ async def _pick_annuals(client, filings_url, user_agent, timeout, limit_per_tier
 
     for categories in _ANNUAL_CATEGORIES:
         cands = [it for it in items
-                 if it.get("document_category") in categories and it.get("url")]
+                 if it.get("document_category") in categories and it.get("url")
+                 and not _looks_interim(it)]
         if not cands:
             continue
         english = [it for it in cands
                    if (it.get("document_language") or "").lower().startswith("en")]
         pool = english or cands
         pool.sort(key=lambda x: x.get("public_date", ""), reverse=True)
-        out = []
-        for it in pool[:limit_per_tier]:
+        out: list[dict] = []
+        seen_years: set[int] = set()
+        for it in pool:
             date = it.get("public_date", "") or ""
             year = int(date[:4]) if date[:4].isdigit() else None
+            if year is None or year in seen_years:
+                continue
+            seen_years.add(year)
             out.append({"url": it["url"], "year": year,
                        "category": it.get("document_category"), "date": date})
+            if len(out) >= years:
+                break
         return out
     return []

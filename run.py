@@ -82,13 +82,14 @@ def main() -> None:
                     help="Run ONLY the Tier-2 render pass over rows the fast tier "
                          "left unresolved in the existing DB.")
     ap.add_argument("--financials", action="store_true",
-                    help="Run ONLY the structured-financials stage (TSX/TSXV/CSE/XCNQ "
-                         "via QuoteMedia, CSE/XCNQ via a :CNX symbol suffix, ~99% "
-                         "coverage) and stop -- skips the PDF finder entirely. Without "
-                         "this flag, the default run does financials first anyway, "
-                         "then falls through to the PDF finder only for whatever those "
-                         "exchanges didn't cover. Writes to its own DB (see "
-                         "tmx_financials.db_path in config), separate from filings.db.")
+                    help="Run ONLY the structured-financials stage (TSX/TSXV/CSE/XCNQ/"
+                         "NEOE via QuoteMedia -- CSE/XCNQ via a :CNX symbol suffix, "
+                         "NEOE via an ATS suffix like :OMG, ~99% coverage) and stop -- "
+                         "skips the PDF finder entirely. Without this flag, the default "
+                         "run does financials first anyway, then falls through to the "
+                         "PDF finder only for whatever those exchanges didn't cover. "
+                         "Writes to its own DB (see tmx_financials.db_path in config), "
+                         "separate from filings.db.")
     args = ap.parse_args()
 
     # --- fail-fast validation ------------------------------------------------
@@ -117,7 +118,7 @@ def main() -> None:
         before = len(companies)
         companies = [c for c in companies if is_tmx_exchange(c.exchange)]
         print(f"{before} companies loaded; {len(companies)} are TSX/TSXV/CSE/"
-             "XCNQ (the only exchanges --financials handles).")
+             "XCNQ/NEOE (the only exchanges --financials handles).")
 
     # Mode selection: pilot is the default unless --full/--resume given.
     full_mode = args.full or args.resume
@@ -164,14 +165,15 @@ def main() -> None:
         remaining = selected
     else:
         # Default flow: structured financials FIRST (cheap, reliable, covers
-        # ~99% of TSX/TSXV/CSE/XCNQ), then the PDF finder only for whatever's
-        # left -- which already runs CSE filings -> SEC cross-list check ->
-        # TMX filings -> Tier 1 -> Tier 2 internally (see pipeline.py), so
-        # this naturally chains into the requested financials -> SEC -> full
-        # PDF pipeline order without needing to reorder pipeline.py itself.
+        # ~99% of TSX/TSXV/CSE/XCNQ/NEOE), then the PDF finder only for
+        # whatever's left -- which already runs CSE filings -> SEC cross-list
+        # check -> TMX filings -> Tier 1 -> Tier 2 internally (see
+        # pipeline.py), so this naturally chains into the requested
+        # financials -> SEC -> full PDF pipeline order without needing to
+        # reorder pipeline.py itself.
         from financials_pipeline import run_tmx_financials
         financials_targets = [c for c in selected if is_tmx_exchange(c.exchange)]
-        print(f"\nStage 1/2: structured financials (TSX/TSXV/CSE/XCNQ via "
+        print(f"\nStage 1/2: structured financials (TSX/TSXV/CSE/XCNQ/NEOE via "
              f"QuoteMedia) on {len(financials_targets)} compan(ies) -> "
              f"{cfg.get('tmx_financials', {}).get('db_path', 'financials.db')}")
         fin_result = asyncio.run(run_tmx_financials(financials_targets, cfg, progress=print))
@@ -244,6 +246,11 @@ def main() -> None:
                                   # sides of this ratio, not just the numerator.
     print(f"  resolved (has a real PDF url, excl. SEC cross-listed) : "
          f"{with_pdf}/{non_sec_total} ({_pct(with_pdf, non_sec_total):.1f}%)")
+    pdf_years = summary.get("filing_pdf_years", 0)
+    pdf_cos = summary.get("filing_pdf_companies", 0)
+    if pdf_years:
+        print(f"  multi-year annual filings collected : {pdf_years} across "
+             f"{pdf_cos} compan(ies) (table 'filing_pdfs', up to 5yr each)")
     print("=" * 44)
     print(f"  total run time : {_fmt(elapsed_total)}")
     print("=" * 44)

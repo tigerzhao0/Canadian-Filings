@@ -73,27 +73,50 @@ class SecFilerIndex:
         return None
 
 
-async def latest_annual_filing(client, cik: int, user_agent: str, timeout: float = 20) -> dict | None:
-    """Return {'form','date','url'} for the most recent annual filing, or None."""
+async def recent_annual_filings(client, cik: int, user_agent: str, timeout: float = 20,
+                                limit: int = 5) -> list[dict]:
+    """Return up to `limit` most-recent annual filings, one per DISTINCT fiscal
+    year, each {'form','date','year','url'} — newest first. Only annual forms
+    (10-K/40-F/20-F and amendments) are considered; 10-Q/6-K interim filings
+    are never in ANNUAL_FORMS so quarterly results can't leak in."""
     try:
         resp = await client.get(SUBMISSIONS_URL.format(cik=cik),
                                 headers={"User-Agent": user_agent}, timeout=timeout)
     except Exception:  # noqa: BLE001
-        return None
+        return []
     if resp.status_code != 200:
-        return None
+        return []
     recent = resp.json().get("filings", {}).get("recent", {})
     forms = recent.get("form", [])
     accs = recent.get("accessionNumber", [])
     docs = recent.get("primaryDocument", [])
     dates = recent.get("filingDate", [])
+    out: list[dict] = []
+    seen_years: set[int] = set()
     for i, form in enumerate(forms):
-        if form in ANNUAL_FORMS:
-            adsh = accs[i].replace("-", "") if i < len(accs) else ""
-            doc = docs[i] if i < len(docs) else ""
-            url = f"https://www.sec.gov/Archives/edgar/data/{cik}/{adsh}/{doc}"
-            return {"form": form, "date": dates[i] if i < len(dates) else None, "url": url}
-    return None
+        if form not in ANNUAL_FORMS:
+            continue
+        date = dates[i] if i < len(dates) else None
+        year = int(date[:4]) if date and date[:4].isdigit() else None
+        if year is None or year in seen_years:
+            continue
+        seen_years.add(year)
+        adsh = accs[i].replace("-", "") if i < len(accs) else ""
+        doc = docs[i] if i < len(docs) else ""
+        url = f"https://www.sec.gov/Archives/edgar/data/{cik}/{adsh}/{doc}"
+        out.append({"form": form, "date": date, "year": year, "url": url})
+        if len(out) >= limit:
+            break
+    return out
+
+
+async def latest_annual_filing(client, cik: int, user_agent: str, timeout: float = 20) -> dict | None:
+    """Return {'form','date','url'} for the most recent annual filing, or None."""
+    filings = await recent_annual_filings(client, cik, user_agent, timeout, limit=1)
+    if not filings:
+        return None
+    f = filings[0]
+    return {"form": f["form"], "date": f["date"], "url": f["url"]}
 
 
 def filings_browse_url(cik: int) -> str:

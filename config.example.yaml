@@ -129,8 +129,11 @@ tmx:
                           # (Tier-2), so raising this doesn't require raising
                           # that too. If money.tmx.com starts throwing more
                           # "blocked" results under load, dial this back.
-  max_months: 24          # how many months to page back looking for the annual
-                          # (kept generous so sparse/late filers aren't missed)
+  max_months: 60          # how many months to page back. Raised from 24 so the
+                          # widget can reach ~5 fiscal years of annual filings
+                          # (matching the structured-financials depth); it stops
+                          # early as soon as 5 distinct years are found, so a
+                          # regular filer rarely pages this far.
 
 # Structured TSX/TSXV financials (Income Statement / Balance Sheet / Cash
 # Flow) pulled straight from QuoteMedia's public "datatool" widget API —

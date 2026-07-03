@@ -49,6 +49,26 @@ def expected_annual_year(today: date | None = None) -> int:
     return today.year
 
 
+# How many years of annual filings Stage 2 tries to collect per company, to
+# mirror the 5-year depth the structured-financials stage pulls.
+FILING_YEARS = 5
+
+
+def _dedupe_recent_years(cands: list[dict], limit: int = FILING_YEARS) -> list[dict]:
+    """From a source's annual candidates (each a dict with an int|None 'year',
+    given most-recent-first), keep the first (most-recent) candidate per
+    DISTINCT fiscal year, for the `limit` most-recent years. Year=None entries
+    can't be placed in the per-year filing_pdfs table, so they're dropped here
+    (they still feed the single-row `filings` primary pointer)."""
+    by_year: dict[int, dict] = {}
+    for c in cands:
+        y = c.get("year")
+        if y is None:
+            continue
+        by_year.setdefault(int(y), c)  # first-seen == most-recent for that year
+    return [by_year[y] for y in sorted(by_year, reverse=True)[:limit]]
+
+
 def _is_stale_year(year: int | None) -> bool:
     """True when a resolved PDF's year is older than the expected annual year
     (i.e. not last year's report or newer). We don't reject stale documents —
@@ -141,6 +161,25 @@ class Store:
             self._conn.execute(sql, tuple(fields.values()))
             self._conn.commit()
 
+    async def upsert_filing_pdfs(self, rows: list[dict]) -> None:
+        """Write up to ~5 per-year annual-filing rows for one company into the
+        filing_pdfs detail table (one row per fiscal_year). Called by every
+        Stage-2 source in addition to the per-company `filings` status upsert."""
+        if not rows:
+            return
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        async with self._lock:
+            for r in rows:
+                fields = {**r, "last_checked": now}
+                cols = ", ".join(fields)
+                placeholders = ", ".join("?" for _ in fields)
+                updates = ", ".join(f"{c}=excluded.{c}" for c in fields
+                                    if c not in ("ticker", "fiscal_year"))
+                sql = (f"INSERT INTO filing_pdfs ({cols}) VALUES ({placeholders}) "
+                       f"ON CONFLICT(ticker, fiscal_year) DO UPDATE SET {updates}")
+                self._conn.execute(sql, tuple(fields.values()))
+            self._conn.commit()
+
     def rows_needing_tier2(self) -> list[dict]:
         cur = self._conn.execute(
             "SELECT ticker, company_name, exchange, ir_homepage_url, discovery_method "
@@ -194,6 +233,13 @@ class Store:
             "SELECT COUNT(*) FROM filings WHERE pdf_url IS NOT NULL "
             "AND COALESCE(sec_filer, 0) = 0").fetchone()
         counts["with_pdf_url"] = row[0] if row else 0
+        # Multi-year detail: total per-year annual filings collected, and how
+        # many distinct companies have at least one.
+        row = self._conn.execute("SELECT COUNT(*) FROM filing_pdfs").fetchone()
+        counts["filing_pdf_years"] = row[0] if row else 0
+        row = self._conn.execute(
+            "SELECT COUNT(DISTINCT ticker) FROM filing_pdfs").fetchone()
+        counts["filing_pdf_companies"] = row[0] if row else 0
         return counts
 
     def close(self):
@@ -236,6 +282,68 @@ async def _first_validating(cands: list[PDFCandidate], client, ua, timeout,
     if blocked is not None:
         return blocked, False
     return None, False
+
+
+async def _validate_year_candidates(cands, client, ua, timeout, browser_ua, method,
+                                    verify_content, base):
+    """Validate a list of already-year-deduped exchange candidates (dicts with
+    'url'/'year', most-recent first) for CSE/TMX. Returns (filing_pdf_rows,
+    primary) where each row is a per-year filing_pdfs record and `primary` is
+    the most-recent usable candidate (for the single `filings` pointer), or
+    None if nothing validated."""
+    rows: list[dict] = []
+    primary: dict | None = None
+    for c in cands:
+        state, _r = await validate_pdf(client, c["url"], ua, timeout, browser_ua)
+        if state == "fail":
+            continue
+        verified = state == "ok"
+        if verify_content and verified:
+            accept, _r2 = await looks_like_financial_statement(
+                client, c["url"], browser_ua or ua, timeout,
+                company_name=base.get("company_name"))
+            if not accept:
+                continue  # wrong company / interim / non-statement -> skip this year
+        m, reason = _finalize(method, verified, c.get("year"))
+        rows.append(dict(**base, fiscal_year=c["year"], pdf_url=c["url"],
+                        discovery_method=m, verified=1 if verified else 0,
+                        failure_reason=reason))
+        if primary is None:
+            primary = {"url": c["url"], "year": c["year"], "method": m, "reason": reason}
+    return rows, primary
+
+
+async def _collect_pdfcandidate_years(cands: list[PDFCandidate], client, ua, timeout,
+                                      browser_ua, verify_content, method, base):
+    """The Tier-1/Tier-2 analogue of _validate_year_candidates: from ranked
+    PDFCandidates (IR-site crawl), take up to FILING_YEARS confident annual
+    PDFs, one per distinct year, validated. Returns (filing_pdf_rows, primary).
+    Coverage is best-effort -- IR sites often expose only the latest year or
+    two, unlike the exchange/EDGAR feeds."""
+    confident = [c for c in cands if is_confident(c)]
+    picked = _dedupe_recent_years(
+        [{"year": c.year, "cand": c} for c in confident], FILING_YEARS)
+    rows: list[dict] = []
+    primary: dict | None = None
+    for entry in picked:
+        cand = entry["cand"]
+        state, _r = await validate_pdf(client, cand.url, ua, timeout, browser_ua)
+        if state == "fail":
+            continue
+        verified = state == "ok"
+        if verify_content and verified:
+            accept, _r2 = await looks_like_financial_statement(
+                client, cand.url, browser_ua or ua, timeout,
+                company_name=base.get("company_name"))
+            if not accept:
+                continue
+        m, reason = _finalize(method, verified, cand.year)
+        rows.append(dict(**base, fiscal_year=cand.year, pdf_url=cand.url,
+                        discovery_method=m, verified=1 if verified else 0,
+                        failure_reason=reason))
+        if primary is None:
+            primary = {"url": cand.url, "year": cand.year, "method": m, "reason": reason}
+    return rows, primary
 
 
 # --------------------------------------------------------------------------- #
@@ -294,6 +402,12 @@ async def _tier1(company, *, provider, crawler, client, store, blocklist, cfg) -
         company_name=company.legal_name)
     if good:
         m, reason = _finalize(method, verified, good.year)
+        # Also record up to FILING_YEARS of annual PDFs found on the IR site
+        # (best-effort -- many IR sites only expose the latest year or two).
+        rows, _p = await _collect_pdfcandidate_years(
+            crawl_pdf_cands, client, ua, timeout, browser_ua, verify_content, method, base)
+        if rows:
+            await store.upsert_filing_pdfs(rows)
         await store.upsert(**base, ir_homepage_url=homepage_url, pdf_url=good.url,
                            fiscal_year_guess=good.year, discovery_method=m,
                            status="found", failure_reason=reason)
@@ -310,6 +424,10 @@ async def _tier1(company, *, provider, crawler, client, store, blocklist, cfg) -
         if not ir_url and "//" in good.url:
             ir_url = f"https://{_registrable_domain(good.url.split('/')[2])}"
         m, reason = _finalize("pdf_search", verified, good.year)
+        rows, _p = await _collect_pdfcandidate_years(
+            pdf_cands, client, ua, timeout, browser_ua, verify_content, "pdf_search", base)
+        if rows:
+            await store.upsert_filing_pdfs(rows)
         await store.upsert(**base, ir_homepage_url=ir_url, pdf_url=good.url,
                            fiscal_year_guess=good.year, discovery_method=m,
                            status="found", failure_reason=reason)
@@ -361,6 +479,10 @@ async def _tier2(row, *, renderer, provider, client, store, blocklist, cfg) -> b
                                              company_name=row["company_name"])
     if good:
         m, reason = _finalize("render", verified, good.year)
+        rows, _p = await _collect_pdfcandidate_years(
+            pdfs, client, ua, timeout, browser_ua, verify_content, "render", base)
+        if rows:
+            await store.upsert_filing_pdfs(rows)
         await store.upsert(**base, ir_homepage_url=homepage, pdf_url=good.url,
                            fiscal_year_guess=good.year, discovery_method=m,
                            status="found", failure_reason=reason)
@@ -511,23 +633,21 @@ async def _run_cse_pass(store, client, cfg, progress, pending: list[dict]) -> in
     async def handle(row):
         nonlocal resolved
         async with sem:
-            candidates = await cse_filings.fetch_annual_statements(client, row["ticker"], ua, timeout)
-            for res in candidates:
-                state, _reason = await validate_pdf(client, res["url"], ua, timeout, ua)
-                if state == "fail":
-                    continue  # try the next candidate rather than giving up
-                if verify_content and state == "ok":
-                    accept, _r = await looks_like_financial_statement(
-                        client, res["url"], ua, timeout, company_name=row["company_name"])
-                    if not accept:
-                        continue  # wrong company / interim report -> try next candidate
-                method, reason = _finalize("cse_filings", state == "ok", res["year"])
-                await store.upsert(ticker=row["ticker"], company_name=row["company_name"],
-                                   exchange=row["exchange"], pdf_url=res["url"],
-                                   fiscal_year_guess=res["year"], discovery_method=method,
-                                   status="found", failure_reason=reason)
+            base = dict(ticker=row["ticker"], company_name=row["company_name"],
+                        exchange=row["exchange"])
+            candidates = await cse_filings.fetch_annual_statements(
+                client, row["ticker"], ua, timeout, years=FILING_YEARS)
+            cands = _dedupe_recent_years(candidates, FILING_YEARS)
+            rows, primary = await _validate_year_candidates(
+                cands, client, ua, timeout, ua, "cse_filings", verify_content, base)
+            if rows:
+                await store.upsert_filing_pdfs(rows)
+            if primary:
+                await store.upsert(**base, pdf_url=primary["url"],
+                                   fiscal_year_guess=primary["year"],
+                                   discovery_method=primary["method"],
+                                   status="found", failure_reason=primary["reason"])
                 resolved += 1
-                return
 
     await asyncio.gather(*(handle(r) for r in pending))
     return resolved
@@ -561,24 +681,21 @@ async def _run_tmx_pass(store, client, cfg, progress, pending: list[dict]) -> in
             async def handle(row):
                 nonlocal resolved, done
                 async with sem:
-                    candidates = await renderer.tmx_annual_statements(row["ticker"], max_months)
-                    for res in candidates:
-                        state, _r = await validate_pdf(client, res["url"], ua, timeout, ua)
-                        if state == "fail":
-                            continue  # try the next candidate rather than giving up
-                        if verify_content and state == "ok":
-                            accept, _r2 = await looks_like_financial_statement(
-                                client, res["url"], ua, timeout, company_name=row["company_name"])
-                            if not accept:
-                                continue  # wrong company / interim report -> try next candidate
-                        method, reason = _finalize("tmx_filings", state == "ok", res.get("year"))
-                        await store.upsert(
-                            ticker=row["ticker"], company_name=row["company_name"],
-                            exchange=row["exchange"], pdf_url=res["url"],
-                            fiscal_year_guess=res.get("year"), discovery_method=method,
-                            status="found", failure_reason=reason)
+                    base = dict(ticker=row["ticker"], company_name=row["company_name"],
+                                exchange=row["exchange"])
+                    candidates = await renderer.tmx_annual_statements(
+                        row["ticker"], max_months, limit=FILING_YEARS)
+                    cands = _dedupe_recent_years(candidates, FILING_YEARS)
+                    rows, primary = await _validate_year_candidates(
+                        cands, client, ua, timeout, ua, "tmx_filings", verify_content, base)
+                    if rows:
+                        await store.upsert_filing_pdfs(rows)
+                    if primary:
+                        await store.upsert(**base, pdf_url=primary["url"],
+                                           fiscal_year_guess=primary["year"],
+                                           discovery_method=primary["method"],
+                                           status="found", failure_reason=primary["reason"])
                         resolved += 1
-                        break
                 done += 1
                 if progress and (done % 20 == 0 or done == len(pending)):
                     progress(f"  TMX pass: {done}/{len(pending)} (resolved {resolved})")
@@ -619,17 +736,27 @@ async def _run_sec_pass(store, client, cfg, progress, pending: list[dict]) -> in
 
     async def flag(row, cik):
         async with sem:
-            filing = await sec_edgar.latest_annual_filing(client, cik, ua)
-        url = filing["url"] if filing else sec_edgar.filings_browse_url(cik)
-        form = filing.get("form") if filing else None
-        fdate = filing.get("date") if filing else None
+            filings = await sec_edgar.recent_annual_filings(client, cik, ua, limit=FILING_YEARS)
+        latest = filings[0] if filings else None
+        url = latest["url"] if latest else sec_edgar.filings_browse_url(cik)
+        form = latest.get("form") if latest else None
+        fdate = latest.get("date") if latest else None
         year = int(fdate[:4]) if fdate else None
         method, _reason = _finalize("sec_edgar", True, year)
-        # This company already has its financials on EDGAR under a different
-        # regime (10-K/40-F/20-F) — don't hand back a second "own" link as if
-        # it were a first-party/exchange PDF. Instead, write a plain-text NOTE
-        # in the pdf_url column pointing to the EDGAR record; the real URL still
-        # lives in sec_filing_url for anything that wants to follow it.
+        # Record up to FILING_YEARS of real EDGAR annual filings (10-K/40-F/20-F,
+        # never quarterly) in the per-year filing_pdfs table -- these ARE genuine
+        # annual filing documents, so a real link per year is correct there.
+        pdf_rows = [dict(ticker=row["ticker"], company_name=row["company_name"],
+                        exchange=row["exchange"], fiscal_year=f["year"],
+                        pdf_url=f["url"], discovery_method="sec_edgar",
+                        verified=1, failure_reason=None)
+                    for f in filings if f.get("year") is not None]
+        if pdf_rows:
+            await store.upsert_filing_pdfs(pdf_rows)
+        # In the per-company `filings` row this company already has its financials
+        # on EDGAR under a different regime — don't hand back a second "own" link
+        # as if it were a first-party/exchange PDF. Write a plain-text NOTE in
+        # pdf_url; the real latest URL lives in sec_filing_url.
         note = _sec_note(cik, form, fdate)
         await store.upsert(ticker=row["ticker"], company_name=row["company_name"],
                            exchange=row["exchange"], status="not_found",
@@ -639,7 +766,8 @@ async def _run_sec_pass(store, client, cfg, progress, pending: list[dict]) -> in
                            discovery_method=method, fiscal_year_guess=year)
         if progress and len(filers) <= 20:
             progress(f"    cross-listed: {row['ticker']} -> CIK {cik} "
-                     f"(latest {form or '?'}{', ' + fdate if fdate else ''})")
+                     f"({len(pdf_rows)} annual filing(s); latest {form or '?'}"
+                     f"{', ' + fdate if fdate else ''})")
 
     await asyncio.gather(*(flag(r, cik) for r, cik in filers))
     return len(filers)

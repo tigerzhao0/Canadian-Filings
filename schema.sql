@@ -20,3 +20,26 @@ CREATE TABLE IF NOT EXISTS filings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_filings_status ON filings(status);
+
+-- Multi-year annual-filing index: one row per (ticker, fiscal_year), so Stage 2
+-- can record up to ~5 years of annual report / financial-statement PDFs per
+-- company to match the 5-year depth the structured-financials stage pulls (see
+-- financials.db). The single-company `filings` table above stays the per-company
+-- STATUS/outcome record (and still holds the most-recent pdf_url as the primary
+-- pointer); this table is the per-year DETAIL. Strictly ANNUAL documents only --
+-- quarterly/interim filings are excluded at the source (see cse_filings.py,
+-- tmx_filings.py, sec_edgar.py ANNUAL_FORMS, crawl_pdf.py NEGATIVE_HINTS).
+CREATE TABLE IF NOT EXISTS filing_pdfs (
+    ticker            TEXT NOT NULL,
+    company_name      TEXT,
+    exchange          TEXT,
+    fiscal_year       INTEGER NOT NULL,
+    pdf_url           TEXT,               -- the annual filing document URL for that year
+    discovery_method  TEXT,               -- cse_filings | tmx_filings | sec_edgar | crawl | render | pdf_search
+    verified          INTEGER,            -- 1 = content-confirmed financial statement, 0 = reachable-but-unverified
+    failure_reason    TEXT,
+    last_checked      TIMESTAMP,
+    PRIMARY KEY (ticker, fiscal_year)
+);
+
+CREATE INDEX IF NOT EXISTS idx_filing_pdfs_ticker ON filing_pdfs(ticker);

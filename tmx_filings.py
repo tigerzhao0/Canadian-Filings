@@ -29,19 +29,20 @@ _PREV_ARROW = 'button[class*="CarouselMonthPicker__ArrowButton"]'
 _MONTH_BTN = 'button[class*="CarouselMonthPicker__Month"]'
 
 
-async def annual_statements_from_page(page, symbol: str, max_months: int = 24,
-                                      timeout_ms: int = 45000, limit: int = 3) -> list[dict]:
-    """Drive the TMX Filings widget back to the most recent annual financial
-    statement(s). Returns a ranked list (most-recent-first, may be empty) of
-    {'url','date','year','description'} — several candidates so a dead/blocked
-    top link can be retried against the next. `page` is a Playwright Page from
-    the render browser.
+async def annual_statements_from_page(page, symbol: str, max_months: int = 60,
+                                      timeout_ms: int = 45000, limit: int = 5) -> list[dict]:
+    """Drive the TMX Filings widget back through months, ACCUMULATING annual
+    financial statements across the whole window, and return up to `limit`
+    of them — one per DISTINCT fiscal year, most-recent first — as
+    {'url','date','year','description'}. `page` is a Playwright Page from the
+    render browser.
 
-    Scans up to `max_months` months back for a strict match (an "annual report"
-    or "annual ... financial statement" filing). If none turns up in that whole
-    window, falls back to the best secondary candidate seen along the way (an
-    Annual Information Form or an unlabelled "audited financial statements"),
-    since some small issuers only file one of those."""
+    Only strict annual matches ("annual report" / "annual ... financial
+    statement") are collected; interim/quarterly filings are excluded. Pages
+    back up to `max_months`, but stops early once `limit` distinct years are
+    found. If no strict annual turns up in the whole window, falls back to the
+    best secondary candidates (AIF / unlabelled "audited financial
+    statements"), deduped by year the same way."""
     await page.goto(TMX_URL.format(symbol=symbol), wait_until="domcontentloaded",
                     timeout=timeout_ms)
     try:
@@ -51,30 +52,35 @@ async def annual_statements_from_page(page, symbol: str, max_months: int = 24,
     await page.evaluate(_FILINGS_TAB_JS)
     await page.wait_for_timeout(2500)
 
+    annual: list[dict] = []
     secondary: list[dict] = []
     for _ in range(max_months):
         await _load_all(page)
         links = await page.eval_on_selector_all(
             "a[href*=downloadFiling]", "els=>els.map(e=>e.href)")
-        cands = pick_annuals(links, limit)
-        if cands:
-            return cands
+        annual.extend(pick_annuals(links))
         secondary.extend(pick_secondary(links))
+        if len(_dedupe_years(annual, limit)) >= limit:
+            break
         if not await _prev_month(page):
             break
 
-    if secondary:
-        seen: set[str] = set()
-        out = []
-        for d in sorted(secondary, key=lambda x: x["date"], reverse=True):
-            if d["url"] in seen:
-                continue
-            seen.add(d["url"])
-            out.append(d)
-            if len(out) >= limit:
-                break
-        return out
-    return []
+    result = _dedupe_years(annual, limit)
+    if result:
+        return result
+    return _dedupe_years(secondary, limit)
+
+
+def _dedupe_years(cands: list[dict], limit: int) -> list[dict]:
+    """One candidate per distinct fiscal year, most-recent first, up to `limit`.
+    Undated (year=None) candidates are dropped (they can't key a per-year row)."""
+    by_year: dict[int, dict] = {}
+    for d in sorted(cands, key=lambda x: x.get("date", ""), reverse=True):
+        y = d.get("year")
+        if y is None or y in by_year:
+            continue
+        by_year[y] = d
+    return [by_year[y] for y in sorted(by_year, reverse=True)[:limit]]
 
 
 async def _load_all(page, max_clicks: int = 8):
@@ -108,9 +114,10 @@ def _parse(url: str) -> tuple[str, str]:
     return desc, date
 
 
-def pick_annuals(links: list[str], limit: int = 3) -> list[dict]:
-    """Pick the most recent strict annual-report/financial-statement matches
-    from downloadFiling links (excludes interim), most-recent-first."""
+def pick_annuals(links: list[str]) -> list[dict]:
+    """All strict annual-report/financial-statement matches from downloadFiling
+    links (excludes interim), most-recent-first. Year-dedup / capping is the
+    caller's job (see _dedupe_years) so it can span multiple month-pages."""
     cands: list[tuple[str, str, str]] = []
     for url in links:
         desc, date = _parse(url)
@@ -119,7 +126,7 @@ def pick_annuals(links: list[str], limit: int = 3) -> list[dict]:
         if ("annual" in desc and "financial statement" in desc) or "annual report" in desc:
             cands.append((date, url, desc))
     cands.sort(reverse=True)  # latest dateFiled first
-    return [_to_dict(date, url, desc) for date, url, desc in cands[:limit]]
+    return [_to_dict(date, url, desc) for date, url, desc in cands]
 
 
 def pick_secondary(links: list[str]) -> list[dict]:
