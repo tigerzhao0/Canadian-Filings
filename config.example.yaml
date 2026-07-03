@@ -17,9 +17,16 @@ search:
   max_results: 8
 
   # Politeness for the search stage. DuckDuckGo throttles aggressively under
-  # thousands of queries, so searches are serialised (never concurrent) with
-  # at least this many seconds between them.
+  # thousands of queries, so new search LAUNCHES are paced at least this many
+  # seconds apart.
   min_delay_seconds: 2.5
+
+  # How many searches can be in flight at once (still paced by min_delay_seconds
+  # between launches — this doesn't remove the politeness delay, it just stops
+  # the pacing from being wasted while waiting on each individual response).
+  # Raise cautiously: if you start seeing more search_rate_limited /
+  # search_error rows in needs_review, dial this back down.
+  concurrency: 4
 
   # Retry/backoff when a search is rate-limited before giving up on a company
   # (the company then lands in needs_review with failure_reason=search_rate_limited).
@@ -34,8 +41,12 @@ search:
     cx: ""     # Custom Search Engine id, configured to "search the entire web"
 
 crawl:
-  # Global cap on concurrent HTTP requests across all target domains.
-  max_concurrency: 8
+  # Global cap on concurrent HTTP requests across all target domains. Safe to
+  # raise well past core count since this is I/O-bound (waiting on remote
+  # servers, not local CPU) and per_domain_delay_seconds below already caps
+  # how hard any SINGLE company's site gets hit regardless of this number —
+  # raising it only adds more breadth across DIFFERENT companies in parallel.
+  max_concurrency: 24
   # Minimum seconds between requests to the SAME domain.
   per_domain_delay_seconds: 1.0
   # How many hops to follow from the IR homepage toward a reports page.
@@ -59,7 +70,11 @@ crawl:
 # If Playwright isn't installed this tier is skipped automatically.
 render:
   enabled: true
-  concurrency: 3          # concurrent headless pages (heavier than plain HTTP)
+  concurrency: 8           # concurrent headless pages, each a lightweight
+                           # context in the one shared Chromium process (same
+                           # deal as tmx.concurrency below — scales with RAM/
+                           # CPU, not process count). Independent from
+                           # tmx.concurrency now, so this only affects Tier 2.
   max_hops: 3             # hops to follow within the rendered IR site
   max_pages: 16           # page-render cap per company
   timeout_seconds: 30
@@ -92,20 +107,53 @@ verify:
 # IR PDFs are always preferred and used when found.
 cse:
   enabled: true
-  concurrency: 5
+  concurrency: 15          # plain HTTP calls to thecse.com's own API — cheap,
+                           # safe to raise well above the browser-driven passes
 
-# TSX / TSX-V filings fallback. For a TSX/TSXV company with no first-party PDF
-# (and not already flagged as an SEC filer), drives the money.tmx.com "Filings"
-# widget with the headless browser, paging back through months to the latest
-# "Audited annual financial statements", and records its portable download URL
-# tagged 'tmx_filings'. Browser-driven and slow, so it only runs on the leftover
-# tail. Documents originate from SEDAR (TMX/QuoteMedia-hosted); sedarplus.ca is
-# never accessed. Requires Playwright (same as the render tier).
+# TSX / TSX-V PDF filings fallback (legacy). Drives the money.tmx.com
+# "Filings" widget with the headless browser to find an "Audited annual
+# financial statements" PDF, tagged 'tmx_filings'. NOTE: run.py's default
+# mode now excludes TSX/TSXV companies from the PDF finder entirely (they're
+# handled by --financials / tmx_financials below instead), so this stage is
+# effectively dormant in normal use — it only still fires if you feed it a
+# TSX/TSXV company some other way (e.g. --render-only against an older DB).
+# Left enabled rather than removed since it's a harmless no-op otherwise.
 tmx:
   enabled: true
-  concurrency: 2          # headless pages in parallel (heavy; keep low)
+  concurrency: 20         # headless pages in parallel. Each is a lightweight
+                          # browser *context* in one shared Chromium process
+                          # (not a full new browser), so this scales with RAM/
+                          # CPU headroom, not process count — 20 is tuned for a
+                          # 32GB/24-core machine. Has its own semaphore inside
+                          # Renderer, independent from render.concurrency
+                          # (Tier-2), so raising this doesn't require raising
+                          # that too. If money.tmx.com starts throwing more
+                          # "blocked" results under load, dial this back.
   max_months: 24          # how many months to page back looking for the annual
                           # (kept generous so sparse/late filers aren't missed)
+
+# Structured TSX/TSXV financials (Income Statement / Balance Sheet / Cash
+# Flow) pulled straight from QuoteMedia's public "datatool" widget API —
+# see tmx_financials.py for how this endpoint was found and how it's called.
+# Only used when run.py is invoked with --financials; writes to its own DB
+# (financials_pipeline.py / schema_financials.sql), separate from filings.db
+# since the two don't share a schema. This data will be joined/integrated
+# with the PDF-finder results (and, later, the CSE LLM-extraction output)
+# downstream.
+tmx_financials:
+  db_path: "financials.db"
+  concurrency: 25         # EMPIRICALLY TUNED, not a guess -- benchmarked the
+                          # full 1990-company batch at 5/10/15/18/20/22/25/30/
+                          # 40/80/150/300 and timed each. Counterintuitively
+                          # this ISN'T monotonic: throughput peaks right here
+                          # (~10.2-11.0s, ~190 req/s, confirmed over 3 trials)
+                          # and gets WORSE in both directions -- concurrency=5
+                          # took 47s, concurrency=300 took 32s. Past ~25,
+                          # per-connection overhead (TLS handshake churn, pool
+                          # contention) outweighs the extra parallelism; below
+                          # it, there just aren't enough requests in flight.
+                          # Re-benchmark if QuoteMedia's backend changes.
+  timeout_seconds: 20
 
 storage:
   # SQLite database file (created if missing).

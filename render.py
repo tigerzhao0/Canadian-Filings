@@ -42,9 +42,11 @@ class Renderer:
         self._max_hops = int(render.get("max_hops", 2))
         self._max_pages = int(render.get("max_pages", 12))
         self._concurrency = int(render.get("concurrency", 3))
+        self._tmx_concurrency = int(cfg.get("tmx", {}).get("concurrency", 2))
         self._pw = None
         self._browser = None
         self._sem: asyncio.Semaphore | None = None
+        self._tmx_sem: asyncio.Semaphore | None = None
 
     async def __aenter__(self):
         try:
@@ -64,6 +66,7 @@ class Renderer:
                 "    playwright install chromium"
             ) from exc
         self._sem = asyncio.Semaphore(self._concurrency)
+        self._tmx_sem = asyncio.Semaphore(self._tmx_concurrency)
         return self
 
     async def __aexit__(self, *exc):
@@ -86,9 +89,9 @@ class Renderer:
         """Drive the TMX Money Filings widget to a company's latest annual
         financial statement(s) (returns a ranked list, may be empty, so the
         caller can retry the next candidate if the top one is dead/blocked)."""
-        assert self._sem is not None
+        assert self._tmx_sem is not None
         from tmx_filings import annual_statements_from_page
-        async with self._sem:
+        async with self._tmx_sem:
             context = await self._browser.new_context(user_agent=self._user_agent)
             page = await context.new_page()
             try:

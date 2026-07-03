@@ -4,9 +4,11 @@ Two free backends ship here:
 
 * DuckDuckGoProvider (default) -- keyless, no signup, no daily cap, so it can
   finish the whole ~2,564-company list in one session. DuckDuckGo throttles
-  under heavy use, so searches are serialised through a slow limiter with
-  exponential backoff; a company that still can't be searched raises
-  SearchRateLimited and is routed to needs_review by the pipeline.
+  under heavy use, so search LAUNCHES are paced at least min_delay_seconds
+  apart with exponential backoff on throttling; up to `concurrency` searches
+  can be in flight at once so pacing isn't also accidentally serialised on
+  each request's round-trip time. A company that still can't be searched
+  raises SearchRateLimited and is routed to needs_review by the pipeline.
 
 * GoogleCSEProvider (optional) -- official Google Custom Search JSON API.
   Reliable but its free tier caps at 100 queries/day, so it can't finish in a
@@ -50,23 +52,29 @@ class SearchProvider(ABC):
 
 
 class _AsyncRateLimiter:
-    """Serialises calls and enforces a minimum delay between them."""
+    """Paces call LAUNCHES at least `min_delay` apart (politeness towards the
+    backend) while allowing up to `concurrency` calls to be in flight at once,
+    so throughput isn't also accidentally capped by how long each request
+    takes to complete. With concurrency=1 this behaves exactly like a full
+    serialising lock (the original, most conservative behavior)."""
 
-    def __init__(self, min_delay: float):
+    def __init__(self, min_delay: float, concurrency: int = 1):
         self._min_delay = min_delay
-        self._lock = asyncio.Lock()
+        self._sem = asyncio.Semaphore(max(1, concurrency))
+        self._pace_lock = asyncio.Lock()
         self._last = 0.0
 
     async def __aenter__(self):
-        await self._lock.acquire()
-        wait = self._min_delay - (time.monotonic() - self._last)
-        if wait > 0:
-            await asyncio.sleep(wait)
+        await self._sem.acquire()
+        async with self._pace_lock:
+            wait = self._min_delay - (time.monotonic() - self._last)
+            if wait > 0:
+                await asyncio.sleep(wait)
+            self._last = time.monotonic()
         return self
 
     async def __aexit__(self, *exc):
-        self._last = time.monotonic()
-        self._lock.release()
+        self._sem.release()
 
 
 class DuckDuckGoProvider(SearchProvider):
@@ -79,8 +87,9 @@ class DuckDuckGoProvider(SearchProvider):
         max_retries: int = 4,
         backoff_base: float = 5.0,
         backoff_max: float = 120.0,
+        concurrency: int = 1,
     ):
-        self._limiter = _AsyncRateLimiter(min_delay)
+        self._limiter = _AsyncRateLimiter(min_delay, concurrency)
         self._max_retries = max_retries
         self._backoff_base = backoff_base
         self._backoff_max = backoff_max
@@ -201,6 +210,7 @@ def build_provider(config: dict) -> SearchProvider:
             max_retries=int(search_cfg.get("max_retries", 4)),
             backoff_base=float(search_cfg.get("backoff_base_seconds", 5.0)),
             backoff_max=float(search_cfg.get("backoff_max_seconds", 120.0)),
+            concurrency=int(search_cfg.get("concurrency", 4)),
         )
     if provider in ("google_cse", "google"):
         gcfg = search_cfg.get("google_cse", {}) or {}

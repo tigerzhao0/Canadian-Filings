@@ -81,6 +81,14 @@ def main() -> None:
     ap.add_argument("--render-only", action="store_true",
                     help="Run ONLY the Tier-2 render pass over rows the fast tier "
                          "left unresolved in the existing DB.")
+    ap.add_argument("--financials", action="store_true",
+                    help="Run ONLY the structured-financials stage (TSX/TSXV/CSE/XCNQ "
+                         "via QuoteMedia, CSE/XCNQ via a :CNX symbol suffix, ~99% "
+                         "coverage) and stop -- skips the PDF finder entirely. Without "
+                         "this flag, the default run does financials first anyway, "
+                         "then falls through to the PDF finder only for whatever those "
+                         "exchanges didn't cover. Writes to its own DB (see "
+                         "tmx_financials.db_path in config), separate from filings.db.")
     args = ap.parse_args()
 
     # --- fail-fast validation ------------------------------------------------
@@ -93,17 +101,23 @@ def main() -> None:
         _die(f"Input file not found: {input_path}\n"
              "Pass the GuruFocus .xlsx export or a ticker,legal_company_name,exchange CSV.")
 
-    _validate_provider_ready(cfg)
-
     # Imports deferred until after arg validation so `--help` works w/o deps.
     from ingest import load_companies
-    from search_provider import build_provider
-    from pipeline import run_pipeline
 
     try:
         companies = load_companies(input_path)
     except Exception as exc:  # noqa: BLE001
         _die(f"Could not read input: {exc}")
+
+    from financials_pipeline import is_tmx_exchange
+
+    # --financials scopes the whole run (including pilot sampling) to just
+    # the exchanges it can fetch, since that's ALL this mode does.
+    if args.financials:
+        before = len(companies)
+        companies = [c for c in companies if is_tmx_exchange(c.exchange)]
+        print(f"{before} companies loaded; {len(companies)} are TSX/TSXV/CSE/"
+             "XCNQ (the only exchanges --financials handles).")
 
     # Mode selection: pilot is the default unless --full/--resume given.
     full_mode = args.full or args.resume
@@ -115,15 +129,73 @@ def main() -> None:
         selected = _pilot_sample(companies, size)
         mode_label = f"PILOT (sample of {len(selected)})"
 
+    def _print_financials_summary(result: dict) -> None:
+        excluded = result.get("excluded_non_reporting", 0)
+        print("\n" + "=" * 44)
+        print("  Financials fetch complete")
+        print("=" * 44)
+        print(f"  companies (all API-called) : {result['total']}")
+        print(f"  resolved                   : {result['resolved']}")
+        print(f"  failed                     : {result['failed']}")
+        if excluded:
+            print(f"  excluded (.P/.UN, no data) : {excluded}  "
+                 "(not a failure -- CPC/trust/fund with nothing to report)")
+        denom = result['resolved'] + result['failed']
+        print(f"  success rate                : {result['success_rate_pct']:.1f}%  "
+             f"({result['resolved']}/{denom}, excluding the non-reporting .P/.UN above)")
+        print(f"  elapsed                     : {result['elapsed']:.1f}s")
+        print(f"  stored in                   : {result['db_path']}")
+        print("=" * 44)
+
+    if args.financials:
+        # Financials-only mode: run the structured fetch and stop -- no PDF finder.
+        from financials_pipeline import run_tmx_financials
+        print(f"Mode: {mode_label}  |  financials DB: "
+             f"{cfg.get('tmx_financials', {}).get('db_path', 'financials.db')}")
+        result = asyncio.run(run_tmx_financials(selected, cfg, progress=print))
+        _print_financials_summary(result)
+        return
+
+    print(f"Mode: {mode_label}  |  {len(selected)} companies selected")
+
+    if args.render_only:
+        # Narrow resume of an existing PDF-finder DB (re-render specific
+        # unresolved rows) -- not a fresh run, so skip the financials stage.
+        remaining = selected
+    else:
+        # Default flow: structured financials FIRST (cheap, reliable, covers
+        # ~99% of TSX/TSXV/CSE/XCNQ), then the PDF finder only for whatever's
+        # left -- which already runs CSE filings -> SEC cross-list check ->
+        # TMX filings -> Tier 1 -> Tier 2 internally (see pipeline.py), so
+        # this naturally chains into the requested financials -> SEC -> full
+        # PDF pipeline order without needing to reorder pipeline.py itself.
+        from financials_pipeline import run_tmx_financials
+        financials_targets = [c for c in selected if is_tmx_exchange(c.exchange)]
+        print(f"\nStage 1/2: structured financials (TSX/TSXV/CSE/XCNQ via "
+             f"QuoteMedia) on {len(financials_targets)} compan(ies) -> "
+             f"{cfg.get('tmx_financials', {}).get('db_path', 'financials.db')}")
+        fin_result = asyncio.run(run_tmx_financials(financials_targets, cfg, progress=print))
+        _print_financials_summary(fin_result)
+
+        resolved_tickers = fin_result.get("resolved_tickers", set())
+        remaining = [c for c in selected if c.ticker not in resolved_tickers]
+        print(f"\nStage 2/2: PDF finder (CSE filings -> SEC cross-list check -> "
+             f"TMX filings -> Tier 1 -> Tier 2) on {len(remaining)} compan(ies) "
+             "not covered by structured financials...")
+
+    _validate_provider_ready(cfg)
+    from search_provider import build_provider
+    from pipeline import run_pipeline
+
     provider_name = (cfg.get("search", {}).get("provider") or "duckduckgo")
-    print(f"Mode: {mode_label}  |  search provider: {provider_name}  |  "
+    print(f"search provider: {provider_name}  |  "
           f"DB: {cfg.get('storage', {}).get('db_path', 'filings.db')}")
 
     provider = build_provider(cfg)
     render_default = bool(cfg.get("render", {}).get("enabled", True))
     use_render = render_default and not args.no_render
     summary = asyncio.run(run_pipeline(
-        selected, provider, cfg,
+        remaining, provider, cfg,
         use_render=use_render, render_only=args.render_only, progress=print))
 
     sec = summary.get("sec_filer", 0)
@@ -165,6 +237,13 @@ def main() -> None:
         print(f"    of which SEC cross-listed (flagged, not review) : {sec}")
     print(f"  -----------------------------")
     print(f"  total in DB    : {total}")
+    print("=" * 44)
+    with_pdf = summary.get("with_pdf_url", 0)
+    non_sec_total = total - sec  # SEC cross-listed have no first-party PDF by
+                                  # definition, so they're excluded from both
+                                  # sides of this ratio, not just the numerator.
+    print(f"  resolved (has a real PDF url, excl. SEC cross-listed) : "
+         f"{with_pdf}/{non_sec_total} ({_pct(with_pdf, non_sec_total):.1f}%)")
     print("=" * 44)
     print(f"  total run time : {_fmt(elapsed_total)}")
     print("=" * 44)

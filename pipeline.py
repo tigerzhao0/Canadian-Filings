@@ -101,6 +101,15 @@ def _stage_line(label: str, resolved: int, attempted: int, elapsed: float) -> st
 class Store:
     def __init__(self, db_path: str):
         self._conn = sqlite3.connect(db_path)
+        # Default SQLite fsyncs on every commit(); with thousands of individual
+        # per-company upserts (including the up-front seeding pass) that adds up
+        # fast, more so since this DB file lives inside a OneDrive-synced folder.
+        # WAL + NORMAL synchronous is still crash-safe for our purposes (a lost
+        # last-write on an ungraceful kill just means that one row gets
+        # re-processed on the next run) and is dramatically faster for this
+        # write pattern.
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA synchronous=NORMAL")
         self._conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         self._migrate()
         self._conn.commit()
@@ -179,6 +188,12 @@ class Store:
         row = self._conn.execute(
             "SELECT COUNT(*) FROM filings WHERE discovery_method LIKE 'tmx_filings%'").fetchone()
         counts["tmx_filings"] = row[0] if row else 0
+        # Real downloadable PDF links only — excludes the SEC pass's plain-text
+        # "see EDGAR" note (pdf_url is set but isn't an actual file link there).
+        row = self._conn.execute(
+            "SELECT COUNT(*) FROM filings WHERE pdf_url IS NOT NULL "
+            "AND COALESCE(sec_filer, 0) = 0").fetchone()
+        counts["with_pdf_url"] = row[0] if row else 0
         return counts
 
     def close(self):
