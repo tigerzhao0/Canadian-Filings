@@ -1,15 +1,18 @@
-"""Orchestrates the two-tier cascade with SQLite checkpointing.
+"""Orchestrates the resolution cascade with SQLite checkpointing.
 
-Tier 1 (fast, no browser), over every to-do company:
-    search -> pick IR homepage -> deep static crawl -> if that fails, a direct
-    "<name> annual report filetype:pdf" search -> HEAD-validate -> store.
+Official exchange/regulator sources are tried first, before any scraping:
+    CSE filings API (XCNQ) -> SEC EDGAR cross-listing check -> TMX filings
+    (TSX/TSXV, browser-driven).
 
-Tier 2 (heavy, Playwright), only over rows Tier 1 left un-found:
-    render the JS-heavy IR site and re-run the same PDF heuristics.
+Scraping only runs on whatever's still unresolved after that:
+    Tier 1 (fast, no browser): search -> pick IR homepage -> deep static
+        crawl -> if that fails, a direct "<name> annual report filetype:pdf"
+        search -> HEAD-validate -> store.
+    Tier 2 (heavy, Playwright), only over rows Tier 1 left un-found:
+        render the JS-heavy IR site and re-run the same PDF heuristics.
 
 SQLite is the source of truth and every company is upserted the moment it is
-resolved, so a crash mid-run loses nothing, re-runs skip 'found' rows, and you
-see Tier-1 results land before Tier-2 starts grinding.
+resolved, so a crash mid-run loses nothing and re-runs skip 'found' rows.
 """
 from __future__ import annotations
 
@@ -38,13 +41,12 @@ SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 # Fiscal-year targeting
 # --------------------------------------------------------------------------- #
 def expected_annual_year(today: date | None = None) -> int:
-    """The fiscal year whose annual report should be the most recently published
-    one right now. Most issuers file within a few months of fiscal year-end, so
-    for most of the calendar year the PRIOR year's report is the current one.
-    Derived from the system clock so this advances every January rather than
-    being hardcoded to any particular year."""
+    """The fiscal year whose annual report we're targeting right now (e.g.
+    2026 for the whole of calendar 2026). Derived from the system clock so
+    this advances every January rather than being hardcoded to any particular
+    year."""
     today = today or date.today()
-    return today.year - 1
+    return today.year
 
 
 def _is_stale_year(year: int | None) -> bool:
@@ -187,7 +189,8 @@ class Store:
 # Shared validation
 # --------------------------------------------------------------------------- #
 async def _first_validating(cands: list[PDFCandidate], client, ua, timeout,
-                            browser_ua=None, limit=5, verify_content=True):
+                            browser_ua=None, limit=5, verify_content=True,
+                            company_name=None):
     """Pick the best confident candidate.
 
     Returns (candidate, verified) where verified is True for a confirmed PDF and
@@ -209,7 +212,7 @@ async def _first_validating(cands: list[PDFCandidate], client, ua, timeout,
         if state == "ok":
             if verify_content:
                 accept, _r = await looks_like_financial_statement(
-                    client, cand.url, browser_ua or ua, timeout)
+                    client, cand.url, browser_ua or ua, timeout, company_name=company_name)
                 if not accept:
                     continue  # cover letter / notice / terms -> try next candidate
             return cand, True
@@ -272,7 +275,8 @@ async def _tier1(company, *, provider, crawler, client, store, blocklist, cfg) -
             crawl_pdf_cands = []
 
     good, verified = await _first_validating(
-        crawl_pdf_cands, client, ua, timeout, browser_ua, verify_content=verify_content)
+        crawl_pdf_cands, client, ua, timeout, browser_ua, verify_content=verify_content,
+        company_name=company.legal_name)
     if good:
         m, reason = _finalize(method, verified, good.year)
         await store.upsert(**base, ir_homepage_url=homepage_url, pdf_url=good.url,
@@ -283,7 +287,8 @@ async def _tier1(company, *, provider, crawler, client, store, blocklist, cfg) -
     # Stage 3b: direct PDF search fallback (one extra query).
     pdf_cands = await direct_pdf_search(provider, company, blocklist, reg, cfg)
     good, verified = await _first_validating(pdf_cands, client, ua, timeout, browser_ua,
-                                             verify_content=verify_content)
+                                             verify_content=verify_content,
+                                             company_name=company.legal_name)
     if good:
         # If we never found a homepage, derive one from the PDF's own host.
         ir_url = homepage_url
@@ -337,7 +342,8 @@ async def _tier2(row, *, renderer, provider, client, store, blocklist, cfg) -> b
     verify_content = bool(cfg.get("verify", {}).get("content_check", True))
     pdfs = await renderer.find_annual_report_pdf(homepage)
     good, verified = await _first_validating(pdfs, client, ua, timeout, browser_ua,
-                                             verify_content=verify_content)
+                                             verify_content=verify_content,
+                                             company_name=row["company_name"])
     if good:
         m, reason = _finalize("render", verified, good.year)
         await store.upsert(**base, ir_homepage_url=homepage, pdf_url=good.url,
@@ -370,13 +376,58 @@ async def run_pipeline(companies, provider: SearchProvider, cfg, *,
     async with httpx.AsyncClient(follow_redirects=True) as client:
         crawler = Crawler(client, throttle, cfg["crawl"])
 
+        # ---- Seed DB rows so CSE/SEC/TMX (which now run before scraping) ---- #
+        # have something to query; skip companies already resolved on a prior run.
+        seeded = 0
+        for c in companies:
+            if not store.already_found(c.ticker):
+                await store.upsert(ticker=c.ticker, company_name=c.legal_name,
+                                   exchange=c.exchange, status="needs_review")
+                seeded += 1
+        if progress:
+            progress(f"{len(companies)} companies loaded; {len(companies) - seeded} already "
+                     f"found, {seeded} to process.")
+
+        # ---- CSE filings fallback (XCNQ companies, tried first) ------------- #
+        if cfg.get("cse", {}).get("enabled", True):
+            pending = store.rows_for_cse_pass()
+            if pending:
+                t0 = time.monotonic()
+                resolved = await _run_cse_pass(store, client, cfg, progress, pending)
+                elapsed = time.monotonic() - t0
+                stage_stats.append(("CSE filings fallback (XCNQ)", len(pending), resolved, elapsed))
+                if progress:
+                    progress(_stage_line("CSE pass done", resolved, len(pending), elapsed))
+
+        # ---- SEC EDGAR flagging pass (before TMX, so TMX skips SEC filers) -- #
+        if cfg.get("sec", {}).get("enabled", True):
+            pending = store.rows_for_sec_pass()
+            if pending:
+                t0 = time.monotonic()
+                flagged = await _run_sec_pass(store, client, cfg, progress, pending)
+                elapsed = time.monotonic() - t0
+                stage_stats.append(("SEC cross-listing check", len(pending), flagged, elapsed))
+                if progress:
+                    progress(f"  SEC pass done: {flagged}/{len(pending)} cross-listed "
+                             f"({_pct(flagged, len(pending)):.1f}%) in {_fmt_secs(elapsed)}")
+
+        # ---- TMX filings fallback (TSX/TSXV tail, browser-driven) ----------- #
+        if cfg.get("tmx", {}).get("enabled", True):
+            pending = store.rows_for_tmx_pass()
+            if pending:
+                t0 = time.monotonic()
+                resolved = await _run_tmx_pass(store, client, cfg, progress, pending)
+                elapsed = time.monotonic() - t0
+                stage_stats.append(("TMX filings fallback (TSX/TSXV)", len(pending), resolved, elapsed))
+                if progress:
+                    progress(_stage_line("TMX pass done", resolved, len(pending), elapsed))
+
+        # ---- Tier 1 (scrape: only for whatever CSE/SEC/TMX left unresolved) - #
         if not render_only:
             todo = [c for c in companies if not store.already_found(c.ticker)]
-            skipped = len(companies) - len(todo)
             if progress:
-                progress(f"{len(companies)} companies loaded; {skipped} already found, "
-                         f"{len(todo)} to process.")
-                progress("Tier 1 (fast: search + deep crawl + PDF search) ...")
+                progress(f"Tier 1 (fast: search + deep crawl + PDF search) on "
+                         f"{len(todo)} still-unresolved companies ...")
             worker_sem = asyncio.Semaphore(int(cfg["crawl"]["max_concurrency"]))
             done = 0
             resolved_t1 = 0
@@ -409,7 +460,7 @@ async def run_pipeline(companies, provider: SearchProvider, cfg, *,
                 progress(_stage_line("Tier 1 done", resolved_t1, total, elapsed))
                 progress(f"    still open -> needs_review {s['needs_review']}, not_found {s['not_found']}")
 
-        # ---- Tier 2 -------------------------------------------------------- #
+        # ---- Tier 2 (scrape: render, last resort) --------------------------- #
         if use_render or render_only:
             pending = store.rows_needing_tier2()
             if pending:
@@ -419,40 +470,6 @@ async def run_pipeline(companies, provider: SearchProvider, cfg, *,
                 stage_stats.append(("Tier 2 (render)", len(pending), resolved, elapsed))
                 if progress:
                     progress(_stage_line("Tier 2 done", resolved, len(pending), elapsed))
-
-        # ---- CSE filings fallback (XCNQ companies, after first-party) ------- #
-        if cfg.get("cse", {}).get("enabled", True):
-            pending = store.rows_for_cse_pass()
-            if pending:
-                t0 = time.monotonic()
-                resolved = await _run_cse_pass(store, client, cfg, progress, pending)
-                elapsed = time.monotonic() - t0
-                stage_stats.append(("CSE filings fallback (XCNQ)", len(pending), resolved, elapsed))
-                if progress:
-                    progress(_stage_line("CSE pass done", resolved, len(pending), elapsed))
-
-        # ---- SEC EDGAR flagging pass (after first-party attempts) ----------- #
-        if cfg.get("sec", {}).get("enabled", True):
-            pending = store.rows_for_sec_pass()
-            if pending:
-                t0 = time.monotonic()
-                flagged = await _run_sec_pass(store, client, cfg, progress, pending)
-                elapsed = time.monotonic() - t0
-                stage_stats.append(("SEC cross-listing check", len(pending), flagged, elapsed))
-                if progress:
-                    progress(f"  SEC pass done: {flagged}/{len(pending)} cross-listed "
-                             f"({_pct(flagged, len(pending)):.1f}%) in {_fmt_secs(elapsed)}")
-
-        # ---- TMX filings fallback (TSX/TSXV tail, browser-driven) ----------- #
-        if cfg.get("tmx", {}).get("enabled", True):
-            pending = store.rows_for_tmx_pass()
-            if pending:
-                t0 = time.monotonic()
-                resolved = await _run_tmx_pass(store, client, cfg, progress, pending)
-                elapsed = time.monotonic() - t0
-                stage_stats.append(("TMX filings fallback (TSX/TSXV)", len(pending), resolved, elapsed))
-                if progress:
-                    progress(_stage_line("TMX pass done", resolved, len(pending), elapsed))
 
     total_elapsed = time.monotonic() - run_start
     summary = store.summary()
@@ -469,6 +486,7 @@ async def _run_cse_pass(store, client, cfg, progress, pending: list[dict]) -> in
     Never touches sedarplus.ca. Returns the number resolved."""
     ua = cfg["crawl"].get("browser_user_agent") or cfg["crawl"]["user_agent"]
     timeout = float(cfg["crawl"]["timeout_seconds"])
+    verify_content = bool(cfg.get("verify", {}).get("content_check", True))
     if progress:
         progress(f"CSE pass: checking {len(pending)} unresolved CSE/XCNQ company(ies) "
                  "against thecse.com filings ...")
@@ -483,6 +501,11 @@ async def _run_cse_pass(store, client, cfg, progress, pending: list[dict]) -> in
                 state, _reason = await validate_pdf(client, res["url"], ua, timeout, ua)
                 if state == "fail":
                     continue  # try the next candidate rather than giving up
+                if verify_content and state == "ok":
+                    accept, _r = await looks_like_financial_statement(
+                        client, res["url"], ua, timeout, company_name=row["company_name"])
+                    if not accept:
+                        continue  # wrong company / interim report -> try next candidate
                 method, reason = _finalize("cse_filings", state == "ok", res["year"])
                 await store.upsert(ticker=row["ticker"], company_name=row["company_name"],
                                    exchange=row["exchange"], pdf_url=res["url"],
@@ -510,6 +533,7 @@ async def _run_tmx_pass(store, client, cfg, progress, pending: list[dict]) -> in
     ua = cfg["crawl"].get("browser_user_agent") or cfg["crawl"]["user_agent"]
     timeout = float(cfg["crawl"]["timeout_seconds"])
     max_months = int(cfg.get("tmx", {}).get("max_months", 24))
+    verify_content = bool(cfg.get("verify", {}).get("content_check", True))
     if progress:
         progress(f"TMX pass: navigating money.tmx.com filings for {len(pending)} "
                  "TSX/TSXV company(ies) [slow, browser-driven] ...")
@@ -527,6 +551,11 @@ async def _run_tmx_pass(store, client, cfg, progress, pending: list[dict]) -> in
                         state, _r = await validate_pdf(client, res["url"], ua, timeout, ua)
                         if state == "fail":
                             continue  # try the next candidate rather than giving up
+                        if verify_content and state == "ok":
+                            accept, _r2 = await looks_like_financial_statement(
+                                client, res["url"], ua, timeout, company_name=row["company_name"])
+                            if not accept:
+                                continue  # wrong company / interim report -> try next candidate
                         method, reason = _finalize("tmx_filings", state == "ok", res.get("year"))
                         await store.upsert(
                             ticker=row["ticker"], company_name=row["company_name"],

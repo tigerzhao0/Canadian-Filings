@@ -2,30 +2,35 @@
 
 Pipeline that finds the most recent annual-report PDF for each of ~2,564
 Canadian public companies (GuruFocus xlsx input: `C:\Users\tiger\Downloads\Canadian companies.xlsx`),
-preferring first-party (company IR site) sources, with labeled exchange
-fallbacks for the tail. **Never touches sedarplus.ca.** Free search only
-(DuckDuckGo default), designed to run in one session.
+preferring official exchange/regulator filing sources first and only
+scraping (company IR sites) for the tail those can't resolve. **Never
+touches sedarplus.ca.** Free search only (DuckDuckGo default), designed to
+run in one session.
 
 ## Architecture (resolution order)
-1. **Tier 1 (fast, no browser)**: search -> pick IR homepage (**sure match
-   only** — real name/acronym/domain match, not a rank-only guess) -> deep
-   static crawl -> direct `"<name>" annual report filetype:pdf` search ->
-   validate.
-2. **Tier 2**: headless-browser (Playwright) render pass, only on companies
-   Tier 1 couldn't resolve.
-3. **CSE (XCNQ) filings fallback**: pulls latest `ANNUAL_FINANCIAL_STATEMENTS`
+Official sources are tried first, cheapest/most-authoritative before
+slowest; scraping is the last resort ("only scrape when necessary"):
+1. **CSE (XCNQ) filings fallback**: pulls latest `ANNUAL_FINANCIAL_STATEMENTS`
    from the CSE's own public API (`thecse.com`) — documents originate from
-   SEDAR but are CSE-mirrored, never sedarplus.ca directly.
-4. **SEC EDGAR cross-listing check**: if the company also files with the SEC
-   (10-K/40-F/20-F) and no first-party PDF was found, flag it (kept out of
+   SEDAR but are CSE-mirrored, never sedarplus.ca directly. Pure HTTP, no
+   browser — runs first since it's cheap.
+2. **SEC EDGAR cross-listing check**: if the company also files with the SEC
+   (10-K/40-F/20-F) and hasn't been resolved by CSE, flag it (kept out of
    the review queue) rather than leaving it unresolved. Its `pdf_url` field
    is a **plain-text note**, not a link (the real EDGAR link lives in
    `sec_filing_url`) — company already has a first-class filing elsewhere,
-   so we don't want it mistaken for a normal PDF find.
-5. **TMX (TSX/TSXV) filings fallback**: browser-driven — opens
+   so we don't want it mistaken for a normal PDF find. Runs before TMX so
+   SEC-flagged companies are excluded from the TMX pass.
+3. **TMX (TSX/TSXV) filings fallback**: browser-driven — opens
    `money.tmx.com/en/quote/<SYM>/financials-filings`, pages the month
-   carousel back to the latest "Audited annual financial statements". Slow;
-   runs last, only on the leftover TSX/TSXV tail.
+   carousel back to the latest "Audited annual financial statements". Slow,
+   but still runs before scraping since it's an official source.
+4. **Tier 1 (fast, no browser)**, only on whatever's still unresolved:
+   search -> pick IR homepage (**sure match only** — real name/acronym/domain
+   match, not a rank-only guess) -> deep static crawl -> direct
+   `"<name>" annual report filetype:pdf` search -> validate.
+5. **Tier 2**: headless-browser (Playwright) render pass, only on companies
+   Tier 1 couldn't resolve. Slowest stage; runs last.
 
 ## Key files
 - `run.py` — CLI entrypoint (`--pilot` default / `--full` / `--resume` /
@@ -56,21 +61,17 @@ fallbacks for the tail. **Never touches sedarplus.ca.** Free search only
   closed. The branch itself may still exist on the remote/locally but has
   nothing `main` doesn't already have — safe to delete whenever.
 
-## Open / interrupted work (pick up here)
-The user asked (message interrupted mid-explanation, not yet done):
-1. **Target fiscal year 2026 specifically** ("make sure the pdfs are for
-   fiscal year 2026") — reconcile with the existing `expected_annual_year()`
-   dynamic-year logic (current year − 1). Need to clarify: hardcode 2026 for
-   now, or is "current year" reasoning still correct and 2026 was just
-   today's expected value? (Today's system date was 2026-07-02 in earlier
-   sessions, so `expected_annual_year()` = 2025 then — worth double-checking
-   against the user's expectation of 2026.)
-2. **"If direct from company website isn't a very good match... use the
-   brokerage for the file link"** — user's wording, meaning UNCLEAR, cut off
-   mid-message. Could mean: (a) a brokerage/data-vendor aggregator as a new
-   fallback source, (b) they mean the exchange fallback (CSE/TMX) when they
-   say "brokerage", or (c) something else entirely. **Ask the user to
-   clarify what "brokerage" refers to before implementing.**
+## Resolved (previously open) work
+- **Fiscal year targeting**: `expected_annual_year()` in `pipeline.py` now
+  returns `today.year` (was `today.year - 1`), so as of 2026 it targets
+  fiscal year 2026, still dynamic (advances every January).
+- **"Brokerage" ask**: resolved as meaning the exchange fallbacks (CSE/TMX).
+  The pipeline now tries CSE -> SEC -> TMX (official sources) *before*
+  Tier 1/Tier 2 scraping, reversing the old scrape-first order — scraping
+  only runs on whatever those official sources couldn't resolve. `run_pipeline`
+  seeds a `filings` row (status='needs_review') per company up front so
+  CSE/SEC/TMX's row-selection queries have something to act on before any
+  Tier 1 upsert would otherwise have created that row.
 
 ## Known gotchas
 - Python environment: `python` resolves to Windows Store Python 3.13 — that's
