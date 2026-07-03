@@ -47,32 +47,25 @@ fallbacks for the tail. **Never touches sedarplus.ca.** Free search only
 - `validate.py`, `ingest.py`, `schema.sql`, `config.example.yaml`
 
 ## Repo / branches
-- `main` — has the year-fix + content-verification work
-  (`8c71fdc "refined the correct file finder, correct year and removed
-  quarterly, made sure pdfs were real"`)
-- `add-exchange-fallbacks-and-stats` — has the recency-first ranking +
-  multi-candidate-retry + per-stage-stats work
-  (`9a78fcc "v3 added more output logging and more accurate year..."`),
-  open as PR #1 against `main`
-- **These two branches have diverged and need reconciling** — see below.
+- `main` — **everything is consolidated here now** (merge commit `c954e4a`).
+  Has both the year-fix/content-verification work AND the recency-first
+  ranking/multi-candidate-retry/per-stage-stats/SEC-note-not-link work,
+  reconciled by hand where the two sides conflicted (`crawl_pdf.py`'s
+  `score_pdf`, `pipeline.py`'s `_first_validating` + Tier1/Tier2 callers).
+- `add-exchange-fallbacks-and-stats` — merged into `main`; its PR (#1) is
+  closed. The branch itself may still exist on the remote/locally but has
+  nothing `main` doesn't already have — safe to delete whenever.
 
 ## Open / interrupted work (pick up here)
 The user asked (message interrupted mid-explanation, not yet done):
-1. **Bring back the `add-exchange-fallbacks-and-stats` improvements** on top
-   of `main`'s current state: `rank_pdfs()` (recency-first ranking, every
-   source returns a ranked list not a single guess), multi-candidate retry
-   in `_first_validating` (so a dead/blocked top pick doesn't sink the
-   company), and the SEC `pdf_url`-is-a-note-not-a-link change. Need to
-   merge/rebase these onto `main`'s newer year-fix + `verify_pdf.py` work
-   rather than losing either side.
-2. **Target fiscal year 2026 specifically** ("make sure the pdfs are for
+1. **Target fiscal year 2026 specifically** ("make sure the pdfs are for
    fiscal year 2026") — reconcile with the existing `expected_annual_year()`
    dynamic-year logic (current year − 1). Need to clarify: hardcode 2026 for
    now, or is "current year" reasoning still correct and 2026 was just
    today's expected value? (Today's system date was 2026-07-02 in earlier
    sessions, so `expected_annual_year()` = 2025 then — worth double-checking
    against the user's expectation of 2026.)
-3. **"If direct from company website isn't a very good match... use the
+2. **"If direct from company website isn't a very good match... use the
    brokerage for the file link"** — user's wording, meaning UNCLEAR, cut off
    mid-message. Could mean: (a) a brokerage/data-vendor aggregator as a new
    fallback source, (b) they mean the exchange fallback (CSE/TMX) when they
