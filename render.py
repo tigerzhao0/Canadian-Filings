@@ -14,7 +14,7 @@ import asyncio
 from urllib.parse import urlparse
 
 from crawl_pdf import (
-    PDFCandidate, best_pdf, extract_links, looks_like_pdf, rank_nav_links, score_pdf,
+    PDFCandidate, rank_pdfs, extract_links, looks_like_pdf, rank_nav_links, score_pdf,
 )
 from discover_ir import _registrable_domain
 
@@ -72,31 +72,34 @@ class Renderer:
         if self._pw:
             await self._pw.stop()
 
-    async def find_annual_report_pdf(self, homepage_url: str) -> PDFCandidate | None:
+    async def find_annual_report_pdf(self, homepage_url: str) -> list[PDFCandidate]:
+        """Returns a ranked list (most-recent-first among confident candidates;
+        see rank_pdfs) so the caller can retry #2/#3 if the top pick is dead."""
         assert self._sem is not None
         async with self._sem:
             try:
                 return await self._crawl_rendered(homepage_url)
             except Exception:  # noqa: BLE001 - never let one site kill the pass
-                return None
+                return []
 
-    async def tmx_annual_statement(self, symbol: str, max_months: int = 14) -> dict | None:
+    async def tmx_annual_statements(self, symbol: str, max_months: int = 24) -> list[dict]:
         """Drive the TMX Money Filings widget to a company's latest annual
-        financial statement (returns {'url','date','year',...} or None)."""
+        financial statement(s) (returns a ranked list, may be empty, so the
+        caller can retry the next candidate if the top one is dead/blocked)."""
         assert self._sem is not None
-        from tmx_filings import annual_statement_from_page
+        from tmx_filings import annual_statements_from_page
         async with self._sem:
             context = await self._browser.new_context(user_agent=self._user_agent)
             page = await context.new_page()
             try:
-                return await annual_statement_from_page(
+                return await annual_statements_from_page(
                     page, symbol, max_months, int(self._timeout))
             except Exception:  # noqa: BLE001
-                return None
+                return []
             finally:
                 await context.close()
 
-    async def _crawl_rendered(self, homepage_url: str) -> PDFCandidate | None:
+    async def _crawl_rendered(self, homepage_url: str) -> list[PDFCandidate]:
         start_reg = _registrable_domain(urlparse(homepage_url).netloc)
         context = await self._browser.new_context(user_agent=self._user_agent)
         # Speed: skip images/media/fonts; we only need the DOM + document requests.
@@ -142,9 +145,7 @@ class Renderer:
         finally:
             await context.close()
 
-        if not candidates:
-            return None
-        return best_pdf(candidates)
+        return rank_pdfs(candidates)
 
     async def _render(self, page, url: str) -> str | None:
         try:

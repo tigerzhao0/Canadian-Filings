@@ -69,6 +69,14 @@ def _finalize(method: str, verified: bool, year: int | None) -> tuple[str, str |
     return m, ("; ".join(reasons) if reasons else None)
 
 
+def _sec_note(cik: int, form: str | None, fdate: str | None) -> str:
+    """A plain-text note (not a URL) for the pdf_url column of an SEC
+    cross-listed company — the real link lives in sec_filing_url."""
+    if form:
+        return f"SEC cross-listed -- see EDGAR CIK {cik} (latest {form}, filed {fdate})"
+    return f"SEC cross-listed -- see EDGAR CIK {cik} (no annual filing found via API)"
+
+
 def _pct(n: int, d: int) -> float:
     return (n / d * 100.0) if d else 0.0
 
@@ -179,7 +187,7 @@ class Store:
 # Shared validation
 # --------------------------------------------------------------------------- #
 async def _first_validating(cands: list[PDFCandidate], client, ua, timeout,
-                            browser_ua=None, limit=3, verify_content=True):
+                            browser_ua=None, limit=5, verify_content=True):
     """Pick the best confident candidate.
 
     Returns (candidate, verified) where verified is True for a confirmed PDF and
@@ -252,17 +260,19 @@ async def _tier1(company, *, provider, crawler, client, store, blocklist, cfg) -
     method = ((f"crawl:{candidate.platform}" if candidate.platform else "crawl")
               if sure else None)
 
-    # Stage 3: deep static crawl of the homepage (sure matches only).
-    crawl_pdf_cand = None
+    # Stage 3: deep static crawl of the homepage (sure matches only). Returns a
+    # ranked list (most-recent-first among confident candidates) so a dead/
+    # blocked top link doesn't sink an otherwise-successful crawl — we retry
+    # down the list until one validates.
+    crawl_pdf_cands: list[PDFCandidate] = []
     if sure:
         try:
-            crawl_pdf_cand = await crawler.find_annual_report_pdf(candidate.url)
+            crawl_pdf_cands = await crawler.find_annual_report_pdf(candidate.url)
         except Exception:  # noqa: BLE001
-            crawl_pdf_cand = None
+            crawl_pdf_cands = []
 
     good, verified = await _first_validating(
-        [crawl_pdf_cand] if crawl_pdf_cand else [], client, ua, timeout, browser_ua,
-        verify_content=verify_content)
+        crawl_pdf_cands, client, ua, timeout, browser_ua, verify_content=verify_content)
     if good:
         m, reason = _finalize(method, verified, good.year)
         await store.upsert(**base, ir_homepage_url=homepage_url, pdf_url=good.url,
@@ -286,7 +296,7 @@ async def _tier1(company, *, provider, crawler, client, store, blocklist, cfg) -
         return True
 
     # Not resolved in Tier 1 — record the most informative partial state.
-    weak = crawl_pdf_cand or (pdf_cands[0] if pdf_cands else None)
+    weak = (crawl_pdf_cands[0] if crawl_pdf_cands else None) or (pdf_cands[0] if pdf_cands else None)
     if not sure and not pdf_cands:
         await store.upsert(**base, status="needs_review", failure_reason="no_corporate_domain")
     elif weak is not None:
@@ -325,9 +335,9 @@ async def _tier2(row, *, renderer, provider, client, store, blocklist, cfg) -> b
         return False  # nothing renderable; leave Tier-1 status untouched
 
     verify_content = bool(cfg.get("verify", {}).get("content_check", True))
-    pdf = await renderer.find_annual_report_pdf(homepage)
-    good, verified = await _first_validating([pdf] if pdf else [], client, ua, timeout,
-                                             browser_ua, verify_content=verify_content)
+    pdfs = await renderer.find_annual_report_pdf(homepage)
+    good, verified = await _first_validating(pdfs, client, ua, timeout, browser_ua,
+                                             verify_content=verify_content)
     if good:
         m, reason = _finalize("render", verified, good.year)
         await store.upsert(**base, ir_homepage_url=homepage, pdf_url=good.url,
@@ -468,18 +478,18 @@ async def _run_cse_pass(store, client, cfg, progress, pending: list[dict]) -> in
     async def handle(row):
         nonlocal resolved
         async with sem:
-            res = await cse_filings.fetch_annual_statement(client, row["ticker"], ua, timeout)
-            if not res:
+            candidates = await cse_filings.fetch_annual_statements(client, row["ticker"], ua, timeout)
+            for res in candidates:
+                state, _reason = await validate_pdf(client, res["url"], ua, timeout, ua)
+                if state == "fail":
+                    continue  # try the next candidate rather than giving up
+                method, reason = _finalize("cse_filings", state == "ok", res["year"])
+                await store.upsert(ticker=row["ticker"], company_name=row["company_name"],
+                                   exchange=row["exchange"], pdf_url=res["url"],
+                                   fiscal_year_guess=res["year"], discovery_method=method,
+                                   status="found", failure_reason=reason)
+                resolved += 1
                 return
-            state, _reason = await validate_pdf(client, res["url"], ua, timeout, ua)
-            if state == "fail":
-                return
-            method, reason = _finalize("cse_filings", state == "ok", res["year"])
-        await store.upsert(ticker=row["ticker"], company_name=row["company_name"],
-                           exchange=row["exchange"], pdf_url=res["url"],
-                           fiscal_year_guess=res["year"], discovery_method=method,
-                           status="found", failure_reason=reason)
-        resolved += 1
 
     await asyncio.gather(*(handle(r) for r in pending))
     return resolved
@@ -499,7 +509,7 @@ async def _run_tmx_pass(store, client, cfg, progress, pending: list[dict]) -> in
         return 0
     ua = cfg["crawl"].get("browser_user_agent") or cfg["crawl"]["user_agent"]
     timeout = float(cfg["crawl"]["timeout_seconds"])
-    max_months = int(cfg.get("tmx", {}).get("max_months", 14))
+    max_months = int(cfg.get("tmx", {}).get("max_months", 24))
     if progress:
         progress(f"TMX pass: navigating money.tmx.com filings for {len(pending)} "
                  "TSX/TSXV company(ies) [slow, browser-driven] ...")
@@ -512,17 +522,19 @@ async def _run_tmx_pass(store, client, cfg, progress, pending: list[dict]) -> in
             async def handle(row):
                 nonlocal resolved, done
                 async with sem:
-                    res = await renderer.tmx_annual_statement(row["ticker"], max_months)
-                    if res:
+                    candidates = await renderer.tmx_annual_statements(row["ticker"], max_months)
+                    for res in candidates:
                         state, _r = await validate_pdf(client, res["url"], ua, timeout, ua)
-                        if state != "fail":
-                            method, reason = _finalize("tmx_filings", state == "ok", res.get("year"))
-                            await store.upsert(
-                                ticker=row["ticker"], company_name=row["company_name"],
-                                exchange=row["exchange"], pdf_url=res["url"],
-                                fiscal_year_guess=res.get("year"), discovery_method=method,
-                                status="found", failure_reason=reason)
-                            resolved += 1
+                        if state == "fail":
+                            continue  # try the next candidate rather than giving up
+                        method, reason = _finalize("tmx_filings", state == "ok", res.get("year"))
+                        await store.upsert(
+                            ticker=row["ticker"], company_name=row["company_name"],
+                            exchange=row["exchange"], pdf_url=res["url"],
+                            fiscal_year_guess=res.get("year"), discovery_method=method,
+                            status="found", failure_reason=reason)
+                        resolved += 1
+                        break
                 done += 1
                 if progress and (done % 20 == 0 or done == len(pending)):
                     progress(f"  TMX pass: {done}/{len(pending)} (resolved {resolved})")
@@ -569,12 +581,16 @@ async def _run_sec_pass(store, client, cfg, progress, pending: list[dict]) -> in
         fdate = filing.get("date") if filing else None
         year = int(fdate[:4]) if fdate else None
         method, _reason = _finalize("sec_edgar", True, year)
-        # pdf_url mirrors sec_filing_url so the SEC notice shows up in the same
-        # column every other source uses, not just the SEC-specific fields.
+        # This company already has its financials on EDGAR under a different
+        # regime (10-K/40-F/20-F) — don't hand back a second "own" link as if
+        # it were a first-party/exchange PDF. Instead, write a plain-text NOTE
+        # in the pdf_url column pointing to the EDGAR record; the real URL still
+        # lives in sec_filing_url for anything that wants to follow it.
+        note = _sec_note(cik, form, fdate)
         await store.upsert(ticker=row["ticker"], company_name=row["company_name"],
                            exchange=row["exchange"], status="not_found",
                            failure_reason="sec_filer", sec_filer=1,
-                           pdf_url=url, sec_filing_url=url,
+                           pdf_url=note, sec_filing_url=url,
                            sec_filing_form=form, sec_filing_date=fdate,
                            discovery_method=method, fiscal_year_guess=year)
         if progress and len(filers) <= 20:

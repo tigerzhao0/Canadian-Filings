@@ -29,11 +29,19 @@ _PREV_ARROW = 'button[class*="CarouselMonthPicker__ArrowButton"]'
 _MONTH_BTN = 'button[class*="CarouselMonthPicker__Month"]'
 
 
-async def annual_statement_from_page(page, symbol: str, max_months: int = 14,
-                                     timeout_ms: int = 45000) -> dict | None:
-    """Drive the TMX Filings widget to the most recent annual financial statement.
-    Returns {'url','date','year','description'} or None. `page` is a Playwright
-    Page from the render browser."""
+async def annual_statements_from_page(page, symbol: str, max_months: int = 24,
+                                      timeout_ms: int = 45000, limit: int = 3) -> list[dict]:
+    """Drive the TMX Filings widget back to the most recent annual financial
+    statement(s). Returns a ranked list (most-recent-first, may be empty) of
+    {'url','date','year','description'} — several candidates so a dead/blocked
+    top link can be retried against the next. `page` is a Playwright Page from
+    the render browser.
+
+    Scans up to `max_months` months back for a strict match (an "annual report"
+    or "annual ... financial statement" filing). If none turns up in that whole
+    window, falls back to the best secondary candidate seen along the way (an
+    Annual Information Form or an unlabelled "audited financial statements"),
+    since some small issuers only file one of those."""
     await page.goto(TMX_URL.format(symbol=symbol), wait_until="domcontentloaded",
                     timeout=timeout_ms)
     try:
@@ -43,17 +51,30 @@ async def annual_statement_from_page(page, symbol: str, max_months: int = 14,
     await page.evaluate(_FILINGS_TAB_JS)
     await page.wait_for_timeout(2500)
 
-    # Walk newest -> oldest; the first month containing an annual FS is the latest.
+    secondary: list[dict] = []
     for _ in range(max_months):
         await _load_all(page)
         links = await page.eval_on_selector_all(
             "a[href*=downloadFiling]", "els=>els.map(e=>e.href)")
-        cand = pick_annual(links)
-        if cand:
-            return cand
+        cands = pick_annuals(links, limit)
+        if cands:
+            return cands
+        secondary.extend(pick_secondary(links))
         if not await _prev_month(page):
             break
-    return None
+
+    if secondary:
+        seen: set[str] = set()
+        out = []
+        for d in sorted(secondary, key=lambda x: x["date"], reverse=True):
+            if d["url"] in seen:
+                continue
+            seen.add(d["url"])
+            out.append(d)
+            if len(out) >= limit:
+                break
+        return out
+    return []
 
 
 async def _load_all(page, max_clicks: int = 8):
@@ -80,21 +101,42 @@ async def _prev_month(page) -> bool:
         return False
 
 
-def pick_annual(links: list[str]) -> dict | None:
-    """Pick the most recent annual financial statement from downloadFiling links,
-    parsing the formDescription/dateFiled query params. Excludes interim."""
+def _parse(url: str) -> tuple[str, str]:
+    q = parse_qs(urlparse(url).query)
+    desc = (q.get("formDescription", [""])[0] or "").lower()
+    date = q.get("dateFiled", [""])[0] or ""
+    return desc, date
+
+
+def pick_annuals(links: list[str], limit: int = 3) -> list[dict]:
+    """Pick the most recent strict annual-report/financial-statement matches
+    from downloadFiling links (excludes interim), most-recent-first."""
     cands: list[tuple[str, str, str]] = []
     for url in links:
-        q = parse_qs(urlparse(url).query)
-        desc = (q.get("formDescription", [""])[0] or "").lower()
-        date = q.get("dateFiled", [""])[0] or ""
+        desc, date = _parse(url)
         if "interim" in desc:
             continue
         if ("annual" in desc and "financial statement" in desc) or "annual report" in desc:
             cands.append((date, url, desc))
-    if not cands:
-        return None
     cands.sort(reverse=True)  # latest dateFiled first
-    date, url, desc = cands[0]
+    return [_to_dict(date, url, desc) for date, url, desc in cands[:limit]]
+
+
+def pick_secondary(links: list[str]) -> list[dict]:
+    """Broader fallback matches (AIF, unlabelled 'audited financial statements')
+    for issuers that never file a filing matching pick_annuals' strict criteria."""
+    out = []
+    for url in links:
+        desc, date = _parse(url)
+        if "interim" in desc:
+            continue
+        if "annual information form" in desc or (
+            "audited" in desc and "financial statement" in desc
+        ):
+            out.append(_to_dict(date, url, desc))
+    return out
+
+
+def _to_dict(date: str, url: str, desc: str) -> dict:
     year = int(date[:4]) if date[:4].isdigit() else None
     return {"url": url, "date": date, "year": year, "description": desc}

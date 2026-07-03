@@ -121,12 +121,15 @@ class Crawler:
         self._timeout = float(cfg.get("timeout_seconds", 20))
         self._robots: dict[str, RobotFileParser | None] = {}
 
-    async def find_annual_report_pdf(self, homepage_url: str) -> PDFCandidate | None:
+    async def find_annual_report_pdf(self, homepage_url: str) -> list[PDFCandidate]:
         """BFS from the homepage up to max_hops, collecting PDF candidates.
 
         Follows links within the same registrable domain (so company.com can hop
         to ir.company.com / investors.company.com), prioritising report-ish nav
-        links. Returns the best PDF candidate or None.
+        links. Returns a ranked list of candidates (most-recent-first among
+        confident ones; see rank_pdfs) so the caller can retry validation
+        against #2, #3, ... if the top pick turns out dead/blocked — a single
+        bad link should not sink an otherwise-successful crawl.
         """
         start_reg = _registrable_domain(urlparse(homepage_url).netloc)
         visited: set[str] = set()
@@ -160,9 +163,7 @@ class Crawler:
             if depth >= 1 and any(c.score >= 6 for c in pdf_candidates):
                 break
 
-        if not pdf_candidates:
-            return None
-        return best_pdf(pdf_candidates)
+        return rank_pdfs(pdf_candidates)
 
     async def _fetch_html(self, url: str) -> str | None:
         if self._respect_robots and not await self._robots_allows(url):
@@ -275,10 +276,17 @@ def score_pdf(href: str, text: str) -> PDFCandidate:
         # Recency is a bonus ON TOP of a real report hint — a recent date alone
         # (e.g. a press release dated this year) must not qualify a PDF.
         score += max(0, 3 - (CURRENT_YEAR - year))
-    if any(bad in blob for bad in NEGATIVE_HINTS) or _QUARTER_RE.search(blob):
-        score -= 3.0
+    # A negative hint (interim, proxy, circular, meeting minutes, a quarter
+    # marker, ...) is a hard veto, not just a score nudge — an interim report
+    # can legitimately carry "financial statement" + a fresh year (e.g.
+    # "Q1-F2026-Interim-Financial-Statements.pdf") and would otherwise net a
+    # positive score that clears MIN_FOUND_SCORE despite obviously NOT being
+    # the annual report.
+    is_negative = any(bad in blob for bad in NEGATIVE_HINTS) or bool(_QUARTER_RE.search(blob))
+    if is_negative:
+        score -= 8.0
     return PDFCandidate(url=href, link_text=text, score=score, year=year,
-                        has_report_hint=has_ar or has_fin)
+                        has_report_hint=(has_ar or has_fin) and not is_negative)
 
 
 def _pdf_year(text: str, path: str) -> int | None:
@@ -298,9 +306,20 @@ def _latest_year(blob: str) -> int | None:
     return max(years) if years else None
 
 
-def best_pdf(candidates: list[PDFCandidate]) -> PDFCandidate:
-    # Highest score, tie-broken by most recent year.
-    return max(candidates, key=lambda c: (c.score, c.year or 0))
+def rank_pdfs(candidates: list[PDFCandidate], limit: int = 6) -> list[PDFCandidate]:
+    """Rank PDF candidates most-likely-correct first.
+
+    Confident (real annual-report/financial-statement) candidates are sorted by
+    MOST RECENT YEAR FIRST, tie-broken by score — once something is confirmed to
+    actually be an annual report, the newest one wins outright, regardless of
+    which one happens to score marginally higher on keyword match. Non-confident
+    candidates are appended after (sorted by score) purely as a last-resort
+    needs_review pointer if nothing confident is found."""
+    confident = [c for c in candidates if is_confident(c)]
+    weak = [c for c in candidates if not is_confident(c)]
+    confident.sort(key=lambda c: (c.year or 0, c.score), reverse=True)
+    weak.sort(key=lambda c: (c.score, c.year or 0), reverse=True)
+    return (confident + weak)[:limit]
 
 
 def is_confident(pdf: PDFCandidate | None) -> bool:

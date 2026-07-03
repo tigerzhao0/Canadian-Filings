@@ -25,17 +25,19 @@ _ANNUAL_CATEGORIES = (
 )
 
 
-async def fetch_annual_statement(client, symbol: str, user_agent: str, timeout: float = 20) -> dict | None:
-    """Return {'url','year','category','date'} for the latest annual financial
-    statement on the CSE, or None. Tries the ticker and its base (sans suffix)."""
+async def fetch_annual_statements(client, symbol: str, user_agent: str, timeout: float = 20) -> list[dict]:
+    """Return {'url','year','category','date'} candidates for the latest annual
+    financial statement on the CSE, most-recent-first (may be empty). Returning
+    more than one lets the caller retry if the top URL turns out dead/blocked.
+    Tries the ticker and its base (sans suffix)."""
     for sym in _symbol_variants(symbol):
         filings_url = await _sedar_filings_url(client, sym, user_agent, timeout)
         if not filings_url:
             continue
-        picked = await _pick_annual(client, filings_url, user_agent, timeout)
+        picked = await _pick_annuals(client, filings_url, user_agent, timeout)
         if picked:
             return picked
-    return None
+    return []
 
 
 def _symbol_variants(symbol: str) -> list[str]:
@@ -64,14 +66,18 @@ async def _sedar_filings_url(client, symbol, user_agent, timeout) -> str | None:
     return meta.get("sedar_filings")
 
 
-async def _pick_annual(client, filings_url, user_agent, timeout) -> dict | None:
+async def _pick_annuals(client, filings_url, user_agent, timeout, limit_per_tier: int = 3) -> list[dict]:
+    """Return up to `limit_per_tier` most-recent filings from the first category
+    tier that has any hits (ANNUAL_FINANCIAL_STATEMENTS preferred, then Financial
+    Statements, then ANNUAL_MDA) — tier preference still wins, but within a tier
+    we keep a few so a dead/blocked top URL doesn't sink the company."""
     try:
         resp = await client.get(filings_url, headers={"User-Agent": user_agent},
                                 timeout=timeout, follow_redirects=True)
     except Exception:  # noqa: BLE001
-        return None
+        return []
     if resp.status_code != 200:
-        return None
+        return []
     items = resp.json().get("list") or []
 
     for categories in _ANNUAL_CATEGORIES:
@@ -83,9 +89,11 @@ async def _pick_annual(client, filings_url, user_agent, timeout) -> dict | None:
                    if (it.get("document_language") or "").lower().startswith("en")]
         pool = english or cands
         pool.sort(key=lambda x: x.get("public_date", ""), reverse=True)
-        it = pool[0]
-        date = it.get("public_date", "") or ""
-        year = int(date[:4]) if date[:4].isdigit() else None
-        return {"url": it["url"], "year": year,
-                "category": it.get("document_category"), "date": date}
-    return None
+        out = []
+        for it in pool[:limit_per_tier]:
+            date = it.get("public_date", "") or ""
+            year = int(date[:4]) if date[:4].isdigit() else None
+            out.append({"url": it["url"], "year": year,
+                       "category": it.get("document_category"), "date": date})
+        return out
+    return []
