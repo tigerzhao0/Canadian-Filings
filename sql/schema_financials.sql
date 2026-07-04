@@ -106,6 +106,61 @@ CREATE TABLE IF NOT EXISTS tmx_financials_status (
     checked_at   TIMESTAMP
 );
 
+-- run.py --step 3 (local-LLM extraction of CSE PDF statement text) audit layer.
+-- The canonical numbers land in the same companies/company_years/statement_lines
+-- tables above (tagged source='cse_pdf_extract'); these two tables are the
+-- provenance/outcome record for that pass, parallel to tmx_financials_raw /
+-- tmx_financials_status for the QuoteMedia pass.
+--
+-- pdf_llm_raw: the verbatim model JSON per (ticker, year, statement), so a value
+-- can be re-derived / spot-checked (and a wrong unit_scale corrected) without
+-- re-running the LLM. NOT canonical -- query statement_lines / v_financials.
+CREATE TABLE IF NOT EXISTS pdf_llm_raw (
+    ticker          TEXT NOT NULL,
+    fiscal_year     INTEGER NOT NULL,
+    statement_type  TEXT NOT NULL,   -- 'income_statement' | 'balance_sheet' | 'cash_flow'
+    model           TEXT,            -- which Ollama model produced this
+    prompt_version  TEXT,            -- llm.prompt_version at extraction time
+    unit_scale      REAL,            -- detected 'in thousands/millions' multiplier
+    currency        TEXT,
+    raw_json        TEXT,            -- verbatim model output (columns + lines)
+    extracted_at    TIMESTAMP,
+    PRIMARY KEY (ticker, fiscal_year, statement_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pdf_llm_raw_ticker ON pdf_llm_raw(ticker);
+
+-- Cross-year consistency diagnostic: flags a ticker where different fiscal
+-- years used different canonical keys (per SYNONYM_GROUPS in llm_extract.py)
+-- for what's probably the same real-world concept (e.g. net income mapped to
+-- NetIncome in one year, NetIncomeContinuousOperations in another). Purely
+-- informational -- doesn't change what's in statement_lines, just flags it
+-- for a human look / a future synonym-collapse pass.
+CREATE TABLE IF NOT EXISTS pdf_llm_consistency (
+    ticker         TEXT NOT NULL,
+    concept_group  TEXT NOT NULL,   -- the synonym cluster, as a sorted '|'-joined key list
+    pattern        TEXT,            -- 'redundant_every_year' (same keys always co-occur --
+                                     -- one concept double-mapped) | 'switches_by_year'
+                                     -- (different years genuinely used different keys)
+    keys_used      TEXT,            -- JSON: {canonical_key: [fiscal_years using it]}
+    checked_at     TIMESTAMP,
+    PRIMARY KEY (ticker, concept_group)
+);
+
+-- One row per (ticker, fiscal_year, statement_type) attempted, so "tried but
+-- the model failed" is never confused with "not tried" (the resume key).
+-- status: 'ok' | 'invalid_json' | 'empty' | 'no_columns' | 'llm_error'
+CREATE TABLE IF NOT EXISTS pdf_llm_status (
+    ticker          TEXT NOT NULL,
+    fiscal_year     INTEGER NOT NULL,
+    statement_type  TEXT NOT NULL,
+    status          TEXT,
+    reason          TEXT,
+    n_lines         INTEGER,         -- canonical line items written for this statement
+    checked_at      TIMESTAMP,
+    PRIMARY KEY (ticker, fiscal_year, statement_type)
+);
+
 -- One row per run_tmx_financials() call, so real elapsed time / "last
 -- refreshed" is available (bulk-upsert stamps every row with the same
 -- write-time timestamp, so there's no per-row timing to derive this from --

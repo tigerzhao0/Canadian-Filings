@@ -69,12 +69,15 @@ def _die(msg: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Find Canadian companies' annual-report PDFs.")
-    ap.add_argument("--step", type=int, choices=(1, 2), default=1,
+    ap.add_argument("--step", type=int, choices=(1, 2, 3), default=1,
                     help="1 (default) = the pipeline: structured financials + find the "
                          "annual-report PDFs for the tail QuoteMedia misses. 2 = process "
                          "those found PDFs: download -> extract income/balance/cash-flow "
                          "statement text -> delete the file -> store in pdf_extractions. "
-                         "Step 2 reads filing_pdfs from the DB and needs no --input.")
+                         "3 = local-LLM extraction: read pdf_extractions, map each "
+                         "statement's text to the canonical financials schema via a local "
+                         "Ollama model, and write to financials.db (source='cse_pdf_extract'). "
+                         "Steps 2 and 3 read from the DB and need no --input.")
     ap.add_argument("--input", required=False,
                     help="Company list (.xlsx GuruFocus export or ticker,name,exchange CSV). "
                          "Required for --step 1; ignored for --step 2.")
@@ -86,6 +89,13 @@ def main() -> None:
                       help="Continue against the existing DB (same as full; found rows skipped).")
     ap.add_argument("--sample-size", type=int, default=None,
                     help="Pilot sample size (default from config, ~40).")
+    ap.add_argument("--force", action="store_true",
+                    help="(--step 3) Re-run statements already marked 'ok' in "
+                         "pdf_llm_status instead of skipping them.")
+    ap.add_argument("--limit", type=int, default=None,
+                    help="(--step 3) Process at most N pdf rows (smoke testing).")
+    ap.add_argument("--tickers", default=None,
+                    help="(--step 3) Comma-separated ticker allow-list (smoke testing).")
     ap.add_argument("--config", type=Path, default=DEFAULT_CONFIG,
                     help="Config YAML (defaults to config.example.yaml).")
     ap.add_argument("--no-render", action="store_true",
@@ -126,6 +136,39 @@ def main() -> None:
         print(f"  elapsed        : {result['elapsed']:.1f}s")
         print(f"  stored in      : {result['db_path']} (table 'pdf_extractions')")
         print("=" * 44)
+        return
+
+    # Step 3: local-LLM extraction. Reads pdf_extractions (filings.db), writes the
+    # canonical financials tables (financials.db). GPU-serial, so synchronous --
+    # NOT asyncio.run like steps 1/2. Needs no --input.
+    if args.step == 3:
+        from llm_extract import run_llm_extraction
+        src_db = cfg.get("storage", {}).get("db_path", "output/filings.db")
+        fin_db = cfg.get("tmx_financials", {}).get("db_path", "output/financials.db")
+        tickers = ({t.strip() for t in args.tickers.split(",") if t.strip()}
+                   if args.tickers else None)
+        print(f"Step 3: LLM extraction  |  read {src_db} -> write {fin_db}")
+        result = run_llm_extraction(cfg, force=args.force, limit=args.limit,
+                                    tickers=tickers, progress=print)
+        print("\n" + "=" * 44)
+        print("  LLM extraction complete")
+        print("=" * 44)
+        print(f"  statement-calls attempted : {result['attempted']}")
+        print(f"  parsed ok                 : {result['parsed_ok']}")
+        print(f"  invalid / errored         : {result['invalid']}")
+        print(f"  skipped (done/empty)      : {result['skipped']}")
+        print(f"  new companies             : {result['companies']}")
+        print(f"  company-years written     : {result['years']}")
+        print(f"  statement lines written   : {result['lines']}")
+        print(f"  values dropped (unverified vs source text) : "
+              f"{result['unverified_dropped']}")
+        print(f"  cross-year consistency warnings : {result['consistency_warnings']} "
+              f"(see table 'pdf_llm_consistency')")
+        print(f"  elapsed                   : {result['elapsed']:.1f}s")
+        print(f"  stored in                 : {result['db_path']}")
+        print("=" * 44)
+        print("  Next: python src/company_export.py --all   "
+              "(regenerate every output/companies/<TICKER>.json)")
         return
 
     if not args.input:

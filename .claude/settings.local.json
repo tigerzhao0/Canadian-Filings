@@ -4,7 +4,8 @@
       "Bash(ls -la \"C:\\\\Users\\\\tiger\\\\OneDrive\\\\Documents\\\\Workspace\\\\GuruFocus\\\\Canadian Filings\" 2>/dev/null; echo \"---CSV search---\"; ls \"C:\\\\Users\\\\tiger\\\\OneDrive\\\\Documents\\\\Workspace\\\\GuruFocus\\\\Canadian Filings\"/*.csv 2>/dev/null; echo \"---downloads csv---\"; ls \"C:\\\\Users\\\\tiger\\\\Downloads\"/*.csv 2>/dev/null | head -20)",
       "Bash(py --version)",
       "Bash(py -c ' *)",
-      "Bash(python3 -c \"from datetime import date; today = date\\(2026, 7, 2\\); expected = today.year - 1; print\\(f'Today: {today}'\\); print\\(f'Expected annual year \\(today.year - 1\\): {expected}'\\)\")"
+      "Bash(python3 -c \"from datetime import date; today = date\\(2026, 7, 2\\); expected = today.year - 1; print\\(f'Today: {today}'\\); print\\(f'Expected annual year \\(today.year - 1\\): {expected}'\\)\")",
+      "Bash(python -c ' *)"
     ]
   }
 }

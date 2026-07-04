@@ -245,6 +245,66 @@ class FinancialsStore:
         self._conn.executemany(sql, [tuple(r[c] for c in cols[:-1]) + (now,) for r in rows])
         self._conn.commit()
 
+    def bulk_upsert_llm_raw(self, rows: list[dict]) -> None:
+        """Step-3 audit: the verbatim LLM JSON per (ticker, year, statement),
+        parallel to bulk_upsert_raw for QuoteMedia. Not canonical -- query
+        statement_lines / v_financials for the numbers."""
+        if not rows:
+            return
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        cols = list(rows[0].keys()) + ["extracted_at"]
+        placeholders = ", ".join("?" for _ in cols)
+        key = ("ticker", "fiscal_year", "statement_type")
+        updates = ", ".join(f"{c}=excluded.{c}" for c in cols if c not in key)
+        sql = (f"INSERT INTO pdf_llm_raw ({', '.join(cols)}) VALUES ({placeholders}) "
+               f"ON CONFLICT({', '.join(key)}) DO UPDATE SET {updates}")
+        self._conn.executemany(sql, [tuple(r[c] for c in cols[:-1]) + (now,) for r in rows])
+        self._conn.commit()
+
+    def bulk_upsert_llm_status(self, rows: list[dict]) -> None:
+        """Step-3 outcome, one row per (ticker, year, statement) attempted --
+        the resume key (an 'ok' row is skipped on the next run)."""
+        if not rows:
+            return
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        cols = list(rows[0].keys()) + ["checked_at"]
+        placeholders = ", ".join("?" for _ in cols)
+        key = ("ticker", "fiscal_year", "statement_type")
+        updates = ", ".join(f"{c}=excluded.{c}" for c in cols if c not in key)
+        sql = (f"INSERT INTO pdf_llm_status ({', '.join(cols)}) VALUES ({placeholders}) "
+               f"ON CONFLICT({', '.join(key)}) DO UPDATE SET {updates}")
+        self._conn.executemany(sql, [tuple(r[c] for c in cols[:-1]) + (now,) for r in rows])
+        self._conn.commit()
+
+    def bulk_upsert_consistency_flags(self, rows: list[dict]) -> None:
+        """Step-3 cross-year synonym-inconsistency diagnostic (see
+        SYNONYM_GROUPS in llm_extract.py) -- one row per (ticker, concept_group)
+        where different years used different canonical keys for the same
+        concept. Informational only."""
+        if not rows:
+            return
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        cols = list(rows[0].keys()) + ["checked_at"]
+        placeholders = ", ".join("?" for _ in cols)
+        key = ("ticker", "concept_group")
+        updates = ", ".join(f"{c}=excluded.{c}" for c in cols if c not in key)
+        sql = (f"INSERT INTO pdf_llm_consistency ({', '.join(cols)}) VALUES ({placeholders}) "
+               f"ON CONFLICT({', '.join(key)}) DO UPDATE SET {updates}")
+        self._conn.executemany(sql, [tuple(r[c] for c in cols[:-1]) + (now,) for r in rows])
+        self._conn.commit()
+
+    def existing_tickers(self) -> set[str]:
+        """Tickers that already have an identity row -- used by step 3 to avoid
+        clobbering a QuoteMedia company's primary_source with 'cse_pdf_extract'."""
+        return {r[0] for r in self._conn.execute("SELECT ticker FROM companies")}
+
+    def completed_statements(self) -> set[tuple[str, int, str]]:
+        """(ticker, fiscal_year, statement_type) already marked 'ok' -- the
+        step-3 resume set (skip unless --force)."""
+        return {(r[0], r[1], r[2]) for r in self._conn.execute(
+            "SELECT ticker, fiscal_year, statement_type FROM pdf_llm_status "
+            "WHERE status = 'ok'")}
+
     def log_run(self, *, total: int, resolved: int, failed: int, excluded: int,
                elapsed_sec: float) -> None:
         """One row per run_tmx_financials() call -- the only place real
