@@ -137,6 +137,14 @@ def _non_reporting_category(ticker: str | None) -> str | None:
     return None
 
 
+# Short, structure-aware reasons -- explain WHY these two categories
+# structurally can't have normal revenue/earnings, not just that data's missing.
+_NON_REPORTING_REASON = {
+    "capital_pool_company": "Shell company (CPC) -- no operating business yet, so nothing to report.",
+    "trust_or_fund": "Holds investments, not an operating business -- standard revenue doesn't apply.",
+}
+
+
 def _source_ref(symbol: str) -> str:
     """Provenance string for company_years.source_ref -- identifies exactly
     which call produced a year's data (the actual symbol sent, :CNX/:OMG
@@ -377,14 +385,10 @@ async def run_tmx_financials(companies, cfg, *, progress=None) -> dict:
                     category = _non_reporting_category(company.ticker)
                     if category:
                         excluded += 1
-                        status, reason = category, (
-                            f"no financials returned from QuoteMedia -- excluded from "
-                            f"success rate ({category.replace('_', ' ')}, not a failure)")
+                        status, reason = category, _NON_REPORTING_REASON[category]
                     else:
                         failed += 1
-                        status, reason = "no_data", (
-                            "no financials returned from QuoteMedia "
-                            "(unlisted symbol / no data on file / request error)")
+                        status, reason = "no_data", "Not found in QuoteMedia (delisted, thinly covered, or symbol mismatch)."
                     status_rows.append(dict(
                         ticker=company.ticker, company_name=company.legal_name,
                         exchange=company.exchange, status=status, reason=reason))
