@@ -50,8 +50,14 @@ def expected_annual_year(today: date | None = None) -> int:
     return today.year
 
 
-# How many years of annual filings Stage 2 tries to collect per company, to
-# mirror the 5-year depth the structured-financials stage pulls.
+# How many years of annual-report PDFs the PDF finder tries to collect per
+# company (for the tail QuoteMedia doesn't cover). This is INDEPENDENT of the
+# structured-financials depth (tmx_financials.num_years, now ~14): PDF companies
+# have no QuoteMedia data to mirror, IR sites/regulators rarely expose more than
+# the latest year or two of annual reports, and each annual-report PDF already
+# carries ~2 comparative years -- so a modest cap here is deliberate, not a
+# leftover. Raise it only if you need deeper PDF history and can afford the extra
+# discovery/download/extract work per company.
 FILING_YEARS = 5
 
 

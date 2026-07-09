@@ -1,9 +1,11 @@
 """Orchestrates structured financials collection via the QuoteMedia API for
 TSX/TSXV, CSE/XCNQ, AND NEOE companies.
 
-Pulls 5-year Income Statement / Balance Sheet / Cash Flow data (see
-tmx_financials.py) and stores it in its OWN SQLite database (separate from
-filings.db, the PDF-finder's DB) since the schemas don't overlap.
+Pulls up to ~14 years of Income Statement / Balance Sheet / Cash Flow data
+(config tmx_financials.num_years, default 20 -- QuoteMedia caps the actual
+history at ~14 years; see tmx_financials.py) and stores it in its OWN SQLite
+database (separate from filings.db, the PDF-finder's DB) since the schemas
+don't overlap.
 
 CSE/XCNQ coverage: QuoteMedia also indexes CSE-listed companies, but their
 plain ticker collides with other exchanges' listings in QuoteMedia's cross-
@@ -178,7 +180,24 @@ class FinancialsStore:
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA synchronous=NORMAL")
         self._conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        self._migrate()
         self._conn.commit()
+
+    def _migrate(self) -> None:
+        """Additive migrations for columns added to tables that already exist in
+        older DBs (CREATE TABLE IF NOT EXISTS won't add a column to a table that
+        was created before the column existed). Idempotent."""
+        additions = {
+            # pdf_llm_consistency gained `pattern` after the table shipped.
+            "pdf_llm_consistency": {"pattern": "TEXT"},
+        }
+        for table, cols in additions.items():
+            existing = {r[1] for r in self._conn.execute(f"PRAGMA table_info({table})")}
+            if not existing:
+                continue  # table doesn't exist yet -- the schema script will make it fresh
+            for col, decl in cols.items():
+                if col not in existing:
+                    self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
 
     def _bulk_upsert(self, table: str, rows: list[dict], key: tuple[str, ...],
                      stamp_col: str | None = None) -> None:
@@ -369,6 +388,11 @@ async def run_tmx_financials(companies, cfg, *, progress=None) -> dict:
     db_path = fcfg.get("db_path", "output/financials.db")
     concurrency = int(fcfg.get("concurrency", 10))
     timeout = float(fcfg.get("timeout_seconds", 20))
+    # How many annual reports to request. QuoteMedia caps at ~14 years of
+    # history regardless (empirically 2025..2012 for deep filers), so asking for
+    # 20 just pulls the full available window -- a higher number is harmless
+    # (returns the max available, no error). See tmx_financials.fetch_annual_financials.
+    num_years = int(fcfg.get("num_years", 20))
 
     targets = [c for c in companies if is_tmx_exchange(c.exchange)]
     n_tmx = sum(1 for c in targets if (c.exchange or "").strip().upper() in TMX_EXCHANGES)
@@ -429,7 +453,8 @@ async def run_tmx_financials(companies, cfg, *, progress=None) -> dict:
                         try:
                             reports = await fetch_annual_financials(
                                 client, symbol, token=cur_token,
-                                timeout=timeout, raise_on_expired=True)
+                                timeout=timeout, num_years=num_years,
+                                raise_on_expired=True)
                             break
                         except TokenExpired:
                             cur_token = await holder.refresh(cur_token)

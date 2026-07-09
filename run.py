@@ -164,6 +164,12 @@ def main() -> None:
               f"{result['unverified_dropped']}")
         print(f"  cross-year consistency warnings : {result['consistency_warnings']} "
               f"(see table 'pdf_llm_consistency')")
+        print(f"  parse success rate        : {result['parse_success_rate_pct']:.1f}%  "
+              "(parsed ok / (parsed ok + invalid), excludes skipped)")
+        print(f"  value verification rate   : {result['value_verification_rate_pct']:.1f}%  "
+              "(values written / (written + dropped))")
+        print(f"  actual LLM round-trips    : {result['llm_calls']}  "
+              f"({result['avg_seconds_per_call']:.1f}s/call avg)")
         print(f"  elapsed                   : {result['elapsed']:.1f}s")
         print(f"  stored in                 : {result['db_path']}")
         print("=" * 44)

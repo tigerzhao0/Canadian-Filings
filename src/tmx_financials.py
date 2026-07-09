@@ -85,12 +85,20 @@ async def mint_token(timeout_ms: int = 45000, poll_interval_ms: int = 300,
 
 async def fetch_annual_financials(client, symbol: str, *, token: str,
                                   user_agent: str = DEFAULT_USER_AGENT,
-                                  timeout: float = 20.0, num_years: int = 5,
+                                  timeout: float = 20.0, num_years: int = 20,
                                   raise_on_expired: bool = False) -> list[dict]:
     """Fetch up to `num_years` of annual Income Statement / Balance Sheet /
     Cash Flow data for a TSX/TSXV `symbol`. `token` must be a freshly minted
     one (see `mint_token()`) -- there is no working default anymore, the
     token goes stale.
+
+    NOTE on depth: QuoteMedia caps this endpoint at ~14 annual reports
+    regardless of how high `num_years` goes (empirically deep filers like RY /
+    BMO / ENB return 2025..2012 = 14 years for numberOfReports of 15, 30, or
+    50 alike -- a rolling retention window, not a per-symbol limit). Asking for
+    more than the cap is harmless: the API just returns the max available with
+    no error. Default is 20 so we always pull the full window the API offers
+    (and would automatically capture more if QuoteMedia ever extends it).
 
     Returns a list of yearly reports, most-recent-first, each shaped:
         {"year": int, "period_end": str | None, "currency": str | None,

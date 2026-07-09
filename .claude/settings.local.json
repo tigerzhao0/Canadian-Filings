@@ -5,7 +5,11 @@
       "Bash(py --version)",
       "Bash(py -c ' *)",
       "Bash(python3 -c \"from datetime import date; today = date\\(2026, 7, 2\\); expected = today.year - 1; print\\(f'Today: {today}'\\); print\\(f'Expected annual year \\(today.year - 1\\): {expected}'\\)\")",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import flask; print\\('flask:', flask.__version__\\)\")",
+      "Bash(python -c \"import fastapi; print\\('fastapi:', fastapi.__version__\\)\")",
+      "Bash(python -c \"import uvicorn; print\\('uvicorn:', uvicorn.__version__\\)\")",
+      "Bash(python -c \"import starlette; print\\('starlette:', starlette.__version__\\)\")"
     ]
   }
 }

@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8734", "--directory", "output"],
       "port": 8734
+    },
+    {
+      "name": "gui",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["gui.py", "--no-browser", "--port", "5000"],
+      "port": 5000
     }
   ]
 }

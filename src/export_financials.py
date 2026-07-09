@@ -92,7 +92,8 @@ def export_summary(conn: sqlite3.Connection, out_path: str) -> None:
     wide = wide[ordered_cols].sort_values(["ticker", "fiscal_year"], ascending=[True, False])
     wide.to_excel(out_path, index=False, sheet_name="Financials Summary")
     print(f"Wrote {out_path} ({len(wide)} rows: "
-         f"{wide['ticker'].nunique()} companies x up to 5 years)")
+         f"{wide['ticker'].nunique()} companies x up to "
+         f"{wide['fiscal_year'].nunique()} years)")
 
 
 def main() -> None:

@@ -3,9 +3,9 @@ into the structured financials DB.
 
 Reads the raw statement text step 2 stored in filings.db `pdf_extractions`
 (income_statement / balance_sheet / cash_flow, or the primary_block fallback),
-sends each statement to a local Ollama model with a JSON-schema-enforced
-response, and upserts the parsed numbers into financials.db's canonical 3-level
-tables (companies / company_years / statement_lines) tagged
+sends each pdf row's statements to a local Ollama model with a JSON-schema-
+enforced response, and upserts the parsed numbers into financials.db's
+canonical 3-level tables (companies / company_years / statement_lines) tagged
 `source='cse_pdf_extract'` -- the same shape QuoteMedia fills, so
 company_export.py emits these PDF-only companies with no schema change.
 
@@ -18,8 +18,20 @@ Design notes:
   value exactly as printed plus a detected `scale` (thousands->1000,
   millions->1000000); we compute value = printed * scale here, deterministically.
   Per-share / share-count keys are exempt from scaling (NO_SCALE_KEYS).
-- The stage is GPU-serial (Ollama serializes on one card), so this is a plain
-  synchronous loop -- no asyncio, unlike steps 1/2.
+- Hallucination guard: every value must literally appear (pre-scale) somewhere
+  in the source text it was extracted from, or it's dropped, never trusted.
+- By default all 3 statements for one pdf row are requested in a SINGLE
+  combined LLM call (llm.combine_statements, default true) -- cuts round trips
+  3x vs one call per statement, the biggest available speed lever, since each
+  call pays fixed overhead (schema-grammar setup, prompt prefill of the system
+  message + vocab) regardless of statement count. Set combine_statements:false
+  to fall back to the original one-call-per-statement path if combined
+  accuracy ever looks worse.
+- llm.concurrency (default 1) fires that many pdf-row fetches concurrently via
+  a thread pool -- network/parse overhead can overlap even though a single GPU
+  ultimately serializes generation, so >1 can still help if Ollama batches
+  requests (OLLAMA_NUM_PARALLEL). Accumulation into the shared result lists
+  happens back on the main thread only, so this is race-free without locks.
 """
 from __future__ import annotations
 
@@ -27,6 +39,7 @@ import json
 import re
 import sqlite3
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from financials_pipeline import FinancialsStore, _coerce_numeric
@@ -110,9 +123,10 @@ _GROUP_ID = {key: "|".join(sorted(grp)) for grp in SYNONYM_GROUPS for key in grp
 def _group_id(key: str) -> str | None:
     return _GROUP_ID.get(key)
 
-# Response schema handed to Ollama as `format=` (so output is always valid JSON
-# of this exact shape) AND used to jsonschema-validate defensively afterward.
-RESPONSE_SCHEMA = {
+
+# Per-statement response shape, reused both standalone (legacy path) and as
+# each of the 3 sub-objects in the combined response.
+STATEMENT_SCHEMA = {
     "type": "object",
     "required": ["scale", "columns", "lines"],
     "properties": {
@@ -144,22 +158,37 @@ RESPONSE_SCHEMA = {
     },
 }
 
-_SYSTEM = (
-    "You extract line items from raw PDF-extracted financial statement text and "
-    "return ONLY the requested JSON.\n"
-    "Rules:\n"
+COMBINED_SCHEMA = {
+    "type": "object",
+    "properties": {s: STATEMENT_SCHEMA for s in STATEMENTS},
+}
+
+_RULES = (
+    "For EACH statement object:\n"
     "- Each row has one number per comparative period column, left to right.\n"
     "- `columns` maps each numeric column, in that same left-to-right order, to "
     "its fiscalYear (the 4-digit year of the period END) and periodEnd "
     "(ISO yyyy-mm-dd if determinable, else null).\n"
-    "- Map each line to ONE of the ALLOWED KEYS. If a line does not clearly "
-    "match an allowed key, OMIT it. Never invent, infer, or compute values.\n"
+    "- Map each line to ONE of that statement's ALLOWED KEYS. If a line does not "
+    "clearly match an allowed key, OMIT it. Never invent, infer, or compute values.\n"
     "- Report every value EXACTLY as printed (do NOT multiply by any scale). "
     "Parentheses mean negative: \"(1,234)\" -> -1234. Strip thousands "
     "separators. A dash '-' or blank means null for that column.\n"
-    "- Set `scale` from the statement's units note: \"in thousands\" -> 1000, "
-    "\"in millions\" -> 1000000, otherwise 1.\n"
+    "- Set `scale` from that statement's own units note: \"in thousands\" -> 1000, "
+    "\"in millions\" -> 1000000, otherwise 1 (each statement can have its own scale).\n"
     "- `values` length MUST equal `columns` length."
+)
+
+_SYSTEM = (
+    "You extract line items from raw PDF-extracted financial statement text and "
+    "return ONLY the requested JSON.\n" + _RULES
+)
+
+_COMBINED_SYSTEM = (
+    "You extract line items from raw PDF-extracted financial statement text and "
+    "return ONLY the requested JSON with one top-level key per requested "
+    "statement type (income_statement / balance_sheet / cash_flow -- only the "
+    "ones actually given text below).\n" + _RULES
 )
 
 
@@ -216,6 +245,38 @@ def _build_messages(ticker: str, statement_type: str,
             {"role": "user", "content": user}]
 
 
+def _build_combined_messages(ticker: str, vocab: dict[str, list[str]],
+                             texts: dict[str, str]) -> list[dict]:
+    """`texts` holds only the statements that have any text at all. Identical
+    text blocks (e.g. two statements both fell back to the same primary_block)
+    are deduplicated in the prompt rather than repeated."""
+    block_id_of: dict[str, str] = {}
+    stmt_block: dict[str, str] = {}
+    for stmt, text in texts.items():
+        if text not in block_id_of:
+            block_id_of[text] = f"BLOCK{len(block_id_of) + 1}"
+        stmt_block[stmt] = block_id_of[text]
+
+    parts = []
+    for text, bid in block_id_of.items():
+        covers = ", ".join(s for s in STATEMENTS if stmt_block.get(s) == bid)
+        numbered = "\n".join(f"{i+1:>3}| {ln}"
+                            for i, ln in enumerate(text.splitlines()) if ln.strip())
+        parts.append(f"=== {bid} (use for: {covers}) ===\n{numbered}")
+
+    keys_desc = "\n".join(
+        f"{stmt} ALLOWED KEYS: {', '.join(vocab.get(stmt, []))}" for stmt in texts)
+
+    user = (
+        f"COMPANY: {ticker}\n"
+        f"REQUESTED STATEMENTS: {', '.join(texts)}\n\n"
+        f"{keys_desc}\n\n"
+        "--- TEXT BLOCKS ---\n" + "\n\n".join(parts)
+    )
+    return [{"role": "system", "content": _COMBINED_SYSTEM},
+            {"role": "user", "content": user}]
+
+
 def _to_number(v):
     """Robustly coerce a model value to float. The response schema already
     forces number|null, but models occasionally emit "(1,234)" strings -- handle
@@ -249,6 +310,7 @@ def _normalize(parsed: dict, allowed: set[str], statement_type: str, source_text
                 anywhere in source_text) and were therefore NOT written.
     Applies scale (except NO_SCALE_KEYS) and drops non-canonical keys / nulls.
     """
+    parsed = parsed or {}
     try:
         scale = float(parsed.get("scale") or 1) or 1.0
     except (TypeError, ValueError):
@@ -310,13 +372,92 @@ def _call_llm(client, cfg: dict, messages: list[dict], *, model: str) -> dict:
     resp = client.chat(
         model=model,
         messages=messages,
-        format=RESPONSE_SCHEMA,
+        format=STATEMENT_SCHEMA,
         options={"temperature": float(cfg.get("temperature", 0)),
                  "num_ctx": int(cfg.get("num_ctx", 16384))},
         keep_alive=cfg.get("keep_alive", "30m"),
     )
-    content = resp["message"]["content"]
-    return json.loads(content)
+    return json.loads(resp["message"]["content"])
+
+
+def _call_llm_combined(client, cfg: dict, messages: list[dict], *, model: str) -> dict:
+    """One Ollama chat call covering up to 3 statements at once. Raises on
+    failure (a single exception -- callers treat it as failing every statement
+    that was requested in this call)."""
+    resp = client.chat(
+        model=model,
+        messages=messages,
+        format=COMBINED_SCHEMA,
+        options={"temperature": float(cfg.get("temperature", 0)),
+                 "num_ctx": int(cfg.get("num_ctx", 16384))},
+        keep_alive=cfg.get("keep_alive", "30m"),
+    )
+    return json.loads(resp["message"]["content"])
+
+
+def _fetch_row(row: dict, *, combine: bool, model: str, fallback_model: str | None,
+               use_fallback: bool, llm_cfg: dict, client, vocab: dict,
+               already: set, force: bool) -> dict:
+    """Runs in a worker thread: pure network I/O, no shared-state writes.
+    Returns everything the main thread needs to normalize/accumulate results,
+    with per-statement text/parsed-result/error so the caller can process
+    uniformly regardless of combine vs legacy mode."""
+    ticker, row_fy = row["ticker"], row["fiscal_year"]
+    all_texts = {s: _section_text(row, s) for s in STATEMENTS}
+    skipped_empty = {s for s, t in all_texts.items() if not t}
+    skipped_already = set()
+    todo: dict[str, str] = {}
+    for s, t in all_texts.items():
+        if s in skipped_empty:
+            continue
+        if not force and (ticker, row_fy, s) in already:
+            skipped_already.add(s)
+            continue
+        todo[s] = t
+
+    parsed_by_stmt: dict[str, dict | None] = {}
+    error_by_stmt: dict[str, str] = {}
+    used_model = model
+    attempts = [model, fallback_model] if (use_fallback and fallback_model) else [model]
+
+    if todo and combine:
+        messages = _build_combined_messages(ticker, vocab, todo)
+        parsed, last_err = None, None
+        for attempt_model in attempts:
+            try:
+                parsed = _call_llm_combined(client, llm_cfg, messages, model=attempt_model)
+                used_model = attempt_model
+                break
+            except Exception as exc:  # noqa: BLE001 - one bad call must not kill the batch
+                last_err = exc
+        if parsed is None:
+            for s in todo:
+                error_by_stmt[s] = str(last_err)
+        else:
+            for s in todo:
+                parsed_by_stmt[s] = parsed.get(s)
+    elif todo:
+        for s, text in todo.items():
+            messages = _build_messages(ticker, s, vocab.get(s, []), text)
+            parsed, last_err = None, None
+            for attempt_model in attempts:
+                try:
+                    parsed = _call_llm(client, llm_cfg, messages, model=attempt_model)
+                    used_model = attempt_model
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    last_err = exc
+            if parsed is None:
+                error_by_stmt[s] = str(last_err)
+            else:
+                parsed_by_stmt[s] = parsed
+
+    return dict(ticker=ticker, row_fy=row_fy, pdf_url=row["pdf_url"],
+               company_name=row.get("company_name"), exchange=row.get("exchange"),
+               all_texts=all_texts, skipped_empty=skipped_empty,
+               skipped_already=skipped_already, todo=todo,
+               parsed_by_stmt=parsed_by_stmt, error_by_stmt=error_by_stmt,
+               used_model=used_model)
 
 
 def run_llm_extraction(cfg, *, force: bool = False, limit: int | None = None,
@@ -328,6 +469,8 @@ def run_llm_extraction(cfg, *, force: bool = False, limit: int | None = None,
     fallback_model = llm.get("fallback_model")
     use_fallback = bool(llm.get("use_fallback_on_invalid"))
     prompt_version = str(llm.get("prompt_version", "v1"))
+    combine = bool(llm.get("combine_statements", True))
+    concurrency = max(1, int(llm.get("concurrency", 1)))
     vocab = _load_vocab(Path(llm.get("vocab_path", DEFAULT_VOCAB)))
 
     try:
@@ -344,124 +487,120 @@ def run_llm_extraction(cfg, *, force: bool = False, limit: int | None = None,
     rows = _rows_to_extract(src_db, limit=limit, tickers=tickers)
     if progress:
         progress(f"LLM extraction: {len(rows)} pdf row(s) in {src_db} "
-                 f"-> {fin_db}  (model={model})")
+                 f"-> {fin_db}  (model={model}, combine_statements={combine}, "
+                 f"concurrency={concurrency})")
+    empty_result = {"attempted": 0, "parsed_ok": 0, "invalid": 0, "skipped": 0,
+                    "companies": 0, "years": 0, "lines": 0,
+                    "unverified_dropped": 0, "consistency_warnings": 0,
+                    "llm_calls": 0, "parse_success_rate_pct": 0.0,
+                    "value_verification_rate_pct": 0.0, "avg_seconds_per_call": 0.0,
+                    "elapsed": 0.0, "db_path": fin_db}
     if not rows:
         if progress:
             progress("  nothing to extract -- pdf_extractions has no usable rows. "
                      "Run step 2 first.")
-        return {"attempted": 0, "parsed_ok": 0, "invalid": 0, "skipped": 0,
-                "companies": 0, "years": 0, "lines": 0,
-                "unverified_dropped": 0, "consistency_warnings": 0,
-                "elapsed": 0.0, "db_path": fin_db}
+        return empty_result
 
     store = FinancialsStore(fin_db)
     already = set() if force else store.completed_statements()
     prior_tickers = store.existing_tickers()
 
-    # Accumulators (write once at the end -- see FinancialsStore docstring).
-    identity: dict[str, dict] = {}            # ticker -> {name, exchange, latest_fy, currency}
-    year_meta_acc: dict[tuple[str, int], dict] = {}   # (ticker, fy) -> {period_end, currency, source_ref}
+    # Accumulators, all written to ONLY on the main thread (see handle_result) --
+    # worker threads do network I/O and return plain data, no shared state.
+    identity: dict[str, dict] = {}
+    year_meta_acc: dict[tuple[str, int], dict] = {}
     line_rows_acc: list[dict] = []
     raw_rows: list[dict] = []
     status_rows: list[dict] = []
+    counters = {"parsed_ok": 0, "invalid": 0, "skipped": 0, "unverified_dropped": 0,
+               "llm_calls": 0}
 
-    parsed_ok = invalid = skipped = unverified_dropped = 0
-    t0 = time.monotonic()
-    total_calls = len(rows) * len(STATEMENTS)
-    done = 0
-
-    for row in rows:
-        ticker = row["ticker"]
-        row_fy = row["fiscal_year"]
-        for stmt in STATEMENTS:
-            done += 1
-            if (ticker, row_fy, stmt) in already:
-                skipped += 1
-                continue
-            if progress:
-                progress(f"  [{done}/{total_calls}] {ticker} {row_fy} {stmt} ...")
-            text = _section_text(row, stmt)
-            if not text:
-                status_rows.append(dict(ticker=ticker, fiscal_year=row_fy,
-                                        statement_type=stmt, status="empty",
-                                        reason="no section text or primary_block",
-                                        n_lines=0))
-                skipped += 1
-                if progress:
-                    progress("      -> skipped (no text)")
-                continue
-
-            messages = _build_messages(ticker, stmt, vocab.get(stmt, []), text)
-            parsed = None
-            used_model = model
-            for attempt_model in ([model, fallback_model] if (use_fallback and fallback_model)
-                                  else [model]):
-                try:
-                    parsed = _call_llm(client, llm, messages, model=attempt_model)
-                    used_model = attempt_model
-                    break
-                except Exception as exc:  # noqa: BLE001 - one bad call must not kill the batch
-                    last_err = exc
-                    parsed = None
-            if parsed is None:
-                invalid += 1
-                status_rows.append(dict(ticker=ticker, fiscal_year=row_fy,
-                                        statement_type=stmt, status="llm_error",
-                                        reason=str(last_err)[:200], n_lines=0))
-                if progress:
-                    progress(f"      -> llm_error: {str(last_err)[:120]}")
-                continue
-
-            allowed = set(vocab.get(stmt, []))
-            year_meta, lines, scale, currency, dropped = _normalize(
-                parsed, allowed, stmt, text)
-            unverified_dropped += len(dropped)
-            raw_rows.append(dict(ticker=ticker, fiscal_year=row_fy, statement_type=stmt,
-                                 model=used_model, prompt_version=prompt_version,
-                                 unit_scale=scale, currency=currency,
-                                 raw_json=json.dumps(parsed)))
-            if not year_meta:
-                status_rows.append(dict(ticker=ticker, fiscal_year=row_fy,
-                                        statement_type=stmt, status="no_columns",
-                                        reason="no plausible fiscal-year columns",
-                                        n_lines=0))
-                invalid += 1
-                if progress:
-                    progress("      -> invalid: no plausible fiscal-year columns")
-                continue
-
-            for fy, meta in year_meta.items():
-                key = (ticker, fy)
-                cur = year_meta_acc.setdefault(
-                    key, {"period_end": None, "currency": None, "source_ref": row["pdf_url"]})
-                cur["period_end"] = cur["period_end"] or meta.get("period_end")
-                cur["currency"] = cur["currency"] or meta.get("currency")
-            for ln in lines:
-                line_rows_acc.append(dict(ticker=ticker, **ln))
-
-            # Identity: remember the most-recent year's currency for this ticker.
-            ident = identity.setdefault(
-                ticker, {"company_name": row.get("company_name"),
-                         "exchange": row.get("exchange"),
-                         "latest_fy": None, "currency": None})
-            for fy, meta in year_meta.items():
-                if ident["latest_fy"] is None or fy > ident["latest_fy"]:
-                    ident["latest_fy"], ident["currency"] = fy, meta.get("currency")
-
-            reason = None
-            if dropped:
-                sample = ", ".join(f"{k}({fy})" for fy, k in dropped[:5])
-                reason = f"{len(dropped)} value(s) failed text-verification: {sample}"
+    def _apply_statement(ticker, row_fy, pdf_url, company_name, exchange,
+                         stmt, text, parsed, used_model):
+        allowed = set(vocab.get(stmt, []))
+        year_meta, lines, scale, currency, dropped = _normalize(parsed, allowed, stmt, text)
+        counters["unverified_dropped"] += len(dropped)
+        raw_rows.append(dict(ticker=ticker, fiscal_year=row_fy, statement_type=stmt,
+                             model=used_model, prompt_version=prompt_version,
+                             unit_scale=scale, currency=currency,
+                             raw_json=json.dumps(parsed)))
+        if not year_meta:
             status_rows.append(dict(ticker=ticker, fiscal_year=row_fy,
-                                    statement_type=stmt, status="ok", reason=reason,
-                                    n_lines=len(lines)))
-            parsed_ok += 1
+                                    statement_type=stmt, status="no_columns",
+                                    reason="no plausible fiscal-year columns", n_lines=0))
+            counters["invalid"] += 1
             if progress:
-                msg = (f"      -> ok ({len(lines)} line items, "
-                      f"{len(year_meta)} year column(s))")
-                if dropped:
-                    msg += f"  [{len(dropped)} dropped: unverified vs source text]"
-                progress(msg)
+                progress(f"      {ticker} {row_fy} {stmt} -> invalid: no fiscal-year columns")
+            return
+
+        for fy, meta in year_meta.items():
+            key = (ticker, fy)
+            cur = year_meta_acc.setdefault(
+                key, {"period_end": None, "currency": None, "source_ref": pdf_url})
+            cur["period_end"] = cur["period_end"] or meta.get("period_end")
+            cur["currency"] = cur["currency"] or meta.get("currency")
+        for ln in lines:
+            line_rows_acc.append(dict(ticker=ticker, **ln))
+
+        ident = identity.setdefault(
+            ticker, {"company_name": company_name, "exchange": exchange,
+                     "latest_fy": None, "currency": None})
+        for fy, meta in year_meta.items():
+            if ident["latest_fy"] is None or fy > ident["latest_fy"]:
+                ident["latest_fy"], ident["currency"] = fy, meta.get("currency")
+
+        reason = None
+        if dropped:
+            sample = ", ".join(f"{k}({fy})" for fy, k in dropped[:5])
+            reason = f"{len(dropped)} value(s) failed text-verification: {sample}"
+        status_rows.append(dict(ticker=ticker, fiscal_year=row_fy, statement_type=stmt,
+                                status="ok", reason=reason, n_lines=len(lines)))
+        counters["parsed_ok"] += 1
+        if progress:
+            msg = f"      {ticker} {row_fy} {stmt} -> ok ({len(lines)} lines, {len(year_meta)} yr)"
+            if dropped:
+                msg += f"  [{len(dropped)} dropped]"
+            progress(msg)
+
+    def handle_result(res: dict, idx: int, total: int) -> None:
+        ticker, row_fy = res["ticker"], res["row_fy"]
+        for s in res["skipped_empty"]:
+            status_rows.append(dict(ticker=ticker, fiscal_year=row_fy, statement_type=s,
+                                    status="empty", reason="no section text or primary_block",
+                                    n_lines=0))
+            counters["skipped"] += 1
+        counters["skipped"] += len(res["skipped_already"])
+        if res["todo"]:
+            counters["llm_calls"] += 1 if combine else len(res["todo"])
+        for s in res["todo"]:
+            if s in res["error_by_stmt"]:
+                err = res["error_by_stmt"][s]
+                counters["invalid"] += 1
+                status_rows.append(dict(ticker=ticker, fiscal_year=row_fy, statement_type=s,
+                                        status="llm_error", reason=err[:200], n_lines=0))
+                if progress:
+                    progress(f"      {ticker} {row_fy} {s} -> llm_error: {err[:120]}")
+                continue
+            parsed_sub = res["parsed_by_stmt"].get(s) or {}
+            _apply_statement(ticker, row_fy, res["pdf_url"], res["company_name"],
+                             res["exchange"], s, res["all_texts"][s], parsed_sub,
+                             res["used_model"])
+        if progress:
+            progress(f"  [{idx}/{total}] {ticker} {row_fy} done")
+
+    t0 = time.monotonic()
+    fetch_kwargs = dict(combine=combine, model=model, fallback_model=fallback_model,
+                        use_fallback=use_fallback, llm_cfg=llm, client=client,
+                        vocab=vocab, already=already, force=force)
+
+    if concurrency <= 1:
+        for i, row in enumerate(rows, 1):
+            handle_result(_fetch_row(row, **fetch_kwargs), i, len(rows))
+    else:
+        with ThreadPoolExecutor(max_workers=concurrency) as ex:
+            futures = {ex.submit(_fetch_row, row, **fetch_kwargs): row for row in rows}
+            for i, fut in enumerate(as_completed(futures), 1):
+                handle_result(fut.result(), i, len(rows))
 
     # --- assemble canonical rows -------------------------------------------
     company_rows = [
@@ -492,9 +631,6 @@ def run_llm_extraction(cfg, *, force: bool = False, limit: int | None = None,
         if len(keymap) <= 1:
             continue
         year_sets = list(keymap.values())
-        # Same keys present in the SAME years every time -> the model is
-        # redundantly double-mapping one concept into >1 canonical key, not
-        # switching which key it uses year to year (a different, milder issue).
         pattern = ("redundant_every_year" if all(s == year_sets[0] for s in year_sets)
                   else "switches_by_year")
         consistency_rows.append(dict(
@@ -510,9 +646,23 @@ def run_llm_extraction(cfg, *, force: bool = False, limit: int | None = None,
     store.close()
 
     elapsed = time.monotonic() - t0
-    return {"attempted": total_calls, "parsed_ok": parsed_ok, "invalid": invalid,
-            "skipped": skipped, "companies": len(company_rows),
-            "years": len(year_rows), "lines": len(line_rows_acc),
-            "unverified_dropped": unverified_dropped,
-            "consistency_warnings": len(consistency_rows),
-            "elapsed": elapsed, "db_path": fin_db}
+    total_attempted = len(rows) * len(STATEMENTS)
+    ok, inv = counters["parsed_ok"], counters["invalid"]
+    verified_values = len(line_rows_acc)
+    dropped_values = counters["unverified_dropped"]
+    parse_denom = ok + inv
+    verify_denom = verified_values + dropped_values
+    return {
+        "attempted": total_attempted, "parsed_ok": ok, "invalid": inv,
+        "skipped": counters["skipped"], "companies": len(company_rows),
+        "years": len(year_rows), "lines": verified_values,
+        "unverified_dropped": dropped_values,
+        "consistency_warnings": len(consistency_rows),
+        "llm_calls": counters["llm_calls"],
+        "parse_success_rate_pct": (ok / parse_denom * 100.0) if parse_denom else 0.0,
+        "value_verification_rate_pct": (verified_values / verify_denom * 100.0)
+                                      if verify_denom else 0.0,
+        "avg_seconds_per_call": (elapsed / counters["llm_calls"])
+                               if counters["llm_calls"] else 0.0,
+        "elapsed": elapsed, "db_path": fin_db,
+    }
