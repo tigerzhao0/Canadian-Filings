@@ -120,6 +120,8 @@ def _mode_flags(opts: dict) -> list[str]:
         return ["--full"]
     if mode == "resume":
         return ["--resume"]
+    if mode == "next":
+        return ["--next", str(int(opts.get("sample_size") or 50))]
     flags = ["--pilot"]
     if opts.get("sample_size"):
         flags += ["--sample-size", str(int(opts["sample_size"]))]
@@ -152,15 +154,24 @@ def _build_argv(action: str, opts: dict, cfg_path: Path) -> tuple[list[str], str
     if action == "financials":
         return ([py, run, "--financials", *_input_arg(opts), *_mode_flags(opts), *cfg],
                 "Structured financials (QuoteMedia)")
-    if action == "pipeline":
+    if action in ("pipeline", "pdf_links"):
+        # Step 1 default = PDF links (10-yr history, year-probe); 'pipeline'
+        # keeps the legacy combined flow via --with-financials.
         argv = [py, run, "--step", "1", *_input_arg(opts), *_mode_flags(opts), *cfg]
+        if action == "pipeline":
+            argv.append("--with-financials")
         if opts.get("no_render"):
             argv.append("--no-render")
-        return argv, "Full pipeline (step 1: financials + PDF finder)"
+        if opts.get("overwrite"):
+            argv.append("--overwrite")
+        label = ("Step 1: PDF links (10-yr)" if action == "pdf_links"
+                 else "Step 1 + QuoteMedia (legacy combined)")
+        return argv, label
     if action == "process_pdfs":
-        return ([py, run, "--step", "2", *cfg], "Process PDFs (step 2)")
-    if action == "llm_extract":
-        argv = [py, run, "--step", "3", *cfg]
+        return ([py, run, "--step", "2", *cfg], "Step 2: extract raw text")
+
+    def _step34(step: int, label: str, extra: list[str] = []):
+        argv = [py, run, "--step", str(step), *extra, *cfg]
         if opts.get("force"):
             argv.append("--force")
         if opts.get("limit"):
@@ -168,7 +179,14 @@ def _build_argv(action: str, opts: dict, cfg_path: Path) -> tuple[list[str], str
         tickers = _clean_tickers(opts.get("tickers", ""))
         if tickers:
             argv += ["--tickers", ",".join(tickers)]
-        return argv, "LLM extraction (step 3)"
+        return argv, label
+
+    if action == "parse_lines":
+        return _step34(3, "Step 3: parse line items")
+    if action == "map_schema":
+        return _step34(4, "Step 4: map to schema (+xlsx)")
+    if action == "llm_extract":   # legacy
+        return _step34(4, "Step 4 (legacy LLM)", ["--method", "llm"])
     if action == "dashboard":
         return ([py, str(REPO_ROOT / "src" / "build_dashboard.py")], "Build HTML dashboard")
     if action == "export_json":
@@ -248,6 +266,7 @@ def create_app() -> Flask:
     cfg = _load_config()
     fin_db = cfg.get("tmx_financials", {}).get("db_path", "output/financials.db")
     fil_db = cfg.get("storage", {}).get("db_path", "output/filings.db")
+    rules_db = cfg.get("rules", {}).get("db_path") or "output/pdf_financials.db"
     output_dir = REPO_ROOT / "output"
 
     # ----- page --------------------------------------------------------- #
@@ -298,7 +317,9 @@ def create_app() -> Flask:
         # Map the running action to the pipeline stage(s) it touches, so the DAG
         # can pulse the active node(s).
         stage_map = {"financials": ["financials"], "pipeline": ["financials", "discovery"],
-                     "process_pdfs": ["extract"], "llm_extract": ["normalize"]}
+                     "pdf_links": ["discovery"], "process_pdfs": ["extract"],
+                     "parse_lines": ["extract"], "map_schema": ["normalize"],
+                     "llm_extract": ["normalize"]}
         return jsonify(running=running, label=JOB.label, action=JOB.action,
                        activeStages=(stage_map.get(JOB.action or "", []) if running else []),
                        started_at=JOB.started_at, finished=JOB.finished,
@@ -384,27 +405,83 @@ def create_app() -> Flask:
         err = company_export._validate(doc, schema_path)
         return jsonify(document=doc, schemaValid=(err is None), schemaError=err)
 
-    @app.get("/api/diagnostics/<ticker>")
-    def api_diagnostics(ticker):
-        conn = _connect(fin_db)
+    def _status_rows(db_path, ticker):
+        """pdf_llm_status rows incl. rule-path confidence/doc_type when present
+        (older DBs / LLM path lack those columns -> graceful fallback)."""
+        conn = _connect(db_path)
         if not conn:
-            return jsonify(status=[], consistency=[])
+            return []
         try:
-            status = [
-                {"fiscalYear": fy, "statementType": st, "status": s,
-                 "nLines": n, "reason": r}
-                for fy, st, s, n, r in _rows(conn,
+            try:
+                rows = _rows(conn,
+                    "SELECT fiscal_year, statement_type, status, n_lines, reason, "
+                    "confidence, doc_type FROM pdf_llm_status WHERE ticker=? "
+                    "ORDER BY fiscal_year DESC, statement_type", (ticker,))
+                return [{"fiscalYear": fy, "statementType": st, "status": s, "nLines": n,
+                         "reason": r, "confidence": c, "docType": dt}
+                        for fy, st, s, n, r, c, dt in rows]
+            except sqlite3.OperationalError:
+                rows = _rows(conn,
                     "SELECT fiscal_year, statement_type, status, n_lines, reason "
-                    "FROM pdf_llm_status WHERE ticker=? ORDER BY fiscal_year DESC, statement_type",
-                    (ticker,))]
-            consistency = [
-                {"conceptGroup": g, "pattern": p, "keysUsed": k}
-                for g, p, k in _rows(conn,
-                    "SELECT concept_group, pattern, keys_used FROM pdf_llm_consistency "
-                    "WHERE ticker=?", (ticker,))]
+                    "FROM pdf_llm_status WHERE ticker=? "
+                    "ORDER BY fiscal_year DESC, statement_type", (ticker,))
+                return [{"fiscalYear": fy, "statementType": st, "status": s, "nLines": n,
+                         "reason": r, "confidence": None, "docType": None}
+                        for fy, st, s, n, r in rows]
         finally:
             conn.close()
+
+    @app.get("/api/diagnostics/<ticker>")
+    def api_diagnostics(ticker):
+        # Prefer the rule DB (carries confidence + doc_type); fall back to the
+        # shared financials DB (LLM path).
+        status = _status_rows(rules_db, ticker) or _status_rows(fin_db, ticker)
+        conn = _connect(fin_db)
+        consistency = []
+        if conn:
+            try:
+                consistency = [
+                    {"conceptGroup": g, "pattern": p, "keysUsed": k}
+                    for g, p, k in _rows(conn,
+                        "SELECT concept_group, pattern, keys_used FROM pdf_llm_consistency "
+                        "WHERE ticker=?", (ticker,))]
+            finally:
+                conn.close()
         return jsonify(status=status, consistency=consistency)
+
+    @app.get("/api/quality")
+    def api_quality():
+        """Rule-extraction data-quality rollup from the rules DB: confidence
+        distribution, flag frequency, and the lowest-confidence statements."""
+        conn = _connect(rules_db)
+        if not conn:
+            return jsonify(available=False)
+        try:
+            try:
+                rows = _rows(conn,
+                    "SELECT ticker, fiscal_year, statement_type, status, confidence, reason "
+                    "FROM pdf_llm_status WHERE confidence IS NOT NULL")
+            except sqlite3.OperationalError:
+                return jsonify(available=False)
+        finally:
+            conn.close()
+        bands = {"high (>=0.8)": 0, "medium (0.55-0.8)": 0, "low (<0.55)": 0}
+        flag_counts: dict[str, int] = {}
+        low: list[dict] = []
+        for tk, fy, st, status, conf, reason in rows:
+            c = conf or 0.0
+            bands["high (>=0.8)" if c >= 0.8 else
+                  "medium (0.55-0.8)" if c >= 0.55 else "low (<0.55)"] += 1
+            for f in (reason or "").split(", "):
+                if f:
+                    flag_counts[f] = flag_counts.get(f, 0) + 1
+            if c < 0.55:
+                low.append({"ticker": tk, "fiscalYear": fy, "statementType": st,
+                            "status": status, "confidence": round(c, 3), "reason": reason})
+        low.sort(key=lambda r: r["confidence"])
+        return jsonify(available=True, total=len(rows), bands=bands,
+                       flags=dict(sorted(flag_counts.items(), key=lambda kv: -kv[1])),
+                       lowConfidence=low[:100])
 
     # ----- config get / save ------------------------------------------- #
     EDITABLE = {
@@ -998,6 +1075,10 @@ display:inline-flex;align-items:center;gap:7px;margin-bottom:16px;font-weight:60
 
 /* ===== console ===== */
 .console-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.progress-track{height:8px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;}
+.progress-fill{height:100%;width:0%;border-radius:6px;background:linear-gradient(90deg,#3b82f6,#22c55e);transition:width .3s ease;}
+.progress-fill.indeterminate{width:35%;animation:indet 1.1s ease-in-out infinite;background:linear-gradient(90deg,#3b82f6,#6366f1);}
+@keyframes indet{0%{margin-left:-35%}100%{margin-left:100%}}
 .console-label{font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;}
 pre#console{background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:var(--r2);
 padding:18px;height:330px;overflow:auto;font-family:var(--mono);
@@ -1264,16 +1345,19 @@ background:var(--bg);border:2.5px solid var(--accent);}
 
   <div class="stepper">
     <div class="step-item" onclick="scrollToStep('step-1')">
-      <span class="step-num">1</span><span class="step-label">Gather Data</span></div>
+      <span class="step-num">1</span><span class="step-label">PDF Links</span></div>
     <div class="step-line"></div>
     <div class="step-item" onclick="scrollToStep('step-2')">
-      <span class="step-num">2</span><span class="step-label">Process PDFs</span></div>
+      <span class="step-num">2</span><span class="step-label">Raw Text</span></div>
     <div class="step-line"></div>
     <div class="step-item" onclick="scrollToStep('step-3')">
-      <span class="step-num">3</span><span class="step-label">LLM Extraction</span></div>
+      <span class="step-num">3</span><span class="step-label">Line Items</span></div>
+    <div class="step-line"></div>
+    <div class="step-item" onclick="scrollToStep('step-3b')">
+      <span class="step-num">4</span><span class="step-label">Map to Schema</span></div>
     <div class="step-line"></div>
     <div class="step-item exports" onclick="scrollToStep('step-4')">
-      <span class="step-num">4</span><span class="step-label">Reports &amp; Exports</span></div>
+      <span class="step-num">5</span><span class="step-label">Reports &amp; Exports</span></div>
   </div>
 
   <!-- STEP 1 -->
@@ -1281,10 +1365,10 @@ background:var(--bg);border:2.5px solid var(--accent);}
     <div class="sc-head">
       <div class="sc-badge">1</div>
       <div>
-        <div class="sc-title">Gather Data</div>
-        <div class="sc-desc">Pull structured financials straight from exchange APIs, then find annual-report
-          PDFs for whatever's left. Financials-only is the quick path (~99% coverage); Full Pipeline also
-          runs the PDF finder on the rest.</div>
+        <div class="sc-title">Get PDF Links</div>
+        <div class="sc-desc">Find each company's annual-report PDFs — up to 10 years of history
+          (CSE/TMX filings, IR-site crawl, year-pattern probing). QuoteMedia structured financials are
+          optional extras ("Financials only" / the legacy combined button).</div>
       </div>
     </div>
     <div class="field-row">
@@ -1299,6 +1383,7 @@ background:var(--bg);border:2.5px solid var(--accent);}
           <option value="pilot">Pilot (sample)</option>
           <option value="full">Full (everything)</option>
           <option value="resume">Resume (continue)</option>
+          <option value="next">Next batch (N)</option>
         </select>
         <div class="hint" id="mode-hint">Samples ~40 companies for a quick test run.</div>
       </div>
@@ -1310,10 +1395,14 @@ background:var(--bg);border:2.5px solid var(--accent);}
     <div class="field">
       <div class="chk-row"><input type="checkbox" id="no-render"><label for="no-render">Skip slow-render fallback (no-render)</label></div>
       <div class="hint">Skips the headless-browser pass for stubborn IR sites — faster, slightly lower success rate.</div>
+      <div class="chk-row" style="margin-top:8px;"><input type="checkbox" id="overwrite"><label for="overwrite">Overwrite already-found companies</label></div>
+      <div class="hint">By default, companies already resolved are skipped (resume). Check this to re-run and overwrite them.</div>
     </div>
     <div class="btngrid" style="margin-top:6px;">
-      <button class="ghost" onclick="run('financials')"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>Financials only</button>
-      <button class="primary" onclick="run('pipeline')"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14z"/></svg>Run full pipeline</button>
+      <button class="ghost" onclick="run('financials')"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>Financials only (QuoteMedia)</button>
+      <button class="ghost" onclick="run('pipeline')" title="Legacy combined flow: QuoteMedia first, then the PDF finder on the tail."><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14z"/></svg>Legacy combined</button>
+      <button class="primary" onclick="run('pdf_links')" title="Find annual-report PDF links (10-yr history: CSE/TMX/IR crawl + year-pattern probe). Uses the Mode selected above."><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg>Get PDF links</button>
+      <button class="danger" id="cancel-btn" onclick="stop()" disabled title="Cancel the currently-running job."><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>Cancel run</button>
     </div>
   </div>
 
@@ -1322,26 +1411,28 @@ background:var(--bg);border:2.5px solid var(--accent);}
     <div class="sc-head">
       <div class="sc-badge">2</div>
       <div>
-        <div class="sc-title">Process PDFs</div>
+        <div class="sc-title">Extract Raw Text</div>
         <div class="sc-desc">Downloads each PDF step 1 found, extracts the income/balance/cash-flow statement
           text, then deletes the file — nothing is kept on disk. No extra options needed.</div>
       </div>
     </div>
     <div class="btngrid">
-      <button class="primary" onclick="run('process_pdfs')"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14z"/></svg>Process PDFs</button>
+      <button class="primary" onclick="run('process_pdfs')"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14z"/></svg>Extract raw text</button>
     </div>
   </div>
 
-  <!-- STEP 3 -->
+  <!-- STEPS 3 + 4 -->
   <div class="step-card" id="step-3">
     <div class="sc-head">
       <div class="sc-badge">3</div>
       <div>
-        <div class="sc-title">LLM Extraction</div>
-        <div class="sc-desc">Reads the extracted statement text and maps it onto the canonical financials
-          schema using a local Ollama model. <span id="step3-ready-hint"></span></div>
+        <div class="sc-title">Parse Line Items &amp; Map to Schema</div>
+        <div class="sc-desc">Step 3 separates the raw text into individual line items (every line kept,
+          table 'raw_line_items'). Step 4 maps them onto the canonical GuruFocus schema and writes the
+          per-company workbooks. No model needed. <span id="step3-ready-hint"></span></div>
       </div>
     </div>
+    <span id="step-3b"></span>
     <div class="adv-toggle" onclick="toggleAdv(this)"><span class="chev"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>Advanced options (force, limit, tickers)</div>
     <div class="adv-body">
       <div class="field-row">
@@ -1362,14 +1453,16 @@ background:var(--bg);border:2.5px solid var(--accent);}
       </div>
     </div>
     <div class="btngrid" style="margin-top:6px;">
-      <button class="primary" onclick="run('llm_extract')"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14z"/></svg>Run LLM extraction</button>
+      <button class="primary" onclick="run('parse_lines')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Step 3: Parse line items</button>
+      <button class="primary" onclick="run('map_schema')"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14z"/></svg>Step 4: Map to schema (+xlsx)</button>
+      <button class="ghost" onclick="run('llm_extract')" title="Legacy: local-Ollama LLM mapping (needs a GPU + Ollama server)."><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 12h6M12 9v6"/></svg>Legacy LLM</button>
     </div>
   </div>
 
-  <!-- STEP 4 -->
+  <!-- STEP 5: EXPORTS -->
   <div class="step-card" id="step-4">
     <div class="sc-head">
-      <div class="sc-badge exports">4</div>
+      <div class="sc-badge exports">5</div>
       <div>
         <div class="sc-title">Reports &amp; Exports</div>
         <div class="sc-desc">Regenerate outputs from whatever's currently in the databases — safe to re-run any time.</div>
@@ -1390,6 +1483,12 @@ background:var(--bg);border:2.5px solid var(--accent);}
         <button class="small ghost" onclick="copyConsole()"><svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Copy</button>
         <button class="small danger" id="stop-btn" onclick="stop()" disabled><svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>Stop</button>
       </div>
+    </div>
+    <div id="progress-wrap" style="display:none;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:0.82em;color:var(--text-secondary);margin-bottom:4px;">
+        <span id="progress-stage">Working…</span><span id="progress-frac">0 / 0</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
     </div>
     <pre id="console"></pre>
   </div>
@@ -1522,11 +1621,15 @@ const MODE_HINTS = {
   pilot: 'Samples ~40 companies for a quick test run.',
   full: 'Processes the entire input file — the real run.',
   resume: 'Continues an existing database; already-found rows are skipped.',
+  next: 'Processes the next N companies not yet in the DB — run repeatedly to chip through the list a batch at a time.',
 };
 function onModeChange(){
   const m = $('#mode').value;
   $('#mode-hint').textContent = MODE_HINTS[m] || '';
-  $('#sample-size-field').style.display = (m === 'pilot') ? '' : 'none';
+  const showNum = (m === 'pilot' || m === 'next');
+  $('#sample-size-field').style.display = showNum ? '' : 'none';
+  const lbl = $('#sample-size-field').querySelector('.f-label');
+  if(lbl) lbl.textContent = (m === 'next') ? 'How many (N)' : 'Sample size';
 }
 function toggleAdv(el){
   el.classList.toggle('open');
@@ -1540,8 +1643,10 @@ function setStatus(cls, txt){
   p.innerHTML = '<span class="dot"></span>'+txt;
 }
 function setRunning(on){
-  document.querySelectorAll('button').forEach(b => { if(b.id!=='stop-btn') b.disabled=on; });
+  document.querySelectorAll('button').forEach(b => {
+    if(b.id!=='stop-btn' && b.id!=='cancel-btn') b.disabled=on; });
   $('#stop-btn').disabled = !on;
+  $('#cancel-btn').disabled = !on;
   if(on){
     runStart = Date.now();
     timerHandle = setInterval(() => {
@@ -1555,6 +1660,7 @@ async function run(action){
   const options = {
     input: $('#input-file').value, mode: $('#mode').value,
     sample_size: $('#sample-size').value || null, no_render: $('#no-render').checked,
+    overwrite: $('#overwrite').checked,
     force: $('#force').checked, limit: $('#limit').value || null, tickers: $('#tickers').value,
   };
   const r = await fetch('/api/run', {method:'POST', headers:{'Content-Type':'application/json'},
@@ -1563,19 +1669,44 @@ async function run(action){
   if(!r.ok){ const d=await r.json(); toast('Error: '+(d.error||r.status), 'err'); return; }
   const d = await r.json();
   consoleEl.textContent = '';
+  progressStart();
   setRunning(true); setStatus('run', d.label);
   if(es) es.close();
   es = new EventSource('/api/stream');
-  es.onmessage = e => { consoleEl.textContent += JSON.parse(e.data)+'\n'; consoleEl.scrollTop = consoleEl.scrollHeight; };
+  es.onmessage = e => { const ln = JSON.parse(e.data); consoleEl.textContent += ln+'\n'; consoleEl.scrollTop = consoleEl.scrollHeight; parseProgress(ln); };
   es.addEventListener('done', e => {
     const code = JSON.parse(e.data);
-    setRunning(false);
+    setRunning(false); progressDone(code);
     setStatus(code===0?'ok':'err', code===0?'Done':'Exit '+code);
     es.close(); es=null; loadStats();
     if(code===0) toast(d.label+' finished successfully.', 'ok');
     else toast(d.label+' exited with code '+code+'.', 'err');
     if(action==='dashboard'){ $('#dash-frame').src = '/output/financials_dashboard.html?t='+Date.now(); }
   });
+}
+// ---- live progress bar (parses "X/Y" fractions from the console stream) ----
+function progressStart(){
+  const w=$('#progress-wrap'); if(!w) return;
+  w.style.display=''; const f=$('#progress-fill');
+  f.classList.add('indeterminate'); f.style.width='';
+  $('#progress-frac').textContent='…'; $('#progress-stage').textContent='Starting…';
+}
+function parseProgress(line){
+  const m = line.match(/(\d[\d,]*)\s*\/\s*(\d[\d,]*)/);
+  if(!m) return;
+  const done = parseInt(m[1].replace(/,/g,''),10), total = parseInt(m[2].replace(/,/g,''),10);
+  if(!total || total < 1 || done > total) return;   // skips dates like 2025/2024
+  const f=$('#progress-fill'); f.classList.remove('indeterminate');
+  f.style.width = (done/total*100).toFixed(1)+'%';
+  $('#progress-frac').textContent = done.toLocaleString()+' / '+total.toLocaleString();
+  const pre = line.slice(0, m.index).replace(/[\[\(:>\-]+\s*$/,'').trim();
+  if(pre) $('#progress-stage').textContent = pre.slice(-52);
+}
+function progressDone(code){
+  const f=$('#progress-fill'); if(!f) return;
+  f.classList.remove('indeterminate');
+  if(code===0){ f.style.width='100%'; $('#progress-frac').textContent='done'; }
+  setTimeout(()=>{ const w=$('#progress-wrap'); if(w) w.style.display='none'; }, 3000);
 }
 async function stop(){ await fetch('/api/stop', {method:'POST'}); toast('Stop requested.'); }
 function copyConsole(){

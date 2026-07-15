@@ -44,6 +44,24 @@ def _pilot_sample(companies: list, size: int) -> list:
     return [companies[i] for i in idxs]
 
 
+def _next_batch(companies: list, n: int, db_path: str) -> tuple[list, int]:
+    """The next `n` companies (in list order) NOT yet processed (no row in the
+    filings table). Lets you chip through the full list a batch at a time -- each
+    run advances past whatever's already been attempted. Returns (batch, total_pending)."""
+    import sqlite3
+    processed: set[str] = set()
+    if Path(db_path).exists():
+        conn = sqlite3.connect(db_path)
+        try:
+            processed = {r[0] for r in conn.execute("SELECT ticker FROM filings")}
+        except sqlite3.OperationalError:
+            pass  # table not created yet -> nothing processed
+        finally:
+            conn.close()
+    pending = [c for c in companies if c.ticker not in processed]
+    return pending[:n], len(pending)
+
+
 def _validate_provider_ready(cfg: dict) -> None:
     """Fail fast (before any work) if the chosen provider lacks credentials."""
     import os
@@ -69,15 +87,15 @@ def _die(msg: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Find Canadian companies' annual-report PDFs.")
-    ap.add_argument("--step", type=int, choices=(1, 2, 3), default=1,
-                    help="1 (default) = the pipeline: structured financials + find the "
-                         "annual-report PDFs for the tail QuoteMedia misses. 2 = process "
-                         "those found PDFs: download -> extract income/balance/cash-flow "
-                         "statement text -> delete the file -> store in pdf_extractions. "
-                         "3 = local-LLM extraction: read pdf_extractions, map each "
-                         "statement's text to the canonical financials schema via a local "
-                         "Ollama model, and write to financials.db (source='cse_pdf_extract'). "
-                         "Steps 2 and 3 read from the DB and need no --input.")
+    ap.add_argument("--step", type=int, choices=(1, 2, 3, 4), default=1,
+                    help="The 4-step workflow: 1 (default) = find annual-report PDF "
+                         "LINKS (10-yr history; no QuoteMedia unless --with-financials). "
+                         "2 = download PDFs -> extract raw statement TEXT -> delete file. "
+                         "3 = separate the text into individual LINE ITEMS "
+                         "(raw_line_items -- every line kept). "
+                         "4 = map line items onto the canonical SCHEMA "
+                         "(pdf_financials.db + per-company xlsx). "
+                         "Steps 2-4 read from the DB and need no --input.")
     ap.add_argument("--input", required=False,
                     help="Company list (.xlsx GuruFocus export or ticker,name,exchange CSV). "
                          "Required for --step 1; ignored for --step 2.")
@@ -87,22 +105,42 @@ def main() -> None:
     mode.add_argument("--full", action="store_true", help="Run the entire input file.")
     mode.add_argument("--resume", action="store_true",
                       help="Continue against the existing DB (same as full; found rows skipped).")
+    mode.add_argument("--next", type=int, default=None, metavar="N",
+                      help="Process the next N companies not yet in the DB (chip "
+                           "through the full list a batch at a time; each run advances).")
     ap.add_argument("--sample-size", type=int, default=None,
                     help="Pilot sample size (default from config, ~40).")
     ap.add_argument("--force", action="store_true",
-                    help="(--step 3) Re-run statements already marked 'ok' in "
-                         "pdf_llm_status instead of skipping them.")
+                    help="(--step 3/4) Re-process rows already done.")
     ap.add_argument("--limit", type=int, default=None,
-                    help="(--step 3) Process at most N pdf rows (smoke testing).")
+                    help="(--step 3/4) Process at most N rows (smoke testing).")
     ap.add_argument("--tickers", default=None,
-                    help="(--step 3) Comma-separated ticker allow-list (smoke testing).")
+                    help="(--step 3/4) Comma-separated ticker allow-list.")
+    ap.add_argument("--method", choices=("rules", "llm"), default="rules",
+                    help="(--step 4) Mapping method. 'rules' (default) = "
+                         "deterministic matcher, no model needed. 'llm' = legacy "
+                         "local-Ollama path (reads statement text directly).")
     ap.add_argument("--config", type=Path, default=DEFAULT_CONFIG,
                     help="Config YAML (defaults to config.example.yaml).")
+    ap.add_argument("--years", type=int, default=None,
+                    help="(--step 1) How many years of annual filings to collect "
+                         "per company (default 10, from pipeline.FILING_YEARS).")
     ap.add_argument("--no-render", action="store_true",
                     help="Skip the Tier-2 Playwright render pass (Tier 1 only).")
     ap.add_argument("--render-only", action="store_true",
                     help="Run ONLY the Tier-2 render pass over rows the fast tier "
                          "left unresolved in the existing DB.")
+    ap.add_argument("--skip-financials", action="store_true",
+                    help="(deprecated, now the DEFAULT) Step 1 skips the QuoteMedia "
+                         "API and finds PDF links directly. Kept as a no-op.")
+    ap.add_argument("--with-financials", action="store_true",
+                    help="(--step 1) Legacy combined flow: QuoteMedia structured "
+                         "financials first, then the PDF finder only on the tail "
+                         "QuoteMedia missed.")
+    ap.add_argument("--overwrite", action="store_true",
+                    help="(--step 1) Re-process companies already marked 'found' "
+                         "(default skips them). Resets their status + clears old PDF "
+                         "links so the finder re-runs and overwrites the results.")
     ap.add_argument("--financials", action="store_true",
                     help="Run ONLY the structured-financials stage (TSX/TSXV/CSE/XCNQ/"
                          "NEOE via QuoteMedia -- CSE/XCNQ via a :CNX symbol suffix, "
@@ -133,21 +171,86 @@ def main() -> None:
         print(f"  extracted ok   : {result['extracted']}")
         print(f"  scanned (OCR)  : {result['scanned']}")
         print(f"  failed         : {result['failed']}")
+        if result.get("sec_skipped"):
+            print(f"  SEC/EDGAR excluded (not a PDF, no data needed) : "
+                  f"{result['sec_skipped']}  (not a failure -- already on EDGAR)")
+        denom = result['extracted'] + result['failed']
+        if denom:
+            print(f"  success rate   : {result['extracted']/denom*100:.1f}%  "
+                 f"({result['extracted']}/{denom}, excluding SEC/EDGAR above)")
         print(f"  elapsed        : {result['elapsed']:.1f}s")
         print(f"  stored in      : {result['db_path']} (table 'pdf_extractions')")
         print("=" * 44)
         return
 
-    # Step 3: local-LLM extraction. Reads pdf_extractions (filings.db), writes the
-    # canonical financials tables (financials.db). GPU-serial, so synchronous --
-    # NOT asyncio.run like steps 1/2. Needs no --input.
+    # Step 3: separate raw statement text into individual LINE ITEMS.
     if args.step == 3:
+        from line_items import run_line_item_parsing
+        tickers = ({t.strip() for t in args.tickers.split(",") if t.strip()}
+                   if args.tickers else None)
+        db_path = cfg.get("storage", {}).get("db_path", "output/filings.db")
+        print(f"Step 3: line-item parsing  |  DB: {db_path}")
+        result = run_line_item_parsing(cfg, force=args.force, limit=args.limit,
+                                       tickers=tickers, progress=print)
+        print("\n" + "=" * 44)
+        print("  Line-item parsing complete")
+        print("=" * 44)
+        print(f"  pdf rows parsed   : {result['pdf_rows']}")
+        print(f"  statements parsed : {result['statements']}")
+        print(f"  line items stored : {result['lines']}  (table 'raw_line_items' -- EVERY line kept)")
+        print(f"  empty statements  : {result['empty']}")
+        print(f"  elapsed           : {result['elapsed']:.1f}s")
+        print("=" * 44)
+        print("  Next: python run.py --step 4   (map line items onto the schema)")
+        return
+
+    # Step 4: map line items onto the canonical schema (rules default).
+    if args.step == 4 and args.method == "rules":
+        from schema_map import run_schema_mapping
+        src_db = cfg.get("storage", {}).get("db_path", "output/filings.db")
+        fin_db = cfg.get("rules", {}).get("db_path") or "output/pdf_financials.db"
+        tickers = ({t.strip() for t in args.tickers.split(",") if t.strip()}
+                   if args.tickers else None)
+        print(f"Step 4: schema mapping  |  read {src_db} -> write {fin_db}")
+        result = run_schema_mapping(cfg, force=args.force, limit=args.limit,
+                                    tickers=tickers, progress=print)
+        print("\n" + "=" * 44)
+        print("  Schema mapping complete")
+        print("=" * 44)
+        print(f"  tickers                   : {result['tickers']}")
+        print(f"  statements mapped         : {result['parsed_ok']}")
+        print(f"  needs review (low conf)   : {result['needs_review']}")
+        print(f"  skipped (already done)    : {result['skipped']}")
+        print(f"  new companies             : {result['companies']}")
+        print(f"  company-years written     : {result['years']}")
+        print(f"  canonical lines written   : {result['lines']}")
+        print(f"  ALL lines kept (full)     : {result['full_lines']}  (table 'line_items_full')")
+        print("  " + "-" * 42)
+        print("  QUALITY")
+        print(f"  label map rate            : {result['label_map_rate_pct']:.1f}%")
+        bp, bc = result['balance_identity_pass'], result['balance_identity_checked']
+        print(f"  balance-sheet identity    : {bp}/{bc} pass"
+              f"{'  (' + f'{bp/bc*100:.0f}%)' if bc else ''}")
+        print(f"  mean statement confidence : {result['mean_confidence']:.2f}")
+        print(f"  elapsed                   : {result['elapsed']:.2f}s")
+        print(f"  stored in                 : {result['db_path']}")
+        print("=" * 44)
+        # Auto-export per-company workbooks (template + All Line Items sheet).
+        import subprocess
+        out_dir = "output/pdf_financials_xlsx"
+        r = subprocess.run([sys.executable, str(Path(__file__).parent / "src" / "company_xlsx_export.py"),
+                            "--all", "--db", fin_db, "--out-dir", out_dir],
+                           capture_output=True, text=True)
+        print(r.stdout.strip() or r.stderr.strip())
+        return
+
+    if args.step == 4:
         from llm_extract import run_llm_extraction
         src_db = cfg.get("storage", {}).get("db_path", "output/filings.db")
         fin_db = cfg.get("tmx_financials", {}).get("db_path", "output/financials.db")
         tickers = ({t.strip() for t in args.tickers.split(",") if t.strip()}
                    if args.tickers else None)
-        print(f"Step 3: LLM extraction  |  read {src_db} -> write {fin_db}")
+        print(f"Step 4 (legacy LLM): read {src_db} -> write {fin_db}")
         result = run_llm_extraction(cfg, force=args.force, limit=args.limit,
                                     tickers=tickers, progress=print)
         print("\n" + "=" * 44)
@@ -203,9 +306,17 @@ def main() -> None:
         print(f"{before} companies loaded; {len(companies)} are TSX/TSXV/CSE/"
              "XCNQ/NEOE (the only exchanges --financials handles).")
 
-    # Mode selection: pilot is the default unless --full/--resume given.
+    # Mode selection: pilot is the default unless --full/--resume/--next given.
     full_mode = args.full or args.resume
-    if full_mode:
+    if args.next:
+        db_path = cfg.get("storage", {}).get("db_path", "output/filings.db")
+        selected, total_pending = _next_batch(companies, args.next, db_path)
+        mode_label = f"NEXT {len(selected)} (of {total_pending} not-yet-processed)"
+        if not selected:
+            print("Nothing left to process -- every company in the input is "
+                  "already in the DB. (Use --overwrite to redo them.)")
+            return
+    elif full_mode:
         selected = companies
         mode_label = "FULL" + (" (resume)" if args.resume else "")
     else:
@@ -246,14 +357,9 @@ def main() -> None:
         # Narrow resume of an existing PDF-finder DB (re-render specific
         # unresolved rows) -- not a fresh run, so skip the financials stage.
         remaining = selected
-    else:
-        # Default flow: structured financials FIRST (cheap, reliable, covers
-        # ~99% of TSX/TSXV/CSE/XCNQ/NEOE), then the PDF finder only for
-        # whatever's left -- which already runs CSE filings -> SEC cross-list
-        # check -> TMX filings -> Tier 1 -> Tier 2 internally (see
-        # pipeline.py), so this naturally chains into the requested
-        # financials -> SEC -> full PDF pipeline order without needing to
-        # reorder pipeline.py itself.
+    elif args.with_financials:
+        # Legacy flow: structured financials FIRST (QuoteMedia), then the PDF
+        # finder only for whatever's left.
         from financials_pipeline import run_tmx_financials
         financials_targets = [c for c in selected if is_tmx_exchange(c.exchange)]
         print(f"\nStage 1/2: structured financials (TSX/TSXV/CSE/XCNQ/NEOE via "
@@ -264,13 +370,29 @@ def main() -> None:
 
         resolved_tickers = fin_result.get("resolved_tickers", set())
         remaining = [c for c in selected if c.ticker not in resolved_tickers]
-        print(f"\nStage 2/2: PDF finder (CSE filings -> SEC cross-list check -> "
-             f"TMX filings -> Tier 1 -> Tier 2) on {len(remaining)} compan(ies) "
+        print(f"\nStage 2/2: PDF finder on {len(remaining)} compan(ies) "
              "not covered by structured financials...")
+    else:
+        # DEFAULT: PDF links for the selected companies -- step 1 of the
+        # 4-step workflow (links -> raw text -> line items -> schema). The
+        # QuoteMedia API is NOT called here (use --financials for that, or
+        # --with-financials for the legacy combined flow). Passes run
+        # CSE -> TMX -> Tier 1 -> Tier 2 -> SEC-flag -> year-pattern probe,
+        # so a company's own IR PDFs always win over an SEC note, and
+        # year-patterned URLs (ar_2025_e.pdf) are extrapolated back
+        # ~10 years.
+        remaining = selected
+        print(f"\nStep 1 ({mode_label}): PDF links for {len(remaining)} "
+              "selected compan(ies) (no QuoteMedia API).")
 
     _validate_provider_ready(cfg)
     from search_provider import build_provider
+    import pipeline
     from pipeline import run_pipeline
+
+    if args.years:
+        print(f"Overriding filing-years depth: {pipeline.FILING_YEARS} -> {args.years}")
+        pipeline.FILING_YEARS = args.years
 
     provider_name = (cfg.get("search", {}).get("provider") or "duckduckgo")
     print(f"search provider: {provider_name}  |  "
@@ -281,7 +403,8 @@ def main() -> None:
     use_render = render_default and not args.no_render
     summary = asyncio.run(run_pipeline(
         remaining, provider, cfg,
-        use_render=use_render, render_only=args.render_only, progress=print))
+        use_render=use_render, render_only=args.render_only,
+        overwrite=args.overwrite, progress=print))
 
     sec = summary.get("sec_filer", 0)
     cse = summary.get("cse_filings", 0)

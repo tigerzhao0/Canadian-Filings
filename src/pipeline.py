@@ -51,14 +51,12 @@ def expected_annual_year(today: date | None = None) -> int:
 
 
 # How many years of annual-report PDFs the PDF finder tries to collect per
-# company (for the tail QuoteMedia doesn't cover). This is INDEPENDENT of the
-# structured-financials depth (tmx_financials.num_years, now ~14): PDF companies
-# have no QuoteMedia data to mirror, IR sites/regulators rarely expose more than
-# the latest year or two of annual reports, and each annual-report PDF already
-# carries ~2 comparative years -- so a modest cap here is deliberate, not a
-# leftover. Raise it only if you need deeper PDF history and can afford the extra
-# discovery/download/extract work per company.
-FILING_YEARS = 5
+# company. 10 = the target history depth: each annual-report PDF carries ~2
+# comparative years, so 10 PDFs give up to 11 fiscal years. CSE's SEDAR mirror
+# and year-pattern URL probing (below) reach that deep for many issuers; the
+# --years CLI flag still overrides. INDEPENDENT of the structured-financials
+# depth (tmx_financials.num_years, ~14 via QuoteMedia).
+FILING_YEARS = 10
 
 
 def _dedupe_recent_years(cands: list[dict], limit: int = FILING_YEARS) -> list[dict]:
@@ -156,6 +154,25 @@ class Store:
         cur = self._conn.execute("SELECT status FROM filings WHERE ticker = ?", (ticker,))
         row = cur.fetchone()
         return bool(row) and row[0] == "found"
+
+    async def reset_for_overwrite(self, tickers: list[str]) -> int:
+        """Force-reprocess: set the given (currently 'found') companies back to
+        'needs_review', clear their prior pdf_url, and drop their per-year
+        filing_pdfs rows, so the finder re-runs and overwrites them. Returns how
+        many 'found' rows were reset."""
+        if not tickers:
+            return 0
+        qs = ",".join("?" for _ in tickers)
+        async with self._lock:
+            n = self._conn.execute(
+                f"SELECT COUNT(*) FROM filings WHERE status='found' AND ticker IN ({qs})",
+                tickers).fetchone()[0]
+            self._conn.execute(
+                f"UPDATE filings SET status='needs_review', pdf_url=NULL "
+                f"WHERE ticker IN ({qs})", tickers)
+            self._conn.execute(f"DELETE FROM filing_pdfs WHERE ticker IN ({qs})", tickers)
+            self._conn.commit()
+        return n
 
     async def upsert(self, **fields) -> None:
         fields["last_checked"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -504,7 +521,7 @@ async def _tier2(row, *, renderer, provider, client, store, blocklist, cfg) -> b
 # Runner
 # --------------------------------------------------------------------------- #
 async def run_pipeline(companies, provider: SearchProvider, cfg, *,
-                       use_render=True, render_only=False, progress=None):
+                       use_render=True, render_only=False, overwrite=False, progress=None):
     store = Store(cfg["storage"]["db_path"])
     blocklist = load_blocklist(cfg.get("blocklist_path", "data/blocklist.txt"))
     throttle = DomainThrottle(
@@ -519,6 +536,14 @@ async def run_pipeline(companies, provider: SearchProvider, cfg, *,
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
         crawler = Crawler(client, throttle, cfg["crawl"])
+
+        # ---- Overwrite: force re-processing of already-'found' companies by
+        # resetting their status and clearing their old PDF links. Without this
+        # the passes below skip anything status='found' (resume behaviour). ----
+        if overwrite:
+            n = await store.reset_for_overwrite([c.ticker for c in companies])
+            if progress:
+                progress(f"Overwrite: reset {n} already-found compan(ies) to re-process.")
 
         # ---- Seed DB rows so CSE/SEC/TMX (which now run before scraping) ---- #
         # have something to query; skip companies already resolved on a prior run.
@@ -542,18 +567,6 @@ async def run_pipeline(companies, provider: SearchProvider, cfg, *,
                 stage_stats.append(("CSE filings fallback (XCNQ)", len(pending), resolved, elapsed))
                 if progress:
                     progress(_stage_line("CSE pass done", resolved, len(pending), elapsed))
-
-        # ---- SEC EDGAR flagging pass (before TMX, so TMX skips SEC filers) -- #
-        if cfg.get("sec", {}).get("enabled", True):
-            pending = store.rows_for_sec_pass()
-            if pending:
-                t0 = time.monotonic()
-                flagged = await _run_sec_pass(store, client, cfg, progress, pending)
-                elapsed = time.monotonic() - t0
-                stage_stats.append(("SEC cross-listing check", len(pending), flagged, elapsed))
-                if progress:
-                    progress(f"  SEC pass done: {flagged}/{len(pending)} cross-listed "
-                             f"({_pct(flagged, len(pending)):.1f}%) in {_fmt_secs(elapsed)}")
 
         # ---- TMX filings fallback (TSX/TSXV tail, browser-driven) ----------- #
         if cfg.get("tmx", {}).get("enabled", True):
@@ -614,6 +627,30 @@ async def run_pipeline(companies, provider: SearchProvider, cfg, *,
                 stage_stats.append(("Tier 2 (render)", len(pending), resolved, elapsed))
                 if progress:
                     progress(_stage_line("Tier 2 done", resolved, len(pending), elapsed))
+
+        # ---- SEC EDGAR flagging pass (LAST: only what nothing else found) --- #
+        # Runs after CSE/TMX/Tier1/Tier2 so a company's OWN annual-report PDF
+        # always wins over an SEC-cross-listing note (RY: rbc.com's ar_YYYY_e.pdf
+        # series beats the 40-F HTML flag). Only still-unresolved rows get
+        # flagged.
+        if cfg.get("sec", {}).get("enabled", True):
+            pending = store.rows_for_sec_pass()
+            if pending:
+                t0 = time.monotonic()
+                flagged = await _run_sec_pass(store, client, cfg, progress, pending)
+                elapsed = time.monotonic() - t0
+                stage_stats.append(("SEC cross-listing check", len(pending), flagged, elapsed))
+                if progress:
+                    progress(f"  SEC pass done: {flagged}/{len(pending)} cross-listed "
+                             f"({_pct(flagged, len(pending)):.1f}%) in {_fmt_secs(elapsed)}")
+
+        # ---- Year-pattern URL extrapolation (fills the 10-year history) ----- #
+        if cfg.get("probe_year_patterns", True):
+            t0 = time.monotonic()
+            probed = await _probe_year_patterns(store, client, cfg, progress)
+            elapsed = time.monotonic() - t0
+            if probed:
+                stage_stats.append(("Year-pattern URL probe", probed, probed, elapsed))
 
     total_elapsed = time.monotonic() - run_start
     summary = store.summary()
@@ -778,6 +815,66 @@ async def _run_sec_pass(store, client, cfg, progress, pending: list[dict]) -> in
 
     await asyncio.gather(*(flag(r, cik) for r, cik in filers))
     return len(filers)
+
+
+async def _probe_year_patterns(store, client, cfg, progress) -> int:
+    """Fill the 10-year history via URL extrapolation: companies whose verified
+    pdf_url embeds its fiscal year in the FILENAME ('ar_2025_e.pdf') almost
+    always host earlier years at the same path ('ar_2016_e.pdf' -- verified live
+    for rbc.com back to 2015). For each missing year in the FILING_YEARS window,
+    substitute the year, validate with the usual ranged-GET + %PDF sniff, and
+    record verified hits. Sources like CSE/TMX use opaque per-filing URLs (no
+    year in the filename), so they are naturally skipped."""
+    cur = store._conn.execute(
+        "SELECT ticker, company_name, exchange, fiscal_year, pdf_url "
+        "FROM filing_pdfs WHERE pdf_url IS NOT NULL AND pdf_url NOT LIKE '%sec.gov%'")
+    by_ticker: dict[str, list[tuple]] = {}
+    for tk, name, exch, fy, url in cur.fetchall():
+        by_ticker.setdefault(tk, []).append((fy, url, name, exch))
+
+    ua = cfg["crawl"].get("browser_user_agent") or cfg["crawl"].get("user_agent", "Mozilla/5.0")
+    timeout = float(cfg["crawl"].get("timeout_seconds", 20))
+    current_year = expected_annual_year()
+    targets = set(range(current_year - FILING_YEARS + 1, current_year + 1))
+    sem = asyncio.Semaphore(6)
+    added = 0
+
+    async def probe_one(tk, template_url, year, name, exch):
+        nonlocal added
+        async with sem:
+            state, _ = await validate_pdf(client, template_url, ua, timeout)
+            if state == "ok":
+                await store.upsert_filing_pdfs([dict(
+                    ticker=tk, company_name=name, exchange=exch,
+                    fiscal_year=year, pdf_url=template_url,
+                    discovery_method="year_probe", verified=1)])
+                added += 1
+
+    tasks = []
+    for tk, rows in by_ticker.items():
+        # a URL is "patterned" when its FILENAME contains the row's own year
+        patterned = []
+        for fy, url, name, exch in rows:
+            fname = url.rsplit("/", 1)[-1]
+            if str(fy) in fname:
+                patterned.append((fy, url, name, exch))
+        if not patterned:
+            continue
+        fy0, url0, name, exch = max(patterned)          # newest as the template
+        have = {fy for fy, *_ in rows}
+        for year in sorted(targets - have, reverse=True):
+            candidate = url0.replace(str(fy0), str(year))
+            if candidate == url0:
+                continue
+            tasks.append(probe_one(tk, candidate, year, name, exch))
+    if tasks:
+        if progress:
+            progress(f"Year-pattern probe: testing {len(tasks)} candidate URL(s) "
+                     f"for missing years ...")
+        await asyncio.gather(*tasks)
+        if progress:
+            progress(f"  Year-pattern probe done: {added} new year(s) verified.")
+    return added
 
 
 async def _run_tier2(store, provider, client, blocklist, cfg, progress, pending: list[dict]) -> int:

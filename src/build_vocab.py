@@ -7,9 +7,16 @@ common keys per statement so the LLM maps CSE-PDF lines onto the SAME vocabulary
 QuoteMedia companies use, keeping the two sources query/dashboard-compatible.
 
     python src/build_vocab.py            # writes data/canonical_lineitems.json
-    python src/build_vocab.py --top 80   # keep the top-80 keys per statement
+    python src/build_vocab.py --top 60   # keep only the top-60 keys per statement
 
 Re-run whenever the QuoteMedia export vocabulary grows.
+
+Default is 250 (effectively FULL coverage -- the real universe across all
+companies is only ~130-210 keys per statement). A low --top keeps only the keys
+most common ACROSS THE WHOLE universe, which silently drops industry-specific
+line items (bank interest income/expense, insurance premiums, etc.) that are
+common within their own industry but rare overall -- the matcher then has no
+canonical target for them.
 """
 from __future__ import annotations
 
@@ -50,8 +57,10 @@ def build_vocab(top: int) -> dict[str, list[str]]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--top", type=int, default=60,
-                    help="Keep the N most-common keys per statement (default 60).")
+    ap.add_argument("--top", type=int, default=250,
+                    help="Keep the N most-common keys per statement (default 250 -- "
+                         "effectively full coverage; a small N silently drops "
+                         "industry-specific line items, see module docstring).")
     ap.add_argument("--out", type=Path, default=OUT_PATH)
     args = ap.parse_args()
 

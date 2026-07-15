@@ -40,7 +40,14 @@ ROW_SPEC = [
     ("header", "Annual Data:", None, None, None),
     ("fiscal", "Fiscal Period:", None, None, None),
     ("section", "Income Statement", None, None, None),
+    # ---- bank rows (rendered only when the company reports bank keys) ----
+    ("data_bank", "Interest Income", "income_statement", "InterestIncome", "m"),
+    ("data_bank", "Interest Expense", "income_statement", "InterestExpense", "m"),
+    ("data_bank", "Net Interest Income (for Banks)", "income_statement", "NetInterestIncome", "m"),
+    ("data_bank", "Non Interest Income", "income_statement", "NonInterestIncome", "m"),
     ("data", "Revenue", "income_statement", "TotalRevenue", "m"),
+    ("data_bank", "Credit Losses Provision", "income_statement", "CreditLossesProvision", "m"),
+    ("data_bank", "Total Noninterest Expense", "income_statement", "NonInterestExpense", "m"),
     ("data", "  Cost of Goods Sold", "income_statement", "CostOfRevenue", "m"),
     ("data", "Gross Profit", "income_statement", "GrossProfit", "m"),
     ("blank", None, None, None, None),
@@ -73,9 +80,18 @@ ROW_SPEC = [
     ("data", "EBIT", "income_statement", "EBIT", "m"),
     ("data", "  Depreciation, Depletion and Amortization", "income_statement", "DepreciationAmortizationDepletion", "m"),
     ("data", "EBITDA", "income_statement", "EBITDA", "m"),
-    ("data", "EBITDA Margin %", None, None, None),
+    ("ratio", "EBITDA Margin %", None, "ebitda_margin", None),
+    ("ratio", "Tax Rate %", None, "tax_rate", None),
+    ("ratio", "Net Margin %", None, "net_margin", None),
     ("blank", None, None, None, None),
     ("section", "Balance Sheet", None, None, None),
+    # ---- bank rows (rendered only when the company reports bank keys) ----
+    ("data_bank", "Balance Statement Cash and cash equivalents", "balance_sheet", "CashAndDueFromBanks", "m"),
+    ("data_bank", "Money Market Investments", "balance_sheet", "MoneyMarketInvestments", "m"),
+    ("data_bank", "Gross Loan", "balance_sheet", "GrossLoan", "m"),
+    ("data_bank", "Allowance For Loans And Lease Losses", "balance_sheet", "AllowanceForLoansAndLeaseLosses", "m"),
+    ("data_bank", "Net Loan", "balance_sheet", "NetLoan", "m"),
+    ("data_bank", "Securities & Investments", "balance_sheet", "SecuritiesAndInvestments", "m"),
     ("data", "    Cash and Cash Equivalents", "balance_sheet", "CashAndCashEquivalents", "m"),
     ("data", "    Marketable Securities", "balance_sheet", "ShortTermInvestments", "m"),
     ("data", "  Cash, Cash Equivalents, Marketable Securities", "balance_sheet", "CashCashEquivalentsAndShortTermInvestments", "m"),
@@ -123,7 +139,10 @@ ROW_SPEC = [
     ("data", "    Long-Term Debt", "balance_sheet", "LongTermDebt", "m"),
     ("data", "    Long-Term Capital Lease Obligation", "balance_sheet", "LongTermCapitalLeaseObligation", "m"),
     ("data", "  Long-Term Debt & Capital Lease Obligation", "balance_sheet", "LongTermDebtAndCapitalLeaseObligation", "m"),
-    ("data", "Debt-to-Equity", None, None, None),
+    ("ratio", "Debt-to-Equity", None, "dte", None),
+    ("data_bank", "Total Deposits", "balance_sheet", "TotalDeposits", "m"),
+    ("data_bank", "Other Assets for Banks", "balance_sheet", "OtherAssets", "m"),
+    ("data_bank", "Other Liabilities for Banks", "balance_sheet", "OtherPayable", "m"),
     ("data", "  Pension And Retirement Benefit", "balance_sheet", "NonCurrentPensionAndOtherPostretirementBenefitPlans", "m"),
     ("data", "    NonCurrent Deferred Revenue", "balance_sheet", "NonCurrentDeferredRevenue", "m"),
     ("data", "  NonCurrent Deferred Liabilities", "balance_sheet", "NonCurrentDeferredLiabilities", "m"),
@@ -142,7 +161,7 @@ ROW_SPEC = [
     ("data", "  Total Stockholders Equity", "balance_sheet", "StockholdersEquity", "m"),
     ("data", "  Minority Interest", "balance_sheet", "MinorityInterest", "m"),
     ("data", "Total Equity", "balance_sheet", "TotalEquityGrossMinorityInterest", "m"),
-    ("data", "Equity-to-Asset", None, None, None),
+    ("ratio", "Equity-to-Asset", None, "eta", None),
     ("blank", None, None, None, None),
     ("section", "Cashflow Statement", None, None, None),
     ("data", "  Net Income From Continuing Operations", "cash_flow", "NetIncomeFromContinuingOperations", "m"),
@@ -193,12 +212,48 @@ ROW_SPEC = [
 
 MILLIONS_DIVISOR = 1_000_000.0
 
+# Keys whose presence marks a company as a BANK (renders the data_bank rows).
+_BANK_MARKER_KEYS = ("NetInterestIncome", "GrossLoan", "TotalDeposits",
+                     "CreditLossesProvision", "NonInterestIncome")
+
 
 def _fiscal_period_label(period_end: str | None) -> str:
     """'2025-10-31' -> '2025-10', matching the template's YYYY-MM style."""
     if not period_end or len(period_end) < 7:
         return "-"
     return period_end[:7]
+
+
+def _ratio_value(rid: str, values: dict, fy: int) -> float | None:
+    """Computed ratio rows (the template shows these; QuoteMedia doesn't store
+    them). All inputs are raw dollars from statement_lines."""
+    def g(stmt, key):
+        return values.get((fy, stmt, key))
+    if rid == "ebitda_margin":
+        e, r = g("income_statement", "EBITDA"), g("income_statement", "TotalRevenue")
+        return (e / r * 100) if (e is not None and r) else None
+    if rid == "tax_rate":
+        t, p = g("income_statement", "TaxProvision"), g("income_statement", "PretaxIncome")
+        return (abs(t) / p * 100) if (t is not None and p) else None
+    if rid == "net_margin":
+        n, r = g("income_statement", "NetIncome"), g("income_statement", "TotalRevenue")
+        return (n / r * 100) if (n is not None and r) else None
+    if rid == "dte":
+        debt = sum(v for v in (
+            g("balance_sheet", "CurrentDebtAndCapitalLeaseObligation"),
+            g("balance_sheet", "LongTermDebtAndCapitalLeaseObligation")) if v is not None)
+        if not debt:
+            debt = sum(v for v in (g("balance_sheet", "CurrentDebt"),
+                                   g("balance_sheet", "LongTermDebt")) if v is not None)
+        eq = (g("balance_sheet", "TotalEquityGrossMinorityInterest")
+              or g("balance_sheet", "StockholdersEquity"))
+        return (debt / eq) if (debt and eq) else None
+    if rid == "eta":
+        eq = (g("balance_sheet", "TotalEquityGrossMinorityInterest")
+              or g("balance_sheet", "StockholdersEquity"))
+        a = g("balance_sheet", "TotalAssets")
+        return (eq / a) if (eq is not None and a) else None
+    return None
 
 
 def build_workbook(conn: sqlite3.Connection, ticker: str) -> openpyxl.Workbook | None:
@@ -221,6 +276,10 @@ def build_workbook(conn: sqlite3.Connection, ticker: str) -> openpyxl.Workbook |
         (fy, stmt, item): val for fy, stmt, item, val in lines
     }
 
+    # Bank rows render only for companies that actually report bank keys.
+    has_bank = any((fy, "income_statement", k) in values or (fy, "balance_sheet", k) in values
+                   for fy in years for k in _BANK_MARKER_KEYS)
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Sheet1"
@@ -228,6 +287,8 @@ def build_workbook(conn: sqlite3.Connection, ticker: str) -> openpyxl.Workbook |
     plain_font = Font(size=12, bold=False)
 
     for kind, label, stmt, item, scale in ROW_SPEC:
+        if kind == "data_bank" and not has_bank:
+            continue
         row = ws.max_row + 1 if ws.max_row > 1 or ws.cell(1, 1).value else 1
         if kind == "blank":
             row = ws.max_row + 1
@@ -243,7 +304,19 @@ def build_workbook(conn: sqlite3.Connection, ticker: str) -> openpyxl.Workbook |
         if kind in ("header", "section"):
             continue
 
-        # kind == "data"
+        if kind == "ratio":
+            for col, fy in enumerate(years, start=2):
+                v = _ratio_value(item, values, fy)
+                c = ws.cell(row=row, column=col)
+                c.font = plain_font
+                if v is None:
+                    c.value = "-"
+                else:
+                    c.value = v
+                    c.number_format = "0.00"
+            continue
+
+        # kind == "data" / "data_bank"
         for col, fy in enumerate(years, start=2):
             raw = values.get((fy, stmt, item)) if stmt and item else None
             c = ws.cell(row=row, column=col)
@@ -255,7 +328,62 @@ def build_workbook(conn: sqlite3.Connection, ticker: str) -> openpyxl.Workbook |
                 c.value = v
                 c.number_format = "0.00"
 
+    _add_all_lines_sheet(wb, conn, ticker, years)
     return wb
+
+
+def _add_all_lines_sheet(wb, conn, ticker: str, years: list[int]) -> None:
+    """Second sheet: EVERY parsed line item (mapped or not) from
+    line_items_full -- the PDF pipeline's 'nothing is lost' view. Skipped
+    silently for databases without that table (e.g. the QuoteMedia DB)."""
+    try:
+        rows = conn.execute(
+            "SELECT statement_type, section, raw_label, canonical_key, "
+            "fiscal_year, value, source_pdf_year FROM line_items_full "
+            "WHERE ticker = ? ORDER BY statement_type, source_pdf_year DESC, line_no",
+            (ticker,)).fetchall()
+    except sqlite3.OperationalError:
+        return
+    if not rows:
+        return
+    # newest source PDF wins per (statement, label, year)
+    cell_val: dict[tuple, float] = {}
+    order: list[tuple] = []
+    seen: set[tuple] = set()
+    keymap: dict[tuple, tuple] = {}
+    for stmt, section, label, key, fy, val, src in rows:
+        ident = (stmt, section or "", label)
+        if ident not in seen:
+            seen.add(ident)
+            order.append(ident)
+            keymap[ident] = (key,)
+        slot = (stmt, section or "", label, fy)
+        if slot not in cell_val and val is not None:
+            cell_val[slot] = val
+    ws = wb.create_sheet("All Line Items")
+    bold = Font(bold=True)
+    headers = ["Statement", "Section", "Line item (as printed)", "Canonical key"] + \
+              [str(y) for y in years]
+    for col, h in enumerate(headers, start=1):
+        c = ws.cell(row=1, column=col, value=h)
+        c.font = bold
+    ws.column_dimensions["A"].width = 16
+    ws.column_dimensions["B"].width = 24
+    ws.column_dimensions["C"].width = 56
+    ws.column_dimensions["D"].width = 30
+    r = 2
+    for ident in order:
+        stmt, section, label = ident
+        ws.cell(row=r, column=1, value=stmt)
+        ws.cell(row=r, column=2, value=section)
+        ws.cell(row=r, column=3, value=label)
+        ws.cell(row=r, column=4, value=keymap[ident][0] or "")
+        for col, fy in enumerate(years, start=5):
+            v = cell_val.get((stmt, section, label, fy))
+            c = ws.cell(row=r, column=col, value=(v / MILLIONS_DIVISOR if v is not None else "-"))
+            if v is not None:
+                c.number_format = "0.00"
+        r += 1
 
 
 def main() -> None:

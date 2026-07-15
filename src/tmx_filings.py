@@ -130,16 +130,19 @@ def pick_annuals(links: list[str]) -> list[dict]:
 
 
 def pick_secondary(links: list[str]) -> list[dict]:
-    """Broader fallback matches (AIF, unlabelled 'audited financial statements')
-    for issuers that never file a filing matching pick_annuals' strict criteria."""
+    """Broader fallback: unlabelled 'audited financial statements' for issuers
+    that never file a filing matching pick_annuals' strict criteria. NOTE: the
+    Annual Information Form branch was REMOVED -- an AIF contains no primary
+    financial statements to extract, so returning it just yields empty output;
+    better to fall through to another source that may find real statements."""
     out = []
     for url in links:
         desc, date = _parse(url)
         if "interim" in desc:
             continue
-        if "annual information form" in desc or (
-            "audited" in desc and "financial statement" in desc
-        ):
+        if "annual information form" in desc or "information form" in desc:
+            continue  # not statements
+        if "audited" in desc and "financial statement" in desc:
             out.append(_to_dict(date, url, desc))
     return out
 

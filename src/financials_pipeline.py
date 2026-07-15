@@ -190,6 +190,8 @@ class FinancialsStore:
         additions = {
             # pdf_llm_consistency gained `pattern` after the table shipped.
             "pdf_llm_consistency": {"pattern": "TEXT"},
+            # pdf_llm_status gained confidence + doc_type (rule extractor).
+            "pdf_llm_status": {"confidence": "REAL", "doc_type": "TEXT"},
         }
         for table, cols in additions.items():
             existing = {r[1] for r in self._conn.execute(f"PRAGMA table_info({table})")}
@@ -236,6 +238,33 @@ class FinancialsStore:
         """Level 3: the numbers, one per (ticker, year, statement, line_item)."""
         self._bulk_upsert("statement_lines", rows,
                           ("ticker", "fiscal_year", "statement_type", "line_item"))
+
+    def purge_ticker_lines(self, tickers: set[str]) -> None:
+        """Remove a ticker's derived line rows before a full rebuild. Upserts
+        alone leave GHOSTS: a key mapped on the previous run but not on this
+        one would silently survive with the stale value."""
+        for table in ("statement_lines", "statement_line_quality", "line_items_full"):
+            try:
+                self._conn.executemany(
+                    f"DELETE FROM {table} WHERE ticker = ?",  # noqa: S608 - fixed table names
+                    [(t,) for t in tickers])
+            except sqlite3.OperationalError:
+                pass  # table absent in older DBs
+        self._conn.commit()
+
+    def bulk_upsert_line_quality(self, rows: list[dict]) -> None:
+        """Per-line confidence (rule extractor), parallel to statement_lines."""
+        self._bulk_upsert("statement_line_quality", rows,
+                          ("ticker", "fiscal_year", "statement_type", "line_item"),
+                          stamp_col="checked_at")
+
+    def bulk_upsert_line_items_full(self, rows: list[dict]) -> None:
+        """EVERY parsed line (mapped + unmapped) with provenance -- the
+        'nothing from the PDF is lost' table."""
+        self._bulk_upsert("line_items_full", rows,
+                          ("ticker", "fiscal_year", "statement_type",
+                           "source_pdf_year", "line_no"),
+                          stamp_col="updated_at")
 
     def bulk_upsert_raw(self, rows: list[dict]) -> None:
         """Secondary/audit write path -- the verbatim QuoteMedia response per

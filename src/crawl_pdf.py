@@ -44,19 +44,27 @@ NAV_HINT_WEIGHTS: dict[str, float] = {
 # "ar_2025.pdf" are recognised via _AR_FILENAME_RE below.
 AR_HINTS = ("annual report", "annual-report", "annualreport", "10-k", "10k",
             "form 10-k", "form10k")
+# Real PRIMARY financial-statement signals only. NOTE: "annual information form"/
+# "aif" and "md&a"/"mdna" were REMOVED -- an AIF is a business-description doc and
+# MD&A is prose+summary tables, NEITHER is primary financial statements; scoring
+# them as positive is why the finder grabbed AIFs (e.g. WAU). They're negatives now.
 FINANCIAL_HINTS = ("financial statement", "financial-statements", "financials",
-                   "consolidated financial", "mdna", "md&a", "-fs-", "_fs_",
-                   "-fs.", "annual information form", "aif")
+                   "consolidated financial", "-fs-", "_fs_", "-fs.")
 _AR_FILENAME_RE = re.compile(r"\bar[_\-. ]?20\d\d\b")
 
-# Document types that are decisively NOT the annual report.
+# Document types that are decisively NOT primary financial statements.
 NEGATIVE_HINTS = ("proxy", "circular", "information circular", "presentation",
                   "transcript", "factsheet", "fact sheet", "webcast",
                   "corporate governance", "annual meeting", "annual general",
                   "meeting minutes", "minutes", "agm", "notice of meeting",
                   "no material change", "nomrd", "material change", "news release",
                   "press release", "prospectus", "q1 ", "q2 ", "q3 ", "q1-", "q2-",
-                  "q3-", "interim", "first quarter", "second quarter", "third quarter")
+                  "q3-", "interim", "first quarter", "second quarter", "third quarter",
+                  # AIF is NEVER primary statements -> hard veto. (md&a/mdna were only
+                  # REMOVED from FINANCIAL_HINTS, not vetoed here: a combined "MD&A and
+                  # Financial Statements" filing does contain statements, and the
+                  # verify_pdf structural gate handles MD&A-only docs.)
+                  "annual information form", "information form", "aif")
 
 # Minimum score for a PDF to count as a confident 'found'. Below this (but with
 # a report hint) it becomes needs_review as a weak match.

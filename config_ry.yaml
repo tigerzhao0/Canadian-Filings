@@ -1,0 +1,222 @@
+# Canadian Annual Report PDF Finder — example configuration.
+#
+# Copy to config.yaml to customise (config.yaml is git-ignored so real keys
+# never get committed). If you don't create config.yaml, these defaults are
+# used as-is and the pipeline runs with NO keys via the DuckDuckGo backend.
+
+search:
+  # Which SearchProvider backend to use: "duckduckgo" (default, keyless,
+  # can finish the whole list in one session) or "google_cse" (official API,
+  # but the free tier caps at 100 queries/day so it can't finish in one run).
+  provider: duckduckgo
+
+  # Search query template. {name} is replaced with the company's legal name.
+  query_template: '"{name}" investor relations annual report'
+
+  # Max search results to consider per company.
+  max_results: 8
+
+  # Politeness for the search stage. DuckDuckGo throttles aggressively under
+  # thousands of queries, so new search LAUNCHES are paced at least this many
+  # seconds apart.
+  min_delay_seconds: 2.5
+
+  # How many searches can be in flight at once (still paced by min_delay_seconds
+  # between launches — this doesn't remove the politeness delay, it just stops
+  # the pacing from being wasted while waiting on each individual response).
+  # Raise cautiously: if you start seeing more search_rate_limited /
+  # search_error rows in needs_review, dial this back down.
+  concurrency: 4
+
+  # Retry/backoff when a search is rate-limited before giving up on a company
+  # (the company then lands in needs_review with failure_reason=search_rate_limited).
+  max_retries: 4
+  backoff_base_seconds: 5.0    # 5, 10, 20, 40 ... with jitter
+  backoff_max_seconds: 120.0
+
+  # Google Custom Search — only used when provider: google_cse.
+  # Leave blank to use the environment variables GOOGLE_CSE_API_KEY / GOOGLE_CSE_CX.
+  google_cse:
+    api_key: ""
+    cx: ""     # Custom Search Engine id, configured to "search the entire web"
+
+crawl:
+  # Global cap on concurrent HTTP requests across all target domains. Safe to
+  # raise well past core count since this is I/O-bound (waiting on remote
+  # servers, not local CPU) and per_domain_delay_seconds below already caps
+  # how hard any SINGLE company's site gets hit regardless of this number —
+  # raising it only adds more breadth across DIFFERENT companies in parallel.
+  max_concurrency: 24
+  # Minimum seconds between requests to the SAME domain.
+  per_domain_delay_seconds: 1.0
+  # How many hops to follow from the IR homepage toward a reports page.
+  max_hops: 3
+  # Max pages fetched per company during the static crawl (safety cap).
+  max_pages: 25
+  # Per-request timeout (seconds).
+  timeout_seconds: 20
+  # Honest, descriptive User-Agent for the polite static crawl + robots.txt.
+  user_agent: "CanadianARFinder/1.0 (+annual-report research bot; contact: you@example.com)"
+  # Realistic browser User-Agent used by the headless-browser render pass and as
+  # a fallback when a CDN returns 403 to the bot UA during PDF validation (many
+  # IR-site CDNs block non-browser clients outright).
+  browser_user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+  # Respect robots.txt (strongly recommended; leave true).
+  respect_robots: true
+
+# Tier-2 headless-browser pass (Playwright) for JS-heavy IR sites. Runs only
+# over companies Tier 1 couldn't resolve. Requires a one-time:
+#   pip install playwright && playwright install chromium
+# If Playwright isn't installed this tier is skipped automatically.
+render:
+  enabled: true
+  concurrency: 8           # concurrent headless pages, each a lightweight
+                           # context in the one shared Chromium process (same
+                           # deal as tmx.concurrency below — scales with RAM/
+                           # CPU, not process count). Independent from
+                           # tmx.concurrency now, so this only affects Tier 2.
+  max_hops: 3             # hops to follow within the rendered IR site
+  max_pages: 16           # page-render cap per company
+  timeout_seconds: 30
+
+# SEC EDGAR flagging. Companies that file with the SEC (10-K/40-F/20-F) and have
+# no first-party PDF are flagged as sec_filer (with a link to their latest annual
+# filing) and excluded from the manual-review queue — a first-party IR PDF is
+# still preferred and used when found. Never uses SEDAR.
+sec:
+  enabled: false  # RY files a 40-F w/ SEC; leaving this on flags it (HTML doc,
+                  # no first-party PDF link) before the crawl/render passes ever
+                  # get a chance to find RY's REAL PDF annual report on rbc.com
+  # SEC fair-access asks for a User-Agent identifying you with a contact email.
+  user_agent: "CanadianARFinder/1.0 (contact: you@example.com)"
+
+# Content verification of first-party PDFs. When on, a candidate that validates
+# as a reachable PDF is also downloaded and its text checked to confirm it reads
+# like a financial statement / annual report — rejecting cover letters, "annual
+# filing coming soon" notices, and terms pages that a filename heuristic can be
+# fooled by. Only rejects clear non-statements; scanned/unparseable PDFs are
+# accepted. Applies to first-party sources (crawl / PDF search / render); the
+# exchange sources (CSE/TMX) already return regulator-categorised statements.
+verify:
+  content_check: true
+  max_pdf_mb: 40          # skip verification for PDFs larger than this
+
+# CSE (Canadian Securities Exchange / XCNQ) filings fallback. For CSE-listed
+# companies with no first-party PDF, pulls the latest ANNUAL_FINANCIAL_STATEMENTS
+# from the exchange's own public API and records it tagged discovery_method
+# 'cse_filings'. These documents originate from SEDAR (CSE-mirrored on
+# sedar-filings-backup.thecse.com); sedarplus.ca is never accessed. First-party
+# IR PDFs are always preferred and used when found.
+cse:
+  enabled: true
+  concurrency: 15          # plain HTTP calls to thecse.com's own API — cheap,
+                           # safe to raise well above the browser-driven passes
+
+# TSX / TSX-V PDF filings fallback (legacy). Drives the money.tmx.com
+# "Filings" widget with the headless browser to find an "Audited annual
+# financial statements" PDF, tagged 'tmx_filings'. NOTE: run.py's default
+# mode now excludes TSX/TSXV companies from the PDF finder entirely (they're
+# handled by --financials / tmx_financials below instead), so this stage is
+# effectively dormant in normal use — it only still fires if you feed it a
+# TSX/TSXV company some other way (e.g. --render-only against an older DB).
+# Left enabled rather than removed since it's a harmless no-op otherwise.
+tmx:
+  enabled: true
+  concurrency: 20         # headless pages in parallel. Each is a lightweight
+                          # browser *context* in one shared Chromium process
+                          # (not a full new browser), so this scales with RAM/
+                          # CPU headroom, not process count — 20 is tuned for a
+                          # 32GB/24-core machine. Has its own semaphore inside
+                          # Renderer, independent from render.concurrency
+                          # (Tier-2), so raising this doesn't require raising
+                          # that too. If money.tmx.com starts throwing more
+                          # "blocked" results under load, dial this back.
+  max_months: 60          # how many months to page back. Raised from 24 so the
+                          # widget can reach ~5 fiscal years of annual filings
+                          # (matching the structured-financials depth); it stops
+                          # early as soon as 5 distinct years are found, so a
+                          # regular filer rarely pages this far.
+
+# Structured TSX/TSXV financials (Income Statement / Balance Sheet / Cash
+# Flow) pulled straight from QuoteMedia's public "datatool" widget API —
+# see tmx_financials.py for how this endpoint was found and how it's called.
+# Only used when run.py is invoked with --financials; writes to its own DB
+# (financials_pipeline.py / schema_financials.sql), separate from filings.db
+# since the two don't share a schema. This data will be joined/integrated
+# with the PDF-finder results (and, later, the CSE LLM-extraction output)
+# downstream.
+tmx_financials:
+  db_path: "output/financials.db"
+  concurrency: 25         # EMPIRICALLY TUNED, not a guess -- benchmarked the
+                          # full 1990-company batch at 5/10/15/18/20/22/25/30/
+                          # 40/80/150/300 and timed each. Counterintuitively
+                          # this ISN'T monotonic: throughput peaks right here
+                          # (~10.2-11.0s, ~190 req/s, confirmed over 3 trials)
+                          # and gets WORSE in both directions -- concurrency=5
+                          # took 47s, concurrency=300 took 32s. Past ~25,
+                          # per-connection overhead (TLS handshake churn, pool
+                          # contention) outweighs the extra parallelism; below
+                          # it, there just aren't enough requests in flight.
+                          # Re-benchmark if QuoteMedia's backend changes.
+  timeout_seconds: 20
+  # How many annual reports (years) to request per company. QuoteMedia caps its
+  # enhanced-financials endpoint at ~14 years of history regardless (a rolling
+  # retention window -- deep filers like RY/BMO/ENB return 2025..2012 whether you
+  # ask for 15, 30, or 50), so 20 just pulls the full available window with a
+  # safe margin. Asking for more than the cap is harmless (returns the max, no
+  # error). Raising this deepens history but grows financials.db proportionally.
+  num_years: 20
+
+storage:
+  # SQLite database file (created if missing).
+  db_path: "output/filings.db"
+
+# Path to the editable domain blocklist (non-corporate hosts to ignore).
+blocklist_path: "data/blocklist.txt"
+
+# run.py --step 2 (PDF processing: download -> extract statement text -> delete).
+# Plain HTTP downloads + local pdfplumber parsing on the small leftover tail, so
+# a modest concurrency is plenty.
+pdf_processing:
+  concurrency: 6
+
+# run.py --step 3 (local-LLM extraction). Reads the raw statement text step 2
+# stored in filings.db `pdf_extractions`, maps each statement onto the canonical
+# QuoteMedia line-item vocabulary via a LOCAL Ollama model, and writes the
+# numbers into financials.db (companies/company_years/statement_lines, tagged
+# source='cse_pdf_extract'). Requires a local Ollama server (https://ollama.com):
+#   pip install ollama
+#   ollama pull qwen2.5:7b-instruct-q4_K_M
+# Tuned for a 10GB GPU (RTX 3080): 7B Q4 weights (~4.7GB) + 16k context fit fully
+# on-GPU. The stage is GPU-serial, so it runs as one synchronous pass.
+llm:
+  enabled: true
+  backend: ollama
+  base_url: "http://localhost:11434"
+  model: "qwen2.5:7b-instruct-q4_K_M"
+  temperature: 0          # deterministic extraction
+  num_ctx: 16384          # a single statement section fits comfortably
+  keep_alive: "30m"       # hold the model resident in VRAM across the batch
+  request_timeout_s: 120
+  vocab_path: "data/canonical_lineitems.json"   # generated by src/build_vocab.py
+  prompt_version: "v1"
+  # Ask for all 3 statements (income/balance/cash) in ONE call per pdf row
+  # instead of 3 separate calls -- cuts LLM round trips 3x, the single biggest
+  # speed lever (each call pays fixed schema-grammar/prompt-prefill overhead
+  # regardless of statement count). Set false to fall back to the original
+  # one-call-per-statement path if combined accuracy ever looks worse.
+  combine_statements: true
+  # Fire this many pdf-row fetches concurrently (thread pool). A single GPU
+  # ultimately serializes generation, but network/JSON-parse overhead can still
+  # overlap, and Ollama can internally batch concurrent requests if
+  # OLLAMA_NUM_PARALLEL is set on the server. Raise cautiously -- each
+  # concurrent request needs its own KV-cache slot in VRAM.
+  concurrency: 1
+  # Optional higher-accuracy 2nd pass on rows the primary model errors on. Off by
+  # default: a 14B Q4 (~9GB) partially offloads to CPU on a 10GB card and is slow.
+  fallback_model: "qwen2.5:14b-instruct-q4_K_M"
+  use_fallback_on_invalid: false
+
+pilot:
+  # Default sample size for --pilot when --sample-size isn't given.
+  default_sample_size: 40

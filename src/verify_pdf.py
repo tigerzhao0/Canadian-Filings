@@ -89,9 +89,34 @@ async def looks_like_financial_statement(client, url, user_agent, timeout,
         return True, "unverifiable_pdf"
 
     text, npages, parsed = _extract_text(data, max_pages)
+    stripped = text.strip()
+
+    # STRUCTURAL document-type gate: an Annual Information Form or an MD&A dump
+    # mentions statement names in body text but does NOT present the income
+    # statement + balance sheet + cash-flow statement as page-top headers with an
+    # auditor's report. classify_document (via pdf_extract's header detection)
+    # reliably tells real primary statements from those look-alikes -- the old
+    # single-substring test accepted AIFs/MD&A, the WAU root cause.
+    try:
+        from doc_classify import classify_document, PRIMARY, AIF, MDA, INTERIM
+        klass = classify_document(data)
+    except Exception:  # noqa: BLE001 - classifier unavailable -> fall back below
+        klass = None
+
+    if klass is not None:
+        if klass.doc_type in (AIF, MDA):
+            return False, klass.doc_type                    # look-alike -> reject
+        if klass.doc_type == INTERIM:
+            return False, "interim_or_quarterly_report"
+        if klass.doc_type == PRIMARY:
+            if _name_mismatch(stripped, company_name):
+                return False, "company_name_mismatch"
+            return True, "primary_statements"
+        # else UNPARSEABLE / OTHER -> fall through to the conservative old logic
+        # (never false-reject a scanned or genuinely-unknown doc).
+
     if not parsed or npages == 0:
         return True, "unparseable"
-    stripped = text.strip()
     # A near-empty extract means a scanned/image PDF (no text layer) — can't judge
     # its content, so don't reject it. A genuine notice/letter, by contrast, has
     # real sentences (dozens+ of chars) but none of the statement language above.

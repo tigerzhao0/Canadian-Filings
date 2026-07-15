@@ -63,6 +63,8 @@ CREATE TABLE IF NOT EXISTS pdf_extractions (
     primary_block     TEXT,
     extract_ok        INTEGER,
     reason            TEXT,
+    doc_type          TEXT,          -- primary_statements | aif | mda | interim | other
+    unit_scale_hint   REAL,          -- units note found anywhere in the doc (1000 / 1e6)
     extracted_at      TIMESTAMP,
     PRIMARY KEY (ticker, fiscal_year)
 );

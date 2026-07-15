@@ -83,6 +83,11 @@ render:
 # no first-party PDF are flagged as sec_filer (with a link to their latest annual
 # filing) and excluded from the manual-review queue — a first-party IR PDF is
 # still preferred and used when found. Never uses SEDAR.
+# Year-pattern URL extrapolation (step 1, runs last): companies whose verified
+# pdf_url embeds the fiscal year in the filename (rbc.com's ar_2025_e.pdf) get
+# earlier years probed at the same path -- fills the 10-year history cheaply.
+probe_year_patterns: true
+
 sec:
   enabled: true
   # SEC fair-access asks for a User-Agent identifying you with a contact email.
@@ -129,7 +134,7 @@ tmx:
                           # (Tier-2), so raising this doesn't require raising
                           # that too. If money.tmx.com starts throwing more
                           # "blocked" results under load, dial this back.
-  max_months: 60          # how many months to page back. Raised from 24 so the
+  max_months: 120          # how many months to page back. Raised from 24 so the
                           # widget can reach ~5 fiscal years of annual filings
                           # (matching the structured-financials depth); it stops
                           # early as soon as 5 distinct years are found, so a
@@ -143,6 +148,14 @@ tmx:
 # since the two don't share a schema. This data will be joined/integrated
 # with the PDF-finder results (and, later, the CSE LLM-extraction output)
 # downstream.
+# run.py --step 3 --method rules (deterministic, no-LLM extraction). Writes to
+# its OWN db -- SEPARATE from QuoteMedia's financials.db above -- so a ticker
+# QuoteMedia already covers keeps its real values as a ground-truth comparison
+# set, and rule output can be checked against it (see rule_extract.compare_to_quotemedia).
+rules:
+  db_path: "output/pdf_financials.db"
+  # vocab_path: "data/canonical_lineitems.json"   # (default) the canonical target keys
+
 tmx_financials:
   db_path: "output/financials.db"
   concurrency: 25         # EMPIRICALLY TUNED, not a guess -- benchmarked the

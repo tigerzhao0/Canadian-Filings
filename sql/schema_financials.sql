@@ -157,8 +157,42 @@ CREATE TABLE IF NOT EXISTS pdf_llm_status (
     status          TEXT,
     reason          TEXT,
     n_lines         INTEGER,         -- canonical line items written for this statement
+    confidence      REAL,            -- 0-1 extraction confidence (rule path)
+    doc_type        TEXT,            -- primary_statements | aif | mda | interim | other
     checked_at      TIMESTAMP,
     PRIMARY KEY (ticker, fiscal_year, statement_type)
+);
+
+-- EVERY parsed line item (mapped AND unmapped), with provenance -- the
+-- "nothing from the PDF is lost" table. canonical_key is NULL for lines that
+-- didn't map onto the GuruFocus/QuoteMedia vocabulary; value is unit-scaled.
+CREATE TABLE IF NOT EXISTS line_items_full (
+    ticker           TEXT NOT NULL,
+    fiscal_year      INTEGER NOT NULL,   -- the comparative-period year (col_year)
+    statement_type   TEXT NOT NULL,
+    source_pdf_year  INTEGER NOT NULL,   -- which PDF this row came from
+    line_no          INTEGER NOT NULL,
+    section          TEXT,
+    raw_label        TEXT NOT NULL,
+    canonical_key    TEXT,               -- NULL = unmapped (still kept)
+    value            REAL,
+    match_kind       TEXT,               -- compound | exact | suffix | fuzzy | NULL
+    updated_at       TIMESTAMP,
+    PRIMARY KEY (ticker, fiscal_year, statement_type, source_pdf_year, line_no)
+);
+CREATE INDEX IF NOT EXISTS idx_line_items_full_ticker
+    ON line_items_full(ticker, fiscal_year);
+
+-- Per-line-item quality (rule path): a confidence per written value, for the
+-- dashboard heatmap. Kept parallel so statement_lines stays a narrow fact table.
+CREATE TABLE IF NOT EXISTS statement_line_quality (
+    ticker          TEXT NOT NULL,
+    fiscal_year     INTEGER NOT NULL,
+    statement_type  TEXT NOT NULL,
+    line_item       TEXT NOT NULL,
+    confidence      REAL,
+    checked_at      TIMESTAMP,
+    PRIMARY KEY (ticker, fiscal_year, statement_type, line_item)
 );
 
 -- One row per run_tmx_financials() call, so real elapsed time / "last
