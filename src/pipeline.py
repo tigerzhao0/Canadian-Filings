@@ -2,7 +2,7 @@
 
 Official exchange/regulator sources are tried first, before any scraping:
     CSE filings API (XCNQ) -> SEC EDGAR cross-listing check -> TMX filings
-    (TSX/TSXV, browser-driven).
+    (TSX/TSXV, via TMX's own GraphQL API -- no browser needed).
 
 Scraping only runs on whatever's still unresolved after that:
     Tier 1 (fast, no browser): search -> pick IR homepage -> deep static
@@ -30,6 +30,7 @@ from ingest import Company
 from pdf_search import direct_pdf_search
 import sec_edgar
 import cse_filings
+import tmx_filings
 from search_provider import SearchProvider, SearchRateLimited, SearchError
 from validate import validate_pdf
 from verify_pdf import looks_like_financial_statement
@@ -57,6 +58,21 @@ def expected_annual_year(today: date | None = None) -> int:
 # --years CLI flag still overrides. INDEPENDENT of the structured-financials
 # depth (tmx_financials.num_years, ~14 via QuoteMedia).
 FILING_YEARS = 10
+
+# "Go as far back as a PDF is findable per company." Cheap, lossless sources
+# (the year-pattern URL probe, the CSE filings API, the TMX filings GraphQL
+# API, SEC EDGAR, IR-crawl dedup) reach this deep instead of stopping at
+# FILING_YEARS -- a year with no findable PDF simply yields no hit, so this is
+# a SAFETY FLOOR, not a fixed target. Only the request-heavy annualreports.com
+# sweep stays at FILING_YEARS. Every deep candidate is content-verified before
+# storage (verify_pdf.expected_year), so reaching deep never fabricates a year.
+MAX_HISTORY_YEARS = 25
+
+# TMX's GraphQL filings API (tmx_filings.py) is cheap plain HTTP -- a year with
+# no filings just returns empty in well under a second -- so its pass searches
+# much deeper than MAX_HISTORY_YEARS: as far back as the exchange's electronic
+# filing history plausibly goes for any TSX/TSXV issuer, not a cost-driven cap.
+TMX_HISTORY_YEARS = 40
 
 
 def _dedupe_recent_years(cands: list[dict], limit: int = FILING_YEARS) -> list[dict]:
@@ -346,7 +362,7 @@ async def _collect_pdfcandidate_years(cands: list[PDFCandidate], client, ua, tim
     two, unlike the exchange/EDGAR feeds."""
     confident = [c for c in cands if is_confident(c)]
     picked = _dedupe_recent_years(
-        [{"year": c.year, "cand": c} for c in confident], FILING_YEARS)
+        [{"year": c.year, "cand": c} for c in confident], MAX_HISTORY_YEARS)
     rows: list[dict] = []
     primary: dict | None = None
     for entry in picked:
@@ -557,6 +573,26 @@ async def run_pipeline(companies, provider: SearchProvider, cfg, *,
             progress(f"{len(companies)} companies loaded; {len(companies) - seeded} already "
                      f"found, {seeded} to process.")
 
+        # ---- annualreports.com structured-URL pass (cheapest, runs FIRST) --- #
+        # Deterministic {EXCH}_{TICKER}_{YEAR}.pdf pattern -- real annual
+        # reports, no search/scrape. Also re-targets companies whose current
+        # PDF the step-2 doc gate rejected (MRFP/MD&A picked by mistake).
+        if cfg.get("annualreports", {}).get("enabled", True):
+            t0 = time.monotonic()
+            try:
+                ar_added, ar_resolved, ar_checked = await _run_annualreports_pass(
+                    store, client, cfg, progress, companies)
+                elapsed = time.monotonic() - t0
+                if ar_checked:
+                    stage_stats.append(("annualreports.com pattern probe",
+                                        ar_checked, ar_resolved, elapsed))
+                if progress and ar_checked:
+                    progress(f"  annualreports.com done: {ar_resolved} resolved, "
+                             f"{ar_added} year-PDFs added in {_fmt_secs(elapsed)}")
+            except Exception as exc:  # noqa: BLE001 - fail soft, source is optional
+                if progress:
+                    progress(f"  annualreports.com pass skipped ({type(exc).__name__}: {exc})")
+
         # ---- CSE filings fallback (XCNQ companies, tried first) ------------- #
         if cfg.get("cse", {}).get("enabled", True):
             pending = store.rows_for_cse_pass()
@@ -679,9 +715,11 @@ async def _run_cse_pass(store, client, cfg, progress, pending: list[dict]) -> in
         async with sem:
             base = dict(ticker=row["ticker"], company_name=row["company_name"],
                         exchange=row["exchange"])
+            # CSE's SEDAR-mirror API is cheap and returns whatever history it
+            # has -- reach as far back as it offers (content-verified downstream).
             candidates = await cse_filings.fetch_annual_statements(
-                client, row["ticker"], ua, timeout, years=FILING_YEARS)
-            cands = _dedupe_recent_years(candidates, FILING_YEARS)
+                client, row["ticker"], ua, timeout, years=MAX_HISTORY_YEARS)
+            cands = _dedupe_recent_years(candidates, MAX_HISTORY_YEARS)
             rows, primary = await _validate_year_candidates(
                 cands, client, ua, timeout, ua, "cse_filings", verify_content, base)
             if rows:
@@ -698,57 +736,53 @@ async def _run_cse_pass(store, client, cfg, progress, pending: list[dict]) -> in
 
 
 async def _run_tmx_pass(store, client, cfg, progress, pending: list[dict]) -> int:
-    """Resolve unresolved TSX/TSXV companies by driving the TMX Money Filings
-    widget to their latest annual financial statement (labeled 'tmx_filings').
-    Browser-driven and slow, so it runs only on the leftover tail. SEC filers
+    """Resolve unresolved TSX/TSXV companies via TMX Money's own GraphQL API
+    (labeled 'tmx_filings_api') -- plain HTTP, no browser needed. SEC filers
     and CSE companies are already excluded. Never touches sedarplus.ca.
-    Returns the number resolved (0 if the pass could not run)."""
-    from render import Renderer, RenderUnavailable, playwright_available
-    if not playwright_available():
-        if progress:
-            progress(f"TMX pass skipped ({len(pending)} TSX/TSXV rows): Playwright not "
-                     "installed. Enable with:  pip install playwright && playwright install chromium")
-        return 0
+    Returns the number resolved."""
     ua = cfg["crawl"].get("browser_user_agent") or cfg["crawl"]["user_agent"]
     timeout = float(cfg["crawl"]["timeout_seconds"])
-    max_months = int(cfg.get("tmx", {}).get("max_months", 24))
-    verify_content = bool(cfg.get("verify", {}).get("content_check", True))
+    # No content-check here: TMX's own API already labels each filing's TYPE
+    # (pick_annuals/pick_secondary in tmx_filings.py already restrict to
+    # "Annual report"/"Audited annual financial statements" before a URL ever
+    # reaches this point), so downloading and pypdf-parsing every candidate to
+    # re-confirm it is unnecessary extra cost for this source specifically --
+    # unlike a scraped IR-site link, there's no risk of a mislabeled cover
+    # letter here. validate_pdf's cheap HEAD/ranged-GET reachability check
+    # still runs below.
+    verify_content = False
+    current_year = expected_annual_year()
     if progress:
-        progress(f"TMX pass: navigating money.tmx.com filings for {len(pending)} "
-                 "TSX/TSXV company(ies) [slow, browser-driven] ...")
+        progress(f"TMX pass: querying TMX's filings API for {len(pending)} "
+                 "TSX/TSXV company(ies) ...")
+    sem = asyncio.Semaphore(int(cfg.get("tmx", {}).get("concurrency", 15)))
     resolved = 0
-    try:
-        async with Renderer(cfg) as renderer:
-            sem = asyncio.Semaphore(int(cfg.get("tmx", {}).get("concurrency", 2)))
-            done = 0
+    done = 0
 
-            async def handle(row):
-                nonlocal resolved, done
-                async with sem:
-                    base = dict(ticker=row["ticker"], company_name=row["company_name"],
-                                exchange=row["exchange"])
-                    candidates = await renderer.tmx_annual_statements(
-                        row["ticker"], max_months, limit=FILING_YEARS)
-                    cands = _dedupe_recent_years(candidates, FILING_YEARS)
-                    rows, primary = await _validate_year_candidates(
-                        cands, client, ua, timeout, ua, "tmx_filings", verify_content, base)
-                    if rows:
-                        await store.upsert_filing_pdfs(rows)
-                    if primary:
-                        await store.upsert(**base, pdf_url=primary["url"],
-                                           fiscal_year_guess=primary["year"],
-                                           discovery_method=primary["method"],
-                                           status="found", failure_reason=primary["reason"])
-                        resolved += 1
-                done += 1
-                if progress and (done % 20 == 0 or done == len(pending)):
-                    progress(f"  TMX pass: {done}/{len(pending)} (resolved {resolved})")
+    async def handle(row):
+        nonlocal resolved, done
+        async with sem:
+            base = dict(ticker=row["ticker"], company_name=row["company_name"],
+                        exchange=row["exchange"])
+            candidates = await tmx_filings.annual_statements_via_api(
+                client, row["ticker"], ua, timeout, years=TMX_HISTORY_YEARS,
+                current_year=current_year)
+            cands = _dedupe_recent_years(candidates, TMX_HISTORY_YEARS)
+            rows, primary = await _validate_year_candidates(
+                cands, client, ua, timeout, ua, "tmx_filings_api", verify_content, base)
+            if rows:
+                await store.upsert_filing_pdfs(rows)
+            if primary:
+                await store.upsert(**base, pdf_url=primary["url"],
+                                   fiscal_year_guess=primary["year"],
+                                   discovery_method=primary["method"],
+                                   status="found", failure_reason=primary["reason"])
+                resolved += 1
+        done += 1
+        if progress and (done % 20 == 0 or done == len(pending)):
+            progress(f"  TMX pass: {done}/{len(pending)} (resolved {resolved})")
 
-            await asyncio.gather(*(handle(r) for r in pending))
-    except RenderUnavailable as exc:
-        if progress:
-            progress(f"TMX pass skipped: {exc}")
-        return resolved
+    await asyncio.gather(*(handle(r) for r in pending))
     return resolved
 
 
@@ -780,7 +814,7 @@ async def _run_sec_pass(store, client, cfg, progress, pending: list[dict]) -> in
 
     async def flag(row, cik):
         async with sem:
-            filings = await sec_edgar.recent_annual_filings(client, cik, ua, limit=FILING_YEARS)
+            filings = await sec_edgar.recent_annual_filings(client, cik, ua, limit=MAX_HISTORY_YEARS)
         latest = filings[0] if filings else None
         url = latest["url"] if latest else sec_edgar.filings_browse_url(cik)
         form = latest.get("form") if latest else None
@@ -817,6 +851,204 @@ async def _run_sec_pass(store, client, cfg, progress, pending: list[dict]) -> in
     return len(filers)
 
 
+async def _run_annualreports_pass(store, client, cfg, progress, companies) -> tuple[int, int, int]:
+    """Probe annualreports.com's deterministic {EXCH}_{TICKER}_{YEAR}.pdf URLs
+    for every selected company. Targets: (a) unresolved companies (become
+    'found'), (b) resolved companies missing years in the FILING_YEARS window
+    (adds filing_pdfs rows), (c) companies whose extracted PDFs the doc gate
+    ALL rejected (mda/aif/other -- the wrong-document case): a hit REPLACES
+    their primary pdf_url. Fails soft: one reachability check up front, any
+    connection trouble skips the pass. Returns (years_added, resolved, checked)."""
+    import annualreports_source as ars
+
+    ua = cfg["crawl"].get("browser_user_agent") or cfg["crawl"].get("user_agent", "Mozilla/5.0")
+    timeout = min(float(cfg["crawl"].get("timeout_seconds", 20)), 15.0)
+
+    # Reachability gate: the site refuses some networks; don't burn the run.
+    try:
+        await client.get("https://www.annualreports.com/", timeout=10.0,
+                         headers={"User-Agent": ua})
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(f"site unreachable ({type(exc).__name__})") from exc
+
+    current_year = expected_annual_year()
+    targets = list(range(current_year, current_year - FILING_YEARS, -1))
+
+    # Which tickers have ONLY doc-gate-rejected extractions? (wrong document)
+    bad_doc: set[str] = set()
+    try:
+        cur = store._conn.execute(
+            "SELECT ticker FROM pdf_extractions GROUP BY ticker HAVING "
+            "SUM(CASE WHEN COALESCE(doc_type,'primary_statements') IN "
+            "('primary_statements','annual_report_wrapper') THEN 1 ELSE 0 END) = 0")
+        bad_doc = {r[0] for r in cur.fetchall()}
+    except Exception:  # noqa: BLE001 - table may not exist yet
+        pass
+
+    have_years: dict[str, set[int]] = {}
+    for tk, fy in store._conn.execute(
+            "SELECT ticker, fiscal_year FROM filing_pdfs WHERE pdf_url IS NOT NULL"):
+        have_years.setdefault(tk, set()).add(fy)
+
+    ar_cfg = cfg.get("annualreports", {}) or {}
+    sem = asyncio.Semaphore(int(ar_cfg.get("concurrency", 3)))
+    added = resolved = checked = skipped_no_target = no_prefix = no_hits = 0
+    total = len(companies)
+
+    # Good-citizen politeness so we don't trip a rate-limiter (NOT bot-block
+    # evasion): a global request PACER (min seconds between requests to the
+    # host), a per-run URL cache so we never re-hit the same URL, and polite
+    # exponential backoff-with-jitter on a 429/503 "blocked" response.
+    import random
+    import time as _time
+    min_delay = float(ar_cfg.get("min_delay_seconds", 1.0))
+    max_retries = int(ar_cfg.get("max_retries", 3))
+    _pace_lock = asyncio.Lock()
+    _next_allowed = [0.0]
+    _probe_cache: dict[str, bool] = {}
+
+    async def _pace() -> None:
+        async with _pace_lock:
+            now = _time.monotonic()
+            wait = _next_allowed[0] - now
+            if wait > 0:
+                await asyncio.sleep(wait)
+            _next_allowed[0] = _time.monotonic() + min_delay
+
+    async def probe(url) -> bool:
+        if url in _probe_cache:                      # never re-hit a URL this run
+            return _probe_cache[url]
+        result = False
+        for attempt in range(max_retries):
+            await _pace()
+            state, _ = await validate_pdf(client, url, ua, timeout)
+            if state == "ok":
+                result = True
+                break
+            if state != "blocked":                   # genuine 404/miss -> stop
+                break
+            # 429/403 "blocked": back off politely (jittered) and retry a few
+            # times; give up gracefully rather than hammering.
+            await asyncio.sleep(min(30.0, (2 ** attempt) + random.uniform(0, 1)))
+        _probe_cache[url] = result
+        return result
+
+    async def handle(c):
+        nonlocal added, resolved, checked, skipped_no_target, no_prefix, no_hits
+        async with sem:
+            checked += 1
+            if progress and (checked % 50 == 0 or checked == total):
+                progress(f"  annualreports.com: checked {checked}/{total} "
+                         f"(resolved {resolved}, {added} year-PDFs so far)")
+            unresolved = not store.already_found(c.ticker)
+            retarget = c.ticker in bad_doc
+            have = have_years.get(c.ticker, set())
+            missing = [y for y in targets if y not in have]
+            if not (unresolved or retarget or missing):
+                skipped_no_target += 1
+                return
+            # 1) find the working (exchange, ticker) prefix on recent years
+            prefix = None
+            hit0 = None
+            for exch in ars.exchange_prefixes(c.exchange):
+                for tick in ars.ticker_variants(c.ticker):
+                    for year in targets[:2]:
+                        if await probe(ars.current_url(exch, tick, year)):
+                            prefix, hit0 = (exch, tick), year
+                            break
+                    if prefix:
+                        break
+                if prefix:
+                    break
+            if not prefix:
+                no_prefix += 1
+                return
+            exch, tick = prefix
+            # 2) sweep the window with that prefix (current path, then archive).
+            #    A reachability hit (cheap ranged GET) is only a CANDIDATE --
+            #    content-verify it (right doc, right year, not interim) before
+            #    storing, instead of the old blind verified=1. A URL that
+            #    serves the wrong year (e.g. the latest report under an old
+            #    year's path) or a quarterly doc is dropped here.
+            hits: list[tuple[int, str]] = []
+            for year in targets:
+                if year in have and not (retarget and year == hit0):
+                    continue
+                for url in ars.year_urls(exch, tick, year, c.legal_name):
+                    if not await probe(url):
+                        continue
+                    ok_content, _reason = await looks_like_financial_statement(
+                        client, url, ua, timeout, company_name=c.legal_name,
+                        expected_year=year)
+                    if ok_content:
+                        hits.append((year, url))
+                    break
+            if not hits:
+                no_hits += 1
+                return
+            rows = [dict(ticker=c.ticker, company_name=c.legal_name,
+                         exchange=c.exchange, fiscal_year=y, pdf_url=u,
+                         discovery_method="annualreports_com", verified=1)
+                    for y, u in hits]
+            await store.upsert_filing_pdfs(rows)
+            added += len(rows)
+            years_str = ",".join(str(y) for y, _ in sorted(hits, reverse=True))
+            tag = "NEW" if unresolved else ("RETARGET" if retarget else "FILL")
+            if progress:
+                progress(f"  annualreports.com [{tag}] {c.ticker} ({exch}_{tick}): "
+                         f"{len(hits)} year(s) -> {years_str}")
+            if unresolved or retarget:
+                y, u = max(hits)
+                await store.upsert(ticker=c.ticker, company_name=c.legal_name,
+                                   exchange=c.exchange, pdf_url=u,
+                                   fiscal_year_guess=y,
+                                   discovery_method="annualreports_com",
+                                   status="found", failure_reason=None)
+                resolved += 1
+
+    if progress:
+        progress(f"annualreports.com pass: probing {len(companies)} company(ies) "
+                 f"({FILING_YEARS}-year window) ...")
+    await asyncio.gather(*(handle(c) for c in companies))
+    if progress:
+        progress(f"  annualreports.com breakdown: {resolved} resolved, {added} year-PDF(s) "
+                 f"added; no-target(already complete) {skipped_no_target}, "
+                 f"no-matching-prefix {no_prefix}, prefix-found-but-no-hits {no_hits}")
+    return added, resolved, checked
+
+
+_YEAR_PROBE_OPAQUE_HOSTS = ("thecse.com", "quotemedia.com", "sec.gov")
+
+
+def _year_probe_candidates(rows: list[tuple], targets: set[int]) -> list[tuple[int, str]]:
+    """Pure logic (no I/O): given one ticker's (fiscal_year, url, name, exchange)
+    rows, return [(year, candidate_url), ...] worth probing for missing years.
+    Isolated from _probe_year_patterns so the URL-pattern bug class (query
+    string / opaque-host false positives) is directly unit-testable."""
+    from urllib.parse import urlsplit, urlunsplit
+
+    patterned = []
+    for fy, url, name, exch in rows:
+        split = urlsplit(url)
+        if any(h in split.netloc for h in _YEAR_PROBE_OPAQUE_HOSTS):
+            continue
+        fname = split.path.rsplit("/", 1)[-1]   # PATH only -- never the query string
+        if str(fy) in fname:
+            patterned.append((fy, url, name, exch))
+    if not patterned:
+        return []
+    fy0, url0, _name, _exch = max(patterned)      # newest as the template
+    have = {fy for fy, *_ in rows}
+    split0 = urlsplit(url0)
+    out = []
+    for year in sorted(targets - have, reverse=True):
+        new_path = split0.path.replace(str(fy0), str(year))
+        if new_path == split0.path:
+            continue
+        out.append((year, urlunsplit(split0._replace(path=new_path))))
+    return out
+
+
 async def _probe_year_patterns(store, client, cfg, progress) -> int:
     """Fill the 10-year history via URL extrapolation: companies whose verified
     pdf_url embeds its fiscal year in the FILENAME ('ar_2025_e.pdf') almost
@@ -824,7 +1056,25 @@ async def _probe_year_patterns(store, client, cfg, progress) -> int:
     for rbc.com back to 2015). For each missing year in the FILING_YEARS window,
     substitute the year, validate with the usual ranged-GET + %PDF sniff, and
     record verified hits. Sources like CSE/TMX use opaque per-filing URLs (no
-    year in the filename), so they are naturally skipped."""
+    year in the filename), so they are naturally skipped.
+
+    BUG FIXED (confirmed corrupting 220 filing_pdfs rows / 32 tickers): the
+    "patterned filename" check used to run against the URL's LAST PATH SEGMENT
+    INCLUDING its query string. CSE/TMX filing URLs carry a
+    '&dateFiled=YYYY-MM-DD' query param, so a URL like thecse.com's
+    '.../06408296-...?formDescription=Annual+report&dateFiled=2026-07-02' was
+    wrongly treated as filename-patterned (the docstring's own claim that these
+    "are naturally skipped" was false). The subsequent whole-URL string
+    .replace() then rewrote that harmless date param for each target year,
+    producing 5-10 "different year" candidate URLs that all pointed at the
+    SAME opaque document -- which validate_pdf correctly confirmed as a real
+    PDF every time, so the SAME single filing got recorded as up to 10 distinct
+    fabricated fiscal years. Fix: (1) operate on the URL PATH only, never the
+    query string, so a coincidental year-shaped query param can't match or be
+    rewritten; (2) explicitly exclude opaque per-filing-ID hosts (CSE, TMX/
+    QuoteMedia, SEC) from year-probing entirely -- their filenames are hashes/
+    serials with no real per-year addressing, so probing is fundamentally
+    unsound there even after the query-string fix."""
     cur = store._conn.execute(
         "SELECT ticker, company_name, exchange, fiscal_year, pdf_url "
         "FROM filing_pdfs WHERE pdf_url IS NOT NULL AND pdf_url NOT LIKE '%sec.gov%'")
@@ -835,7 +1085,10 @@ async def _probe_year_patterns(store, client, cfg, progress) -> int:
     ua = cfg["crawl"].get("browser_user_agent") or cfg["crawl"].get("user_agent", "Mozilla/5.0")
     timeout = float(cfg["crawl"].get("timeout_seconds", 20))
     current_year = expected_annual_year()
-    targets = set(range(current_year - FILING_YEARS + 1, current_year + 1))
+    # DEEP window: probe as far back as the filename pattern yields a valid PDF
+    # (content-verified in probe_one). A year with no PDF just produces no hit,
+    # so this floor never fabricates -- it's "go as far back as findable".
+    targets = set(range(current_year - MAX_HISTORY_YEARS + 1, current_year + 1))
     sem = asyncio.Semaphore(6)
     added = 0
 
@@ -843,7 +1096,16 @@ async def _probe_year_patterns(store, client, cfg, progress) -> int:
         nonlocal added
         async with sem:
             state, _ = await validate_pdf(client, template_url, ua, timeout)
-            if state == "ok":
+            if state != "ok":
+                return
+            # A reachable %PDF at the substituted-year URL is only a CANDIDATE.
+            # Content-verify (right doc, right year, not interim) before
+            # storing, instead of the old blind verified=1 -- a year-pattern
+            # URL can resolve to a stale/latest report under an old year's path.
+            ok_content, _reason = await looks_like_financial_statement(
+                client, template_url, ua, timeout, company_name=name,
+                expected_year=year)
+            if ok_content:
                 await store.upsert_filing_pdfs([dict(
                     ticker=tk, company_name=name, exchange=exch,
                     fiscal_year=year, pdf_url=template_url,
@@ -852,20 +1114,8 @@ async def _probe_year_patterns(store, client, cfg, progress) -> int:
 
     tasks = []
     for tk, rows in by_ticker.items():
-        # a URL is "patterned" when its FILENAME contains the row's own year
-        patterned = []
-        for fy, url, name, exch in rows:
-            fname = url.rsplit("/", 1)[-1]
-            if str(fy) in fname:
-                patterned.append((fy, url, name, exch))
-        if not patterned:
-            continue
-        fy0, url0, name, exch = max(patterned)          # newest as the template
-        have = {fy for fy, *_ in rows}
-        for year in sorted(targets - have, reverse=True):
-            candidate = url0.replace(str(fy0), str(year))
-            if candidate == url0:
-                continue
+        name, exch = rows[0][2], rows[0][3]
+        for year, candidate in _year_probe_candidates(rows, targets):
             tasks.append(probe_one(tk, candidate, year, name, exch))
     if tasks:
         if progress:

@@ -80,13 +80,23 @@ def verify(ticker: str, pdf_db: str, qm_db: str, tolerance: float) -> None:
             cov.append(f"{y}:{n}/{len(present_any)}")
         print(f"  {stmt:16} {' '.join(cov)}")
 
-    # exact-match vs QM on overlap
-    common = sorted(set(ours) & set(theirs))
+    # exact-match vs QM on overlap -- MAPPED values only: derived / zero-filled
+    # cells state "absent on the statement face", while QM derives from notes;
+    # comparing those judges different claims, not extraction accuracy.
+    try:
+        kinds_cmp = {(s, k, y): mk for s, k, y, mk in pf.execute(
+            "SELECT statement_type, line_item, fiscal_year, match_kind "
+            "FROM statement_line_quality WHERE ticker = ?", (ticker,))}
+    except sqlite3.OperationalError:
+        kinds_cmp = {}
+    mapped_ours = {slot: v for slot, v in ours.items()
+                   if kinds_cmp.get(slot, "mapped") == "mapped"}
+    common = sorted(set(mapped_ours) & set(theirs))
     match = mismatch = defn = sign = 0
     bad: list[tuple] = []
     for slot in common:
         s, k, y = slot
-        o, t = ours[slot], theirs[slot]
+        o, t = mapped_ours[slot], theirs[slot]
         if abs(o - t) <= tolerance * max(abs(t), 1.0):
             match += 1
         elif k in SIGN_ONLY_KEYS and abs(abs(o) - abs(t)) <= tolerance * max(abs(t), 1.0):
@@ -104,6 +114,39 @@ def verify(ticker: str, pdf_db: str, qm_db: str, tolerance: float) -> None:
     print(f"  REAL mismatches      : {mismatch}")
     for s, k, y, o, t in bad:
         print(f"    {y} {s}/{k}: ours={o:,.2f} qm={t:,.2f}")
+
+    # template fill rate -- the number the xlsx user actually sees
+    try:
+        import sys as _sys
+        from pathlib import Path as _P
+        _sys.path.insert(0, str(_P(__file__).resolve().parent))
+        import derive as _derive
+        kinds = {(s, k, y): mk for s, k, y, mk in pf.execute(
+            "SELECT statement_type, line_item, fiscal_year, match_kind "
+            "FROM statement_line_quality WHERE ticker = ?", (ticker,))}
+        is_bank = any(k == "GrossLoan" for (_s, k, _y) in ours)
+        # fill_metric_keys (not template_keys) -- excludes the industrial BS
+        # leaf rows a bank's face never disaggregates, matching schema_map's
+        # own summary. Using template_keys directly would double-count a
+        # bank's mandatory-blank rows as "missing".
+        keys = _derive.fill_metric_keys(is_bank=is_bank)
+        cells = len(keys) * len(years)
+        filled = mapped_n = derived_n = zero_n = 0
+        for y in years:
+            for s, k in keys:
+                if (s, k, y) in ours:
+                    filled += 1
+                    mk = kinds.get((s, k, y), "mapped")
+                    if mk == "derived":
+                        derived_n += 1
+                    elif mk == "absent_on_face":
+                        zero_n += 1
+                    else:
+                        mapped_n += 1
+        print(f"\nTEMPLATE FILL: {filled}/{cells} cells = {filled / cells * 100:.0f}%"
+              f"  (mapped {mapped_n}, derived {derived_n}, zero-filled {zero_n})")
+    except Exception as e:  # noqa: BLE001 - fill report must never kill verify
+        print(f"\nTEMPLATE FILL: unavailable ({e})")
 
     # parse/map coverage from line_items_full
     try:

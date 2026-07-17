@@ -30,7 +30,8 @@ def _ensure_columns(conn) -> None:
     """Additive migration: add columns to an already-existing pdf_extractions
     table (CREATE TABLE IF NOT EXISTS won't alter an existing one)."""
     existing = {r[1] for r in conn.execute("PRAGMA table_info(pdf_extractions)")}
-    for col, decl in (("doc_type", "TEXT"), ("unit_scale_hint", "REAL")):
+    for col, decl in (("doc_type", "TEXT"), ("unit_scale_hint", "REAL"),
+                      ("content_years", "TEXT"), ("true_fiscal_year", "INTEGER")):
         if col not in existing:
             conn.execute(f"ALTER TABLE pdf_extractions ADD COLUMN {col} {decl}")
 
@@ -85,22 +86,28 @@ async def _fetch_pdf(client, url: str, ua: str, timeout: float,
     return b"", last_reason
 
 
-def _rows_to_process(db_path: str) -> list[dict]:
+def _rows_to_process(db_path: str, tickers: set[str] | None = None) -> list[dict]:
     conn = sqlite3.connect(db_path)
     try:
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))  # ensure tables exist
         _ensure_columns(conn)
         conn.commit()
-        cur = conn.execute(
-            "SELECT ticker, fiscal_year, pdf_url FROM filing_pdfs "
-            "WHERE pdf_url IS NOT NULL ORDER BY ticker, fiscal_year DESC")
+        sql = ("SELECT ticker, fiscal_year, pdf_url FROM filing_pdfs "
+               "WHERE pdf_url IS NOT NULL")
+        params: tuple = ()
+        if tickers:
+            placeholders = ",".join("?" * len(tickers))
+            sql += f" AND ticker IN ({placeholders})"
+            params = tuple(tickers)
+        sql += " ORDER BY ticker, fiscal_year DESC"
+        cur = conn.execute(sql, params)
         cols = [c[0] for c in cur.description]
         return [dict(zip(cols, r)) for r in cur.fetchall()]
     finally:
         conn.close()
 
 
-async def run_pdf_processing(cfg, *, progress=None) -> dict:
+async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=None) -> dict:
     db_path = cfg.get("storage", {}).get("db_path", "output/filings.db")
     crawl = cfg.get("crawl", {})
     ua = crawl.get("browser_user_agent") or crawl.get("user_agent", "Mozilla/5.0")
@@ -112,7 +119,7 @@ async def run_pdf_processing(cfg, *, progress=None) -> dict:
     max_bytes = int(cfg.get("verify", {}).get("max_pdf_mb", 40)) * 1_000_000
     concurrency = int(cfg.get("pdf_processing", {}).get("concurrency", 6))
 
-    rows = _rows_to_process(db_path)
+    rows = _rows_to_process(db_path, tickers)
     if progress:
         progress(f"PDF processing: {len(rows)} found PDF(s) in {db_path} "
                  "(download -> extract -> delete) ...")
@@ -147,7 +154,8 @@ async def run_pdf_processing(cfg, *, progress=None) -> dict:
                         income_statement=None, balance_sheet=None, cash_flow=None,
                         primary_block=None, extract_ok=0,
                         reason="sec_crosslisted_no_pdf_needed", doc_type=None,
-                        unit_scale_hint=None))
+                        unit_scale_hint=None, content_years=None,
+                        true_fiscal_year=None))
                     sec_skipped += 1
                     done += 1
                     if progress and (done % 20 == 0 or done == len(rows)):
@@ -181,6 +189,10 @@ async def run_pdf_processing(cfg, *, progress=None) -> dict:
                     res_ok, res = False, None
                     reason = dl_reason or "download_failed"
                     sc = 0
+                content_years: list[int] = []
+                true_fy = None
+                if not pdf_bytes:
+                    pass
                 else:
                     res = extract_statements(pdf_bytes)
                     res_ok, reason, sc = res.ok, res.reason, (1 if res.scanned else 0)
@@ -191,8 +203,34 @@ async def run_pdf_processing(cfg, *, progress=None) -> dict:
                         doc_type = classify_document(pdf_bytes).doc_type
                     except Exception:  # noqa: BLE001
                         doc_type = None
+                    # CONTENT fiscal year(s): read the real years printed inside
+                    # the PDF (column headers + cover 'year ended YYYY'), the
+                    # source of truth vs the URL/filing-date-derived label.
+                    try:
+                        from pdf_extract import content_fiscal_years
+                        content_years, true_fy, is_interim = content_fiscal_years(pdf_bytes)
+                    except Exception:  # noqa: BLE001
+                        content_years, true_fy, is_interim = [], None, False
+                    labeled = row["fiscal_year"]
+                    # Reject a quarterly/interim doc, or one whose content year is
+                    # WILDLY off its label (>1yr) -- a wrong document for this row.
+                    if res_ok and is_interim:
+                        res_ok, reason = False, "interim_or_quarterly_report"
+                    elif (res_ok and content_years and labeled is not None
+                          and not any(abs(y - labeled) <= 1 for y in content_years)):
+                        res_ok, reason = False, f"wrong_year_content_{content_years[0]}"
 
                 sec = (res.sections if res else {}) or {}
+                # The STORAGE fiscal_year (== raw_line_items.pdf_year) is left as
+                # the original filing-year label ON PURPOSE: schema_map's merge
+                # processes newest-pdf_year-first so the newest FILING wins each
+                # col_year slot (restated figures), and the filing-year label is
+                # the better recency proxy -- relabeling to the content year
+                # would let two distinct reports collide on one pdf_year and
+                # break that tie-break. The actual data is col_year-keyed and
+                # content-derived regardless. content_years/true_fiscal_year are
+                # stored as informational: coverage (P4) reads them, and the
+                # reject logic above uses them to drop wrong-year/interim docs.
                 results.append(dict(
                     ticker=row["ticker"], fiscal_year=row["fiscal_year"],
                     pdf_url=row["pdf_url"], scanned=sc,
@@ -202,7 +240,10 @@ async def run_pdf_processing(cfg, *, progress=None) -> dict:
                     primary_block=(res.primary_block if res else None),
                     extract_ok=1 if res_ok else 0, reason=reason,
                     doc_type=doc_type,
-                    unit_scale_hint=(res.unit_scale_hint if res else None)))
+                    unit_scale_hint=(res.unit_scale_hint if res else None),
+                    content_years=(",".join(str(y) for y in content_years)
+                                   if content_years else None),
+                    true_fiscal_year=true_fy))
                 if res_ok:
                     extracted += 1
                 elif sc:

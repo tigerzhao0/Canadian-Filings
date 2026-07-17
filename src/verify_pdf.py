@@ -72,11 +72,17 @@ def _name_mismatch(text: str, company_name: str | None) -> bool:
 async def looks_like_financial_statement(client, url, user_agent, timeout,
                                          company_name: str | None = None,
                                          max_bytes: int = 40_000_000,
-                                         max_pages: int = 25) -> tuple[bool, str]:
+                                         max_pages: int = 25,
+                                         expected_year: int | None = None
+                                         ) -> tuple[bool, str]:
     """Return (accept, reason). accept is False ONLY when the PDF is positively
     NOT what we want: a non-statement, an interim/quarterly filing (when no
-    annual language is also present), or a document that never mentions the
-    target company at all (when company_name is given and has real tokens)."""
+    annual language is also present), a document that never mentions the target
+    company, or -- when `expected_year` is given -- a document whose PRINTED
+    fiscal year(s) don't include the requested year (a URL requested for 2020
+    that actually serves the latest 2025 report). Off-by-one is tolerated
+    (a report filed in year N+1 covers fiscal year N), and a doc whose content
+    year can't be read is never rejected on that basis."""
     try:
         resp = await client.get(url, headers={"User-Agent": user_agent},
                                 timeout=timeout * 2, follow_redirects=True)
@@ -87,6 +93,20 @@ async def looks_like_financial_statement(client, url, user_agent, timeout,
     data = resp.content
     if not data or not data[:5].startswith(b"%PDF") or len(data) > max_bytes:
         return True, "unverifiable_pdf"
+
+    # Content fiscal-year / interim check (only meaningful when a year is
+    # requested). Cheap enough to run once here; reused by callers that store
+    # the true year. Failing to read a year never rejects.
+    if expected_year is not None:
+        try:
+            from pdf_extract import content_fiscal_years
+            years, _headline, is_interim = content_fiscal_years(data)
+        except Exception:  # noqa: BLE001
+            years, is_interim = [], False
+        if is_interim:
+            return False, "interim_or_quarterly_report"
+        if years and not any(abs(y - expected_year) <= 1 for y in years):
+            return False, f"wrong_year_content_{years[0]}"
 
     text, npages, parsed = _extract_text(data, max_pages)
     stripped = text.strip()

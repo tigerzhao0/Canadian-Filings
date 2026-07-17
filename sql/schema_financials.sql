@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS statement_line_quality (
     statement_type  TEXT NOT NULL,
     line_item       TEXT NOT NULL,
     confidence      REAL,
+    match_kind      TEXT,   -- mapped / derived / absent_on_face
     checked_at      TIMESTAMP,
     PRIMARY KEY (ticker, fiscal_year, statement_type, line_item)
 );

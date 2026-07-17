@@ -21,10 +21,12 @@ slowest; scraping is the last resort ("only scrape when necessary"):
    `sec_filing_url`) — company already has a first-class filing elsewhere,
    so we don't want it mistaken for a normal PDF find. Runs before TMX so
    SEC-flagged companies are excluded from the TMX pass.
-3. **TMX (TSX/TSXV) filings fallback**: browser-driven — opens
-   `money.tmx.com/en/quote/<SYM>/financials-filings`, pages the month
-   carousel back to the latest "Audited annual financial statements". Slow,
-   but still runs before scraping since it's an official source.
+3. **TMX (TSX/TSXV) filings fallback**: queries TMX Money's own GraphQL API
+   (`app-money.tmx.com/graphql`, `getCompanyFilings`) directly by symbol +
+   date range — no browser, no auth token, just Origin/Referer headers.
+   Finds the latest "Audited annual financial statements", tagged
+   `tmx_filings_api`. Cheap plain HTTP, runs before scraping since it's an
+   official source.
 4. **Tier 1 (fast, no browser)**, only on whatever's still unresolved:
    search -> pick IR homepage (**sure match only** — real name/acronym/domain
    match, not a rank-only guess) -> deep static crawl -> direct

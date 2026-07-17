@@ -144,11 +144,24 @@ def parse_lines(text: str, statement_type: str) -> ParsedStatement:
             # leading column-year token + small page-number-ish ints -> furniture
             continue
 
+        if label and not re.search(r"[A-Za-z]", label):
+            # '$'/punctuation-only "label" (currency-marker column): the real
+            # label is the preceding no-value line when one is pending;
+            # otherwise treat as a value-only line (section running total).
+            if pending_prefix:
+                label = pending_prefix
+                pending_prefix = ""
+            else:
+                label = ""
+
         if not label:
             # VALUE-ONLY LINE = the running total of the current section.
             if section is None:
-                out.flags.append("orphan_subtotal")
-                continue
+                if zone:   # zone-level running total ("Assets ... 1,234")
+                    section = _clean_section(zone)
+                else:
+                    out.flags.append("orphan_subtotal")
+                    continue
             if _ALLOWANCE_ROW_RE.match(prev_data_label):
                 label = f"{section} net total"
             else:
@@ -171,6 +184,59 @@ def parse_lines(text: str, statement_type: str) -> ParsedStatement:
     if not out.rows:
         out.flags.append("no_rows")
     return out
+
+
+# ---------------------------------------------------------------------------
+# primary_block slicing: when step 2 stored a statement section EMPTY but the
+# whole primary-statements span exists, split the span at statement-title
+# lines and use the right slice. (The old fallback parsed the ENTIRE block as
+# each missing statement -- a balance sheet's rows showed up as "cash flow".)
+# ---------------------------------------------------------------------------
+
+_SLICE_HDR_RES = {
+    # "_equity" is a BOUNDARY-ONLY mark: a changes-in-equity/net-assets title
+    # ends the previous statement's slice but never claims one itself.
+    # Checked FIRST so "statements of changes in net assets" never falls
+    # through to the balance_sheet "statements of net assets" pattern.
+    "_equity": re.compile(
+        r"statements? of changes in (net assets|equity|shareholders'? equity"
+        r"|unitholders'? equity)|statement of equity", re.I),
+    "income_statement": re.compile(
+        r"statements? of (comprehensive )?(income|loss|operations|earnings)|"
+        r"statements? of profit|statements? of loss and comprehensive loss|"
+        r"[ée]tats? du r[ée]sultat", re.I),
+    "balance_sheet": re.compile(
+        r"balance sheets?|statements? of financial position|"
+        r"statements? of net assets\b|"
+        r"[ée]tats? de la situation financi[èe]re", re.I),
+    "cash_flow": re.compile(
+        r"statements? of cash flows?|cash flow statements?|"
+        r"tableaux? des flux de tr[ée]sorerie", re.I),
+}
+
+
+def slice_primary(text: str) -> dict[str, str]:
+    """Split a primary-statements block into per-statement segments at title
+    lines. Keeps the FIRST occurrence per statement (the proper statement
+    precedes OCI/equity look-alikes)."""
+    lines = text.splitlines()
+    marks: list[tuple[int, str]] = []
+    for i, ln in enumerate(lines):
+        s = ln.strip()
+        if not s or len(s) > 90:
+            continue
+        for stmt, rx in _SLICE_HDR_RES.items():
+            if rx.search(s):
+                marks.append((i, stmt))
+                break
+    segs: dict[str, str] = {}
+    for j, (i, stmt) in enumerate(marks):
+        if stmt == "_equity":     # boundary only, never a segment of its own
+            continue
+        end = marks[j + 1][0] if j + 1 < len(marks) else len(lines)
+        if stmt not in segs:
+            segs[stmt] = "\n".join(lines[i:end])
+    return segs
 
 
 # ---------------------------------------------------------------------------
@@ -246,8 +312,13 @@ def run_line_item_parsing(cfg, *, force: bool = False, limit: int | None = None,
             ticker, pdf_year = row["ticker"], row["fiscal_year"]
             conn.execute("DELETE FROM raw_line_items WHERE ticker=? AND pdf_year=?",
                          (ticker, pdf_year))
+            sliced: dict[str, str] | None = None
             for stmt in STATEMENTS:
-                text = (row.get(stmt) or "").strip() or (row.get("primary_block") or "").strip()
+                text = (row.get(stmt) or "").strip()
+                if not text:
+                    if sliced is None:
+                        sliced = slice_primary((row.get("primary_block") or ""))
+                    text = (sliced.get(stmt) or "").strip()
                 if not text:
                     empty += 1
                     continue

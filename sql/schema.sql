@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS filing_pdfs (
     exchange          TEXT,
     fiscal_year       INTEGER NOT NULL,
     pdf_url           TEXT,               -- the annual filing document URL for that year
-    discovery_method  TEXT,               -- cse_filings | tmx_filings | sec_edgar | crawl | render | pdf_search
+    discovery_method  TEXT,               -- cse_filings | tmx_filings_api | sec_edgar | crawl | render | pdf_search
     verified          INTEGER,            -- 1 = content-confirmed financial statement, 0 = reachable-but-unverified
     failure_reason    TEXT,
     last_checked      TIMESTAMP,

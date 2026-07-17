@@ -52,9 +52,21 @@ _NULL_TOKENS = {"-", "–", "—", "�", "n.a.", "n/a", "nil", "——"}
 # \s* (not a literal space) between words: some text layers keep phrases glued
 # even after the tighter-x_tolerance re-extract ("(MillionsofCanadiandollars)"
 # in RBC's pre-2019 annual reports), and the units note must still be found.
+#
+# BUG FIXED (confirmed on Apple's 10-K, a 1000x-scale error across every
+# dollar figure): large US filers commonly state
+# "(In millions, except number of shares, which are reflected in thousands,
+# and par value)" -- ONE sentence naming BOTH scales, where "thousands"
+# describes a SHARE-COUNT exception, not the dollar figures. The old
+# thousands-checked-first order matched that caveat and returned 1000.0
+# before ever looking for "millions", silently under-scaling the whole
+# statement. millions is checked FIRST now: when a units note mentions both
+# (this common "in millions, except ... thousands" phrasing), the primary
+# scale wins; a genuine thousands-only note (no "millions" anywhere) still
+# falls through to the second pattern exactly as before.
 _SCALE_PATTERNS = [
-    (re.compile(r"in\s*thousands|thousands\s*of|\(000s?\)|\$000s?", re.I), 1000.0),
     (re.compile(r"in\s*millions|millions\s*of", re.I), 1_000_000.0),
+    (re.compile(r"in\s*thousands|thousands\s*of|\(000s?\)|\$000s?", re.I), 1000.0),
 ]
 _CURRENCY_PATTERNS = [
     (re.compile(r"canadian\s*dollar|\bcad\b|\bcdn\b", re.I), "CAD"),
@@ -82,6 +94,30 @@ _MONTHS = {"january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june"
            "december": 12}
 _DATE_RE = re.compile(r"(january|february|march|april|may|june|july|august|"
                       r"september|october|november|december)\s+(\d{1,2})", re.I)
+# Cover/first-page fiscal-year phrases that DO capture the year (unlike
+# _DATE_RE, which is month+day only). Used to establish a PDF's own headline
+# fiscal year from its content -- "for the year(s) ended March 31, 2025",
+# "fiscal year ended December 31, 2024", "annual report 2025",
+# "years ended ... 2025 and 2024". Bilingual (English + French).
+_COVER_YEAR_RE = re.compile(
+    r"(?:for the |fiscal )?years?\s+ended[^.\n]{0,40}?((?:19|20)\d\d)"
+    r"|exercices?\s+(?:clos|termin[ée]s?)[^.\n]{0,40}?((?:19|20)\d\d)"
+    r"|annual report\s+((?:19|20)\d\d)"
+    r"|rapport annuel\s+((?:19|20)\d\d)", re.I)
+
+
+def detect_cover_year(text: str, max_lines: int = 60) -> int | None:
+    """Headline fiscal year read from a cover/first-page phrase that names the
+    year ('for the year ended March 31, 2025' -> 2025). Scans the first
+    `max_lines` lines only. None if no such phrase. Cross-check / fallback for
+    _detect_columns (which reads the statement comparative-column header)."""
+    head = "\n".join(text.splitlines()[:max_lines])
+    best: int | None = None
+    for m in _COVER_YEAR_RE.finditer(head):
+        y = next((int(g) for g in m.groups() if g), None)
+        if y is not None and 1990 <= y <= CURRENT_YEAR + 1:
+            best = y if best is None else max(best, y)
+    return best
 
 
 def _detect_period_ends(text: str, col_years: list[int]) -> dict[int, str]:
@@ -309,7 +345,10 @@ CURATED_ALIASES: dict[str, list[str]] = {
     # bank-specific (present now that vocab is full-coverage)
     "InterestIncomeFromLoans": ["interest income loans", "interest on loans"],
     "NetInterestIncome": ["net interest income", "net interest income (loss)"],
-    "NonInterestIncome": ["non interest income", "other income"],
+    # NOTE: "other income" deliberately NOT here -- on non-bank statements it
+    # means OtherIncomeExpense, and NonInterestIncome is bank-gated (the alias
+    # here would claim the label and then be nulled by the non-bank guard).
+    "NonInterestIncome": ["non interest income"],
     "NonInterestExpense": ["non interest expense", "non interest expenses"],
     "CreditLossesProvision": ["provision for credit losses", "provision for loan losses"],
     # --- balance sheet ---
@@ -510,8 +549,16 @@ _extend_aliases({
     "DividendPerShare": ["dividends per common share", "dividends per common share in dollars"],
     "DepreciationAmortizationDepletion": ["depreciation amortization and write-off",
                                           "depreciation amortization and write off"],
-    "InterestExpenseNonOperating": ["net finance expense", "net finance expense (income)",
-                                    "finance costs", "finance expense"],
+    # NOTE: "net finance expense (income)" / "finance costs" deliberately NOT
+    # mapped here -- proven on RAY/Stingray to be a BROADER netted figure
+    # (bundles FX, derivative fair-value swings, accretion) than GuruFocus's
+    # narrower "Interest Expense" row. The real, GuruFocus-matching figure is
+    # the finance-expense NOTE's "Interest expense and standby fees" +
+    # "Interest expense on lease liabilities" (exact match, both FY2024 and
+    # FY2025) -- see pdf_extract.py's _find_finance_expense_note, which folds
+    # that note's real lines in as additional income_statement rows.
+    "InterestExpenseNonOperating": ["interest expense and standby fees",
+                                    "interest expense on lease liabilities"],
     # --- balance sheet (bank) ---
     "InterestBearingDepositsAssets": ["interest-bearing deposits with banks",
                                       "interest bearing deposits with banks"],
@@ -548,6 +595,217 @@ _extend_aliases({
     "InvestingCashFlow": ["net cash from (used in) investing activities",
                           "net cash used in (from) investing activities"],
     "DeferredIncomeTax": ["deferred income taxes", "deferred income tax"],
+})
+
+# Small-cap / fund / synthetic-subtotal pack, DATA-MINED from the 59k-row
+# line_items_full corpus (labels unmapped at >=3 tickers). Alias strings shared
+# by a balance and a cash-flow concept ("accounts payable" = the BS liability
+# AND the CF working-capital change) self-route: build_alias_index only admits
+# a key into the statements whose vocab contains it, and the vocab is cleanly
+# partitioned (NetIncome IS-only, NetIncomeFromContinuingOperations CF-only...).
+_extend_aliases({
+    # --- income statement (non-bank) ---
+    "NetIncome": ["net loss", "loss for the year", "loss for the period",
+                  "net loss for the year", "net loss for the period",
+                  "net income for the year", "net income for the period",
+                  "net loss and comprehensive loss",
+                  "net income and comprehensive income",
+                  "net loss and comprehensive loss for the year",
+                  "loss and comprehensive loss for the year", "net earnings"],
+    "TotalRevenue": ["revenue total", "revenues total"],
+    "OperatingExpense": ["expenses total", "operating expenses total", "expenses",
+                         "total expenses"],
+    "SellingGeneralAndAdministration": [
+        "legal fees", "consulting fees", "travel", "office and administration",
+        "office and general", "office and miscellaneous", "filing fees",
+        "transfer agent and filing fees", "transfer agent fees", "rent",
+        "management fees", "shareholder communications", "insurance",
+        "regulatory fees", "bank charges", "administration fees",
+        "investor relations", "marketing and promotion"],
+    "OtherIncomeExpense": ["foreign exchange loss", "foreign exchange gain",
+                           "foreign exchange gain (loss)",
+                           "foreign exchange loss (gain)", "loss on foreign exchange",
+                           "other income", "other expense", "other income (expense)"],
+    "InterestIncomeNonOperating": ["interest income earned"],
+    # --- balance sheet (non-bank synthetic subtotals + small-cap/fund lines) ---
+    "CurrentAssets": ["current assets total"],
+    "CurrentLiabilities": ["current liabilities total"],
+    "TotalNonCurrentAssets": ["non-current assets total", "non current assets total"],
+    "TotalNonCurrentLiabilities": ["non-current liabilities total",
+                                   "non current liabilities total"],
+    "StockholdersEquity": ["shareholders equity total", "shareholders' equity total",
+                           "equity total", "net assets", "total net assets",
+                           "net assets attributable to holders of redeemable units",
+                           "equity attributable to owners of the company total"],
+    "RetainedEarnings": ["deficit", "accumulated deficit"],
+    "GainsLossesNotAffectingRetainedEarnings": [
+        "accumulated other comprehensive income",
+        "accumulated other comprehensive income (loss)",
+        "accumulated other comprehensive loss"],
+    "AccountsReceivable": ["amounts receivable", "trade and other receivables"],
+    "CurrentAccruedExpenses": ["accrued liabilities"],
+    "OtherReceivables": ["dividends receivable", "interest receivable",
+                         "receivable for portfolio assets sold", "gst receivable",
+                         "hst receivable", "sales tax receivable"],
+    "PrepaidAssets": ["prepaid expenses", "prepaids", "prepaid expenses and deposits"],
+    "OtherPayable": ["distributions payable", "payable for portfolio assets purchased",
+                     "due to related parties"],
+    "CurrentDebt": ["credit facility", "loan payable", "loans payable"],
+    "InvestmentsAndAdvances": ["investments"],
+    # "Right-of-use assets on leases" confirmed folded into GuruFocus's own
+    # PP&E display row (identity check on RAY/Stingray: PP&E(75.2) =
+    # Property and equipment(45.7) + ROU assets(29.5), and separately
+    # Investments+PP&E+Intangibles+OtherLTAssets = Total Long-Term Assets
+    # EXACTLY -- confirms this is a real aggregation, not a coincidence).
+    "NetPPE": ["exploration and evaluation assets", "property and equipment",
+              "right-of-use assets on leases", "right-of-use assets"],
+    # --- cash flow (anchor + working capital + small-cap lines) ---
+    "NetIncomeFromContinuingOperations": [
+        "net loss", "loss for the year", "loss for the period",
+        "net loss for the year", "net loss for the period", "net income for the year",
+        "net income for the period", "net earnings", "net loss and comprehensive loss"],
+    "ChangesInCash": ["change in cash during the year", "change in cash",
+                      "decrease in cash", "increase in cash", "net decrease in cash",
+                      "net increase in cash", "increase (decrease) in cash",
+                      "net increase (decrease) in cash",
+                      "change in cash and cash equivalents",
+                      "net change in cash during the year"],
+    "EndCashPosition": ["cash, end of the year", "cash, end of year",
+                        "cash end of year", "cash, end of the period",
+                        "cash, end of period"],
+    "BeginningCashPosition": ["cash, beginning of the year", "cash, beginning of year",
+                              "cash beginning of year", "cash, beginning of the period",
+                              "cash, beginning of period"],
+    "StockBasedCompensation": ["share-based payments", "share based payments",
+                               "share-based compensation", "stock-based compensation"],
+    "NetOtherFinancingCharges": ["share issuance costs", "share issue costs"],
+    "ChangeInReceivables": ["receivables", "accounts receivable", "amounts receivable",
+                            "trade and other receivables", "other receivables"],
+    "ChangeInPrepaidAssets": ["prepaid expenses", "prepaids",
+                              "prepaid expenses and deposits"],
+    "ChangeInPayablesAndAccruedExpense": [
+        "accounts payable", "accounts payable and accrued liabilities",
+        "trade and other payables", "trade payables", "accrued liabilities"],
+    "ChangeInOtherWorkingCapital": ["deferred revenue"],
+    "ChangeInInventory": ["inventory", "inventories"],
+    "NetOtherInvestingChanges": ["exploration and evaluation assets"],
+})
+
+# Second mined pass (labels still unmapped at >=2 tickers after the pack above).
+_extend_aliases({
+    # --- income statement ---
+    "OperatingIncome": ["loss from operations", "income from operations",
+                        "loss before other items",
+                        "loss before other income (expenses)",
+                        "income (loss) from operations", "operating profit/(loss)",
+                        "operating profit (loss)"],
+    "OtherIncomeExpense": ["total other income (expenses)", "total other income (expense)"],
+    "TotalRevenue": ["sales revenue", "sales"],
+    "NetIncome": ["net (loss) income", "net income (loss)", "net loss (income)",
+                  "loss for the year attributable to shareholders"],
+    # --- balance sheet ---
+    "StockholdersEquity": ["total shareholders' deficit", "total shareholders' deficiency",
+                           "total shareholders' (deficit) equity",
+                           "total shareholders' equity (deficit)",
+                           "total stockholders' and members' equity",
+                           "shareholders' deficit total", "unitholders' equity total",
+                           "total unitholders' equity", "net asset value"],
+    "TotalLiabilitiesAndTotalEquityGrossMinorityInterest": [
+        "total liabilities and unitholders' equity",
+        "total liabilities and shareholders' deficit",
+        "total liabilities and shareholders' deficiency"],
+    # --- cash flow ---
+    "ChangesInCash": ["change in cash for the year", "change in cash for the period",
+                      "decrease in cash and cash equivalents",
+                      "increase in cash and cash equivalents",
+                      "increase (decrease) in cash and cash equivalents",
+                      "net change in cash"],
+    "FinancingCashFlow": ["cash flows provided by financing activities",
+                          "cash flows used in financing activities",
+                          "cash (used in) provided by financing activities",
+                          "cash provided by (used in) financing activities",
+                          "total cash flows from (used in) financing activities",
+                          "total cash flows used in financing activities"],
+    "InvestingCashFlow": ["cash flows provided by investing activities",
+                          "cash flows used in investing activities",
+                          "cash (used in) provided by investing activities",
+                          "cash provided by (used in) investing activities",
+                          "total cash flows from (used in) investing activities",
+                          "total cash flows used in investing activities"],
+    "OperatingCashFlow": ["cash flows provided by operating activities",
+                          "cash flows used in operating activities",
+                          "cash (used in) provided by operating activities",
+                          "cash provided by (used in) operating activities",
+                          "total cash flows from (used in) operating activities",
+                          "total cash flows used in operating activities"],
+    "EndCashPosition": ["cash at the end of the year", "cash at the end of the period",
+                        "cash at end of year", "cash at end of period"],
+    "BeginningCashPosition": ["cash at the beginning of the year",
+                              "cash at the beginning of the period",
+                              "cash at beginning of year", "cash at beginning of period"],
+    "ChangeInWorkingCapital": ["changes in non-cash working capital items total",
+                               "changes in non-cash working capital total",
+                               "net change in non-cash working capital total",
+                               "changes in non-cash operating items total"],
+})
+
+# Third mined pass: EPS/share-count phrasings ("Net income per share - Basic"),
+# synthetic CF activity totals, and investment-fund income-statement wording.
+_extend_aliases({
+    "BasicEPS": ["net income per share basic", "net income (loss) per share basic",
+                 "net loss per share basic", "loss per share basic",
+                 "earnings per share basic", "net earnings per share basic",
+                 "increase in net assets from operations per unit",
+                 "increase (decrease) in net assets from operations per unit"],
+    "DilutedEPS": ["net income per share diluted", "net income (loss) per share diluted",
+                   "net loss per share diluted", "loss per share diluted",
+                   "earnings per share diluted", "net earnings per share diluted"],
+    "BasicAverageShares": ["weighted average number of shares basic",
+                           "weighted average shares outstanding basic",
+                           "weighted average number of common shares outstanding basic"],
+    "DilutedAverageShares": ["weighted average number of shares diluted",
+                             "weighted average shares outstanding diluted",
+                             "weighted average number of common shares outstanding diluted"],
+    "OperatingCashFlow": ["operating activities total"],
+    "InvestingCashFlow": ["investing activities total"],
+    "FinancingCashFlow": ["financing activities total"],
+    "NetIncome": ["increase in net assets from operations",
+                  "decrease in net assets from operations",
+                  "increase (decrease) in net assets from operations",
+                  "increase in net assets attributable to holders of redeemable units",
+                  "change in net assets attributable to holders of redeemable units"],
+    "TotalRevenue": ["income (loss) on investments total", "income on investments total",
+                     "total investment income"],
+    "TotalAssets": ["assets total"],
+    "TotalLiabilities": ["liabilities total"],
+    "TotalLiabilitiesAndTotalEquityGrossMinorityInterest": [
+        "liabilities and equity total", "liabilities and shareholders' equity total",
+        "liabilities and unitholders' equity total"],
+})
+
+# Fourth mined pass (RAY / Stingray Group balance-sheet + cash-flow audit,
+# user-reported vs an external GuruFocus-style export -- traced to unmapped
+# debt/lease/intangible labels, NOT a sign-convention bug: the external
+# export used a different, non-target sign convention for TaxProvision,
+# verified WRONG against real QuoteMedia ground truth for RY -- our
+# positive-magnitude convention (NetIncome = PretaxIncome - TaxProvision) is
+# the correct one; Pretax-Tax=Net held across all 14 years of RY's actual
+# QuoteMedia data, Pretax+Tax did not).
+_extend_aliases({
+    "LongTermDebt": ["subordinated debt"],
+    "NonCurrentDeferredTaxesLiabilities": ["deferred tax liabilities"],
+    "OtherIntangibleAssets": ["broadcast licences", "broadcast licenses",
+                              "intangible assets excluding broadcast licences",
+                              "intangible assets excluding broadcast licenses"],
+    # --- cash flow ---
+    "RepurchaseOfCapitalStock": ["shares repurchased and cancelled"],
+    "IssuanceOfCapitalStock": ["proceeds from the exercise of stock options",
+                               "proceeds from exercise of stock options"],
+    "PurchaseOfBusiness": ["business acquisitions net of cash acquired"],
+    "NetIssuancePaymentsOfDebt": ["increase (decrease) of credit facilities",
+                                  "decrease of subordinated debt",
+                                  "increase of subordinated debt"],
+    "StockBasedCompensation": ["share-based compensation psu and dsu expenses"],
 })
 
 # CONTEXT-DEPENDENT aliases: the same label means different things under
@@ -589,6 +847,23 @@ COMPOUND_ALIASES: dict[str, dict[str, str]] = {
         "liabilities > derivatives": "DerivativeProductLiabilities",
         "liabilities and equity > derivatives": "DerivativeProductLiabilities",
         "liabilities and equity > other liabilities": "OtherPayable",
+        # synthetic "Current total" is ambiguous without the zone
+        "assets > current total": "CurrentAssets",
+        "liabilities > current total": "CurrentLiabilities",
+        "liabilities and equity > current total": "CurrentLiabilities",
+        "assets > non-current total": "TotalNonCurrentAssets",
+        "liabilities > non-current total": "TotalNonCurrentLiabilities",
+        "liabilities and equity > non-current total": "TotalNonCurrentLiabilities",
+        # "Credit facilities" / lease liabilities print under BOTH current and
+        # non-current sections with the IDENTICAL bare label -- confirmed on
+        # RAY (Stingray Group): the non-current instance (Credit facilities
+        # 309.1M + Subordinated debt 39.6M = 348.8M) was entirely UNMAPPED,
+        # so the OtherNonCurrentLiabilities plug silently absorbed the whole
+        # non-current-liabilities total instead of isolating real LongTermDebt.
+        "current liabilities > credit facilities": "CurrentDebt",
+        "non-current liabilities > credit facilities": "LongTermDebt",
+        "current liabilities > current portion of lease liabilities": "CurrentCapitalLeaseObligation",
+        "non-current liabilities > lease liabilities": "LongTermCapitalLeaseObligation",
     },
     "cash_flow": {},
 }

@@ -32,7 +32,8 @@ OTHER = "other"                       # anything else (cover letter, prospectus,
 UNPARSEABLE = "unparseable"           # no text layer / not a PDF -- can't judge (caller decides)
 
 _AIF_RE = re.compile(r"annual information form|notice of annual|information circular")
-_MDA_RE = re.compile(r"management'?s discussion|management discussion (and|&) analysis|md&a|mdna")
+_MDA_RE = re.compile(r"management'?s discussion|management discussion (and|&) analysis|md&a|mdna|"
+                     r"management report of fund performance")  # MRFP: fund MD&A-equivalent
 _INTERIM_RE = re.compile(r"\binterim\b|\bunaudited\b|first quarter|second quarter|third quarter|"
                          r"\bq[1-3]\b|three months ended|six months ended|nine months ended")
 _ANNUAL_RE = re.compile(r"\bannual\b|year ended|years ended|fiscal year|for the year")

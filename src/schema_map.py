@@ -22,6 +22,7 @@ import sqlite3
 import time
 from pathlib import Path
 
+import derive as derive_mod
 from financials_pipeline import FinancialsStore, _coerce_numeric
 from llm_extract import DEFAULT_VOCAB, NO_SCALE_KEYS, _load_vocab
 from rule_extract import (
@@ -31,6 +32,70 @@ from rule_extract import (
 )
 
 _PER_SHARE_LABEL_RE = re.compile(r"per share|per unit|in dollars|per common share", re.I)
+
+# Keys where a filer splits ONE concept across several lines (legal fees +
+# consulting + travel + office... are all G&A) -- sibling matches within the
+# same (pdf_year, statement) SUM instead of best-one-wins. Totals/EPS keys
+# must never aggregate.
+AGGREGATE_KEYS = {
+    "SellingGeneralAndAdministration", "OtherOperatingExpenses",
+    "OtherIncomeExpense", "OtherReceivables", "OtherPayable",
+    "OtherCurrentAssets", "OtherCurrentLiabilities", "OtherNonCurrentAssets",
+    "OtherNonCurrentLiabilities", "OtherNonCashItems", "NetOtherInvestingChanges",
+    "NetOtherFinancingCharges", "StockBasedCompensation",
+    "GeneralAndAdministrativeExpense",
+    # a CF's working-capital block often splits one bucket over several lines
+    "ChangeInReceivables", "ChangeInPayablesAndAccruedExpense",
+    "ChangeInPrepaidAssets", "ChangeInOtherWorkingCapital",
+    # multiple debt instruments (credit facility + subordinated debt, etc.)
+    # each print their own net draw/repayment line -- sum, don't pick one
+    # (confirmed on RAY/Stingray: "credit facilities" + "subordinated debt").
+    "NetIssuancePaymentsOfDebt", "LongTermDebt", "CurrentDebt",
+    # same pattern on the BS face: "broadcast licences" + "other intangibles"
+    # are two distinct intangible-asset lines that both belong in the one
+    # generic template row (confirmed on RAY/Stingray).
+    "OtherIntangibleAssets",
+    # "Property and equipment" + "Right-of-use assets on leases" both belong
+    # in the one PP&E template row (identity-verified on RAY/Stingray).
+    "NetPPE",
+    # the finance-expense note's "Interest expense and standby fees" +
+    # "Interest expense on lease liabilities" together ARE GuruFocus's
+    # Interest Expense figure (exact-match verified on RAY/Stingray).
+    "InterestExpenseNonOperating",
+}
+
+# Prose guard: a "statement" whose lines read like sentences is a mis-isolated
+# MD&A/MRFP region (MID.UN), not a statement -- keep the lines in
+# line_items_full but never let them into canonical statement_lines.
+_PROSE_MEDIAN_WORDS = 9
+
+
+def _reroute_statement(stmt: str, by_line: dict[int, list[dict]],
+                       alias_index) -> str:
+    """Step 2 sometimes files a block under the wrong statement (TNT.UN's
+    'cash_flow' text is actually its balance sheet). Vote each candidate type
+    by exact-alias hits over the block's labels; reroute only on a decisive
+    win (>=5 hits and >=2x the current type's score)."""
+    from rule_extract import _normalize_label
+    labels = [_normalize_label(cells[0]["label"] or "") for cells in by_line.values()]
+    scores = {cand: sum(1 for lb in labels if lb in alias_index.get(cand, {}))
+              for cand in ("income_statement", "balance_sheet", "cash_flow")}
+    best = max(scores, key=scores.get)  # type: ignore[arg-type]
+    if best != stmt and scores[best] >= 5 and scores[best] >= 2 * max(scores[stmt], 1):
+        return best
+    return stmt
+
+
+def _looks_like_prose(by_line: dict[int, list[dict]]) -> bool:
+    if not by_line:
+        return False
+    wc = sorted(len((cells[0]["label"] or "").split()) for cells in by_line.values())
+    median_words = wc[len(wc) // 2]
+    if median_words >= _PROSE_MEDIAN_WORDS:
+        return True
+    valued = sum(1 for cells in by_line.values()
+                 if any(c["value_printed"] is not None for c in cells))
+    return len(by_line) >= 8 and valued < 0.3 * len(by_line)
 
 # Contra-asset keys the PDFs print as parenthesized deductions (negative) but
 # QuoteMedia/GuruFocus store as POSITIVE magnitudes.
@@ -61,6 +126,13 @@ EQUIVALENT_FANOUT: dict[str, list[str]] = {
     "TotalEquityGrossMinorityInterest": ["TotalEquityGrossMinority"],
     "DepreciationAndAmortization": ["DepreciationAmortizationDepletion"],
     "DepreciationAmortizationDepletion": ["DepreciationAndAmortization"],
+    # "Share capital" (one combined line, common companies outside financial
+    # services) maps to CapitalStock, which isn't its own Sheet1 row --
+    # CommonStock is the rendered template row. Fanned, not merged: a
+    # CommonStock/PreferredStock SPLIT (when the raw statement shows one)
+    # still wins on its own via direct mapping, since fanout only fills an
+    # EMPTY slot (confirmed on RAY/Stingray: "Share capital" 322.366 -> both).
+    "CapitalStock": ["CommonStock"],
 }
 
 
@@ -138,6 +210,10 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
     parsed_ok = skipped = needs_review = 0
     balance_pass = balance_checked = 0
     mapped_labels = total_labels = 0
+    stmt_cover: dict[tuple, set] = {}     # (ticker, col_year) -> statements parsed
+    bank_tickers: set[str] = set()
+    rev_labelled: set[tuple] = set()      # (ticker, col_year) whose IS mentions revenue/sales
+    prov: dict[tuple, str] = {}           # slot -> 'derived' | 'absent_on_face'
     t0 = time.monotonic()
 
     if progress:
@@ -176,11 +252,31 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
                 by_year: dict[int, dict[str, float]] = {}
                 match_confs: list[float] = []
                 n_mapped = 0
+                prose = _looks_like_prose(by_line)
+                if prose:
+                    flags.append("prose_rows")
+                else:
+                    routed = _reroute_statement(stmt, by_line, alias_index)
+                    if routed != stmt:
+                        flags.append(f"rerouted_from_{stmt}")
+                        stmt = routed
+                    if is_bank:
+                        bank_tickers.add(ticker)
+                    for r in rows:
+                        stmt_cover.setdefault((ticker, r["col_year"]), set()).add(stmt)
+                    if stmt == "income_statement" and any(
+                            re.search(r"revenue|sales", cells[0]["label"] or "", re.I)
+                            for cells in by_line.values()):
+                        for r in rows:
+                            rev_labelled.add((ticker, r["col_year"]))
                 for line_no, cells in sorted(by_line.items()):
                     r0 = cells[0]
                     label, section, zone = r0["label"], r0["section"], r0["zone"]
-                    key, conf, kind = match_label_ctx(label, section, zone, stmt,
-                                                      alias_index, compound_index)
+                    if prose:
+                        key, conf, kind = None, 0.0, None
+                    else:
+                        key, conf, kind = match_label_ctx(label, section, zone, stmt,
+                                                          alias_index, compound_index)
                     if key and key in BANK_ONLY_KEYS and not is_bank:
                         key, conf, kind = None, 0.0, None
                         flags.append("bank_key_on_nonbank")
@@ -219,12 +315,22 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
                             if prev is None:
                                 picked[slot] = cand
                                 slot_src[slot] = pdf_year
+                            elif slot_src[slot] == pdf_year and key in AGGREGATE_KEYS:
+                                # sibling lines of one concept (legal + consulting
+                                # + travel -> G&A): SUM within the same source PDF
+                                picked[slot] = (prev[0] + val,
+                                                max(prev[1], cand[1]),
+                                                min(prev[2], cand[2]))
                             elif (slot_src[slot] == pdf_year
                                   and (prev[1], prev[2]) < (cand[1], cand[2])):
                                 # better-quality match within the SAME (newest)
                                 # source PDF; an older PDF never overrides.
                                 picked[slot] = cand
-                            by_year.setdefault(y, {}).setdefault(key, val)
+                            yk = by_year.setdefault(y, {})
+                            if key in AGGREGATE_KEYS and key in yk:
+                                yk[key] += val
+                            else:
+                                yk.setdefault(key, val)
                         meta = year_meta.setdefault((ticker, y), {
                             "period_end": None, "currency": None,
                             "source_ref": hint.get("pdf_url")})
@@ -272,7 +378,8 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
                     for k in bk:
                         quality_rows.append(dict(ticker=ticker, fiscal_year=y,
                                                  statement_type=stmt, line_item=k,
-                                                 confidence=conf_stmt))
+                                                 confidence=conf_stmt,
+                                                 match_kind="mapped"))
                 if progress:
                     progress(f"  {ticker} pdf{pdf_year} {stmt:16} "
                              f"{n_mapped}/{len(by_line)} labels mapped  "
@@ -285,12 +392,91 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
                                      currency=latest_currency,
                                      primary_source="cse_pdf_extract"))
 
-    # Synonym fanout: fill QuoteMedia's duplicate keys where absent.
+    # Synonym fanout FIRST (known-equivalent data), before derive/zero-fill:
+    # fanning CapitalStock -> CommonStock etc. must win the slot before
+    # zero-fill's "we truly found nothing" fallback claims it -- zero-fill
+    # only fills a slot when it's still EMPTY, so if it runs first on a
+    # ZEROABLE_KEYS member (CommonStock is one), the fanout below would find
+    # the slot already occupied by a 0 and never apply (confirmed on
+    # RAY/Stingray: CommonStock stayed 0 despite CapitalStock=322.366 mapped).
     for (t, y, s, k), v in list(picked.items()):
         for sibling in EQUIVALENT_FANOUT.get(k, []):
             slot = (t, y, s, sibling)
             if slot not in picked:
                 picked[slot] = v
+
+    # ---- derivation + zero-fill (identity fixpoint; NEVER overwrites mapped) ----
+    # "bank" here = actually MAPPED a bank display key. The looser _BANK_RE
+    # text flag over-fires on funds/CPCs and would suppress their zero-fill.
+    bank_display = {t for (t, _y, _s, k) in picked
+                    if k in ("GrossLoan", "TotalDeposits", "NetInterestIncome",
+                             "CashAndDueFromBanks")}
+    by_ty: dict[tuple, dict] = {}
+    for (t, y, s, k), v in picked.items():
+        by_ty.setdefault((t, y), {})[(s, k)] = v[0]
+    derived_n = zero_n = 0
+    for (t, y), vals in by_ty.items():
+        hs = stmt_cover.get((t, y), set())
+        if not hs:
+            continue
+        # Shell rule: an anchored income statement with NO revenue-like label
+        # anywhere on its face (CPCs, explorers) really has zero revenue --
+        # seed 0 so GrossProfit/OperatingIncome derive instead of staying blank.
+        if ("income_statement" in hs
+                and ("income_statement", "TotalRevenue") not in vals
+                and ("income_statement", "NetIncome") in vals
+                and (t, y) not in rev_labelled
+                and t not in bank_display):
+            slot = (t, y, "income_statement", "TotalRevenue")
+            vals[("income_statement", "TotalRevenue")] = 0.0
+            picked[slot] = (0.0, 0, 0.30)
+            prov[slot] = "absent_on_face"
+            zero_n += 1
+        newd = derive_mod.derive_year(vals, has_stmt=hs)
+        for (s, k), v in newd.items():
+            slot = (t, y, s, k)
+            if slot not in picked:
+                picked[slot] = (_coerce_numeric(v), 0, 0.60)
+                prov[slot] = "derived"
+                derived_n += 1
+        zf = derive_mod.zero_fill({**vals, **newd}, has_stmt=hs,
+                                  is_bank=t in bank_display)
+        for (s, k), v in zf.items():
+            slot = (t, y, s, k)
+            if slot not in picked:
+                picked[slot] = (v, 0, 0.30)
+                prov[slot] = "absent_on_face"
+                zero_n += 1
+        # SECOND derive pass: the zeros are inputs too (EBITDA = EBIT + 0 DDA,
+        # OperatingExpense = SG&A + 0 + 0, cash aggregate = cash + 0 STI ...)
+        newd2 = derive_mod.derive_year({**vals, **newd, **zf}, has_stmt=hs)
+        for (s, k), v in newd2.items():
+            slot = (t, y, s, k)
+            if slot not in picked:
+                picked[slot] = (_coerce_numeric(v), 0, 0.55)
+                prov[slot] = "derived"
+                derived_n += 1
+    for slot, kind in prov.items():
+        t, y, s, k = slot
+        quality_rows.append(dict(ticker=t, fiscal_year=y, statement_type=s,
+                                 line_item=k, confidence=picked[slot][2],
+                                 match_kind=kind))
+
+    # ---- template fill rate (the number the xlsx user actually sees) ----
+    fill_by_ticker: dict[str, float] = {}
+    for t in sorted({tt for (tt, _y) in by_ty}):
+        keys = derive_mod.fill_metric_keys(is_bank=(t in bank_display))
+        years = sorted({y for (tt, y) in by_ty if tt == t})
+        if not keys or not years:
+            continue
+        filled = sum(1 for y in years for (s, k) in keys if (t, y, s, k) in picked)
+        fill_by_ticker[t] = 100.0 * filled / (len(keys) * len(years))
+    fills = sorted(fill_by_ticker.values())
+    fill_median = fills[len(fills) // 2] if fills else 0.0
+    if progress and fill_by_ticker:
+        worst = sorted(fill_by_ticker.items(), key=lambda kv: kv[1])[:5]
+        progress(f"  fill rate: median {fill_median:.0f}%  "
+                 f"(worst: {', '.join(f'{t} {p:.0f}%' for t, p in worst)})")
 
     line_rows = [dict(ticker=t, fiscal_year=y, statement_type=s, line_item=k,
                       value=v[0]) for (t, y, s, k), v in picked.items()]
@@ -300,9 +486,18 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
                  for (t, y), m in year_meta.items()]
 
     # A ticker's lines are always rebuilt whole from raw_line_items, so purge
-    # first -- otherwise keys mapped on a previous run but not this one would
-    # survive as stale ghosts (upsert never deletes).
-    store.purge_ticker_lines({r["ticker"] for r in company_rows})
+    # first -- otherwise keys mapped/derived/zero-filled on a previous run but
+    # not this one survive as stale ghosts (upsert never deletes). BUG FIXED:
+    # this used to purge only {r["ticker"] for r in company_rows} -- but
+    # company_rows only contains BRAND-NEW tickers (`if ticker not in
+    # prior_tickers`), so any ticker already known from an earlier run was
+    # NEVER purged on a subsequent --force rerun. Confirmed: RY's
+    # CashAndCashEquivalents/ShortTermInvestments stayed frozen at a stale
+    # 'absent_on_face' 0 from before the bank-BS zero-fill guard was added,
+    # surviving multiple later --force reruns untouched. Purge every ticker
+    # actually being rebuilt THIS run (grouped == every ticker with raw
+    # line items processed), not just newly-discovered ones.
+    store.purge_ticker_lines(set(grouped.keys()))
     store.bulk_upsert_companies(company_rows)
     store.bulk_upsert_company_years(year_rows)
     store.bulk_upsert_statement_lines(line_rows)
@@ -316,6 +511,9 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
             "needs_review": needs_review, "skipped": skipped,
             "companies": len(company_rows), "years": len(year_rows),
             "lines": len(line_rows), "full_lines": len(full_rows),
+            "derived_lines": derived_n, "zero_filled_lines": zero_n,
+            "fill_median_pct": fill_median,
+            "fill_by_ticker": fill_by_ticker,
             "label_map_rate_pct": (mapped_labels / total_labels * 100)
                                   if total_labels else 0.0,
             "balance_identity_pass": balance_pass,

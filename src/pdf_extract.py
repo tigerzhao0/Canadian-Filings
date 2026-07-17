@@ -82,6 +82,50 @@ _EQUITY_STMT_RE = re.compile(
     r"statements? of changes in (shareholders'?|stockholders'?)? ?equity"
     r"|statement of equity|[ée]tats? des variations des capitaux propres")
 
+# Generic "N. TITLE" numbered-note header, used to find the END of a captured
+# note block (whichever comes first: the next note, or a page-count cap).
+_NUMBERED_NOTE_RE = re.compile(r"^\s*\d{1,2}\.\s+[A-Z]")
+# A note titled along these lines breaks "net finance expense" (the ONE lump
+# line printed on the income-statement face, note-referenced but never
+# detailed there) into its real components -- confirmed on Stingray Group
+# (RAY): the face shows only "Net finance expense (income)" (a broad netted
+# figure covering FX/derivatives/accretion too), while GuruFocus's "Interest
+# Expense" is the narrower "Interest expense and standby fees" + "Interest
+# expense on lease liabilities" component from this note (exact match, both
+# FY2024 and FY2025). Primary-statement extraction alone can't recover this;
+# it's the ONE well-evidenced case (so far) where the notes carry real
+# GuruFocus-matching detail the face statement doesn't.
+_FINANCE_EXPENSE_NOTE_RE = re.compile(
+    r"^\s*\d{1,2}\.\s+net finance (expense|cost)s?( \(income\))?\s*$"
+    r"|^\s*\d{1,2}\.\s+finance (expense|cost)s?( and income)?\s*$"
+    r"|^\s*\d{1,2}\.\s+finance income and (expense|cost)s?\s*$",
+    re.I)
+
+
+def _find_finance_expense_note(pages: list[str], clean: dict[int, str],
+                               search_from: int, npages: int) -> str | None:
+    """Scan pages AFTER the primary-statement span for the finance-expense
+    note and return its captured text (header through the next numbered
+    note, capped at 2 pages). None if not found -- callers must treat this
+    as optional enrichment, never a hard requirement."""
+    LIMIT = min(npages, search_from + 40)  # bounded: never scan a whole doc
+    for i in range(search_from, LIMIT):
+        for line in pages[i].splitlines()[:40]:
+            if _FINANCE_EXPENSE_NOTE_RE.match(line.strip()):
+                block_lines: list[str] = []
+                started = False
+                for j in range(i, min(npages, i + 3)):
+                    text = clean.get(j, pages[j])
+                    for ln in text.splitlines():
+                        if _FINANCE_EXPENSE_NOTE_RE.match(ln.strip()):
+                            started = True
+                        elif started and _NUMBERED_NOTE_RE.match(ln.strip()):
+                            return "\n".join(block_lines) if block_lines else None
+                        if started:
+                            block_lines.append(ln)
+                return "\n".join(block_lines) if block_lines else None
+    return None
+
 # Units note, English + French.
 # \s* between words: glued text layers ("(MillionsofCanadiandollars)" in
 # RBC's pre-2019 reports) must still match.
@@ -311,8 +355,21 @@ def extract_statements(pdf_bytes: bytes) -> ExtractResult:
         # income statement -- routing it into income_statement was bloating that
         # section 4x with OCI rows. Combined single-statement headers
         # ("Statements of Loss and Comprehensive Loss") stay income_statement.
-        if (matched == "income_statement" and _OCI_ONLY_RE.search(head)
-                and not _INCOME_PROPER_RE.search(head)):
+        # BUG FIXED: many issuers title their ONE, COMBINED income statement
+        # "Statements of Comprehensive Income (Loss)" (comprehensive-first word
+        # order) -- confirmed on Stingray Group (RAY): that single page holds
+        # Revenue through EPS AND the OCI adjustments below it, with no
+        # separate plain "Statements of Income" page anywhere in the filing.
+        # _INCOME_PROPER_RE's word order ("of income ... comprehensive") never
+        # matches "of comprehensive income", so this used to reclassify it as
+        # OCI and silently discard the ENTIRE income statement (0 chars
+        # extracted). Fix: only reclassify on a SECOND sighting (`current` is
+        # already income_statement from an earlier, distinctly-titled page) --
+        # that's the real standalone-OCI-page shape the original fix targeted.
+        # The FIRST income-statement-family page is always kept, whatever its
+        # exact title, since nothing else could hold the income statement.
+        if (matched == "income_statement" and current == "income_statement"
+                and _OCI_ONLY_RE.search(head) and not _INCOME_PROPER_RE.search(head)):
             matched = "oci"
         if matched:
             current, cont = matched, 0
@@ -325,9 +382,80 @@ def extract_statements(pdf_bytes: bytes) -> ExtractResult:
         else:
             current = None  # cap reached / nothing active -> stop absorbing
 
+    # Optional enrichment: fold the finance-expense note's real components
+    # into income_statement text (as a synthetic section, so line_items.py's
+    # existing section-tracking labels the rows correctly) -- never required,
+    # never overrides anything, just adds extra parseable lines beyond what
+    # the face statement prints.
+    if "income_statement" in sections:
+        fx_note = _find_finance_expense_note(pages, clean, end, npages)
+        if fx_note:
+            sections["income_statement"] = (
+                sections["income_statement"] + "\nFinance expense breakdown\n" + fx_note)
+
     return ExtractResult(ok=True, npages=npages, sections=sections,
                         primary_block=primary_block,
                         unit_scale_hint=_detect_unit_scale_hint(pages, primary_pages))
+
+
+# Interim/quarterly period phrases -- if a doc's statements are titled with these
+# it's NOT an annual report (its column "years" would be quarter period-ends).
+_INTERIM_PHRASE_RE = re.compile(
+    r"three months ended|six months ended|nine months ended"
+    r"|first quarter|second quarter|third quarter"
+    r"|condensed (consolidated )?interim|unaudited (condensed|interim)"
+    r"|p[ée]riodes? de (trois|six|neuf) mois", re.I)
+_ANNUAL_PHRASE_RE = re.compile(
+    r"year ended|years ended|fiscal year|annual report|audited annual"
+    r"|exercices? (clos|termin[ée])|rapport annuel", re.I)
+
+
+def content_fiscal_years(pdf_bytes: bytes):
+    """Read a PDF's OWN fiscal year(s) from its CONTENT (not its URL).
+
+    Returns (years, headline, is_interim):
+      - years:    sorted-desc list of the real comparative fiscal years the
+                  statements present (from the column headers) unioned with any
+                  cover-page 'year ended YYYY' phrase. [] if none parse.
+      - headline: the current/most-recent fiscal year the report is FOR
+                  (max of years), or None.
+      - is_interim: True when the document reads as a quarterly/interim filing
+                  (its column 'years' would be quarter period-ends, not annual).
+
+    Pure/offline. Reuses extract_statements + rule_extract's column and cover
+    detectors -- the same content-year logic the data path is already keyed on.
+    Never raises."""
+    from rule_extract import _detect_columns, detect_cover_year
+
+    try:
+        res = extract_statements(pdf_bytes)
+    except Exception:  # noqa: BLE001 - never let a bad PDF crash a caller
+        return [], None, False
+
+    years: set[int] = set()
+    if res.ok:
+        for stmt_text in res.sections.values():
+            years.update(_detect_columns(stmt_text))
+        if not years:
+            years.update(_detect_columns(res.primary_block))
+
+    # Cover-page cross-check / fallback (works even when columns don't parse).
+    pages = _page_texts(pdf_bytes) or []
+    front = "\n".join(pages[:6])
+    cover = detect_cover_year(front)
+    if cover is not None:
+        years.add(cover)
+
+    # Interim detection: quarterly phrasing present AND no annual phrasing.
+    blob = " ".join(pages[:12]).lower() if pages else ""
+    if res.ok:
+        blob += " " + " ".join(res.sections.values()).lower()
+    is_interim = bool(_INTERIM_PHRASE_RE.search(blob)
+                      and not _ANNUAL_PHRASE_RE.search(blob))
+
+    years_sorted = sorted(years, reverse=True)
+    headline = years_sorted[0] if years_sorted else None
+    return years_sorted, headline, is_interim
 
 
 if __name__ == "__main__":

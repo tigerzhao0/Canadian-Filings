@@ -88,6 +88,25 @@ render:
 # earlier years probed at the same path -- fills the 10-year history cheaply.
 probe_year_patterns: true
 
+# annualreports.com structured-URL source (step 1, runs FIRST -- cheapest).
+# The site hosts real annual reports at deterministic
+# {EXCH}_{TICKER}_{YEAR}.pdf paths (TSX / TSX-V / OTC prefixes) -- pure
+# pattern GETs, no scraping. Fails soft when the site is unreachable.
+# Disabled: confirmed 2026-07-16 that annualreports.com TCP-blocks this
+# network's IP range entirely (ping replies fine, every HTTP request times
+# out -- not a rate limit, no config here unblocks it). Re-enable if running
+# from a different network (e.g. mobile hotspot got through before).
+annualreports:
+  enabled: false
+  # Good-citizen politeness (NOT bot-block evasion): low concurrency + a global
+  # pacer + polite backoff so we don't trip a rate-limiter. If the site
+  # deliberately blocks the network's IP range (server answers ping but drops
+  # all TCP -- observed from cloud/broadband, only mobile got through), NO
+  # config here unblocks it; run from a non-blocked network instead.
+  concurrency: 3            # kept low on purpose
+  min_delay_seconds: 1.0    # global min gap between requests to the host
+  max_retries: 3            # polite exponential backoff on a 429/403 "blocked"
+
 sec:
   enabled: true
   # SEC fair-access asks for a User-Agent identifying you with a contact email.
@@ -98,8 +117,12 @@ sec:
 # like a financial statement / annual report — rejecting cover letters, "annual
 # filing coming soon" notices, and terms pages that a filename heuristic can be
 # fooled by. Only rejects clear non-statements; scanned/unparseable PDFs are
-# accepted. Applies to first-party sources (crawl / PDF search / render); the
-# exchange sources (CSE/TMX) already return regulator-categorised statements.
+# accepted. Applies to first-party sources (crawl / PDF search / render) and
+# CSE. TMX's GraphQL filings pass (tmx_filings_api) does NOT read this flag --
+# it always skips content verification, since TMX's own API already labels
+# each filing's type ("Annual report" / "Audited annual financial
+# statements") before a URL is even considered, so a redundant per-candidate
+# PDF download+parse isn't needed there.
 verify:
   content_check: true
   max_pdf_mb: 40          # skip verification for PDFs larger than this
@@ -115,30 +138,22 @@ cse:
   concurrency: 15          # plain HTTP calls to thecse.com's own API — cheap,
                            # safe to raise well above the browser-driven passes
 
-# TSX / TSX-V PDF filings fallback (legacy). Drives the money.tmx.com
-# "Filings" widget with the headless browser to find an "Audited annual
-# financial statements" PDF, tagged 'tmx_filings'. NOTE: run.py's default
-# mode now excludes TSX/TSXV companies from the PDF finder entirely (they're
-# handled by --financials / tmx_financials below instead), so this stage is
-# effectively dormant in normal use — it only still fires if you feed it a
-# TSX/TSXV company some other way (e.g. --render-only against an older DB).
-# Left enabled rather than removed since it's a harmless no-op otherwise.
+# TSX / TSX-V PDF filings fallback. Queries TMX Money's own GraphQL API
+# (app-money.tmx.com/graphql, getCompanyFilings) directly -- no browser
+# needed, no auth token required (just Origin/Referer headers identifying
+# the request as coming from money.tmx.com). Finds "Audited annual financial
+# statements" PDFs, tagged 'tmx_filings_api'. Fires on every default
+# `run.py --step 1` run for unresolved TSX/TSXV/XTSE/XTSX companies not
+# already flagged SEC -- this is NOT dormant in normal use.
 tmx:
   enabled: true
-  concurrency: 20         # headless pages in parallel. Each is a lightweight
-                          # browser *context* in one shared Chromium process
-                          # (not a full new browser), so this scales with RAM/
-                          # CPU headroom, not process count — 20 is tuned for a
-                          # 32GB/24-core machine. Has its own semaphore inside
-                          # Renderer, independent from render.concurrency
-                          # (Tier-2), so raising this doesn't require raising
-                          # that too. If money.tmx.com starts throwing more
-                          # "blocked" results under load, dial this back.
-  max_months: 120          # how many months to page back. Raised from 24 so the
-                          # widget can reach ~5 fiscal years of annual filings
-                          # (matching the structured-financials depth); it stops
-                          # early as soon as 5 distinct years are found, so a
-                          # regular filer rarely pages this far.
+  concurrency: 15         # concurrent plain-HTTP GraphQL requests (not
+                          # browser contexts -- this stage no longer uses
+                          # Playwright at all). Started at the same cautious
+                          # value already tuned for cse.concurrency above;
+                          # only tested at low/sequential request volume so
+                          # far, so raise gradually and watch for 429s/errors
+                          # before trusting a much higher value at full scale.
 
 # Structured TSX/TSXV financials (Income Statement / Balance Sheet / Cash
 # Flow) pulled straight from QuoteMedia's public "datatool" widget API —
@@ -191,7 +206,10 @@ blocklist_path: "data/blocklist.txt"
 pdf_processing:
   concurrency: 6
 
-# run.py --step 3 (local-LLM extraction). Reads the raw statement text step 2
+# LEGACY / opt-in only -- the default pipeline (step 3 line-item parsing +
+# step 4 --method rules, both deterministic) never reads this section; `enabled`
+# below isn't consulted by any code path. Reached only via
+# `run.py --step 4 --method llm`, which reads the raw statement text step 2
 # stored in filings.db `pdf_extractions`, maps each statement onto the canonical
 # QuoteMedia line-item vocabulary via a LOCAL Ollama model, and writes the
 # numbers into financials.db (companies/company_years/statement_lines, tagged
@@ -201,7 +219,7 @@ pdf_processing:
 # Tuned for a 10GB GPU (RTX 3080): 7B Q4 weights (~4.7GB) + 16k context fit fully
 # on-GPU. The stage is GPU-serial, so it runs as one synchronous pass.
 llm:
-  enabled: true
+  enabled: false
   backend: ollama
   base_url: "http://localhost:11434"
   model: "qwen2.5:7b-instruct-q4_K_M"

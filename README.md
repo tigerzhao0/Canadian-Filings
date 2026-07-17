@@ -97,20 +97,22 @@ but reported separately in the run summary and filterable via
 First-party IR PDFs are always preferred and used when found.
 
 ### TSX / TSX-V companies — exchange filings fallback
-TMX has no clean filings API (its Money site exposes only a shallow, gated
-QuoteMedia widget), so for a TSX/TSXV company with no first-party PDF — and not
-already flagged as an SEC filer — a **browser-driven** pass opens
-`money.tmx.com/en/quote/<SYM>/financials-filings`, activates the Filings tab, and
-pages the month carousel backwards (up to `tmx.max_months`, default 24, with
-"Load More" per month) until the latest **Audited annual financial statements**
-appears, recording its portable download URL tagged `discovery_method='tmx_filings'`.
-If nothing matches that strict category within the scanned window, it falls back
-to a broader match (an Annual Information Form or an unlabelled "audited
-financial statements") for issuers that only file one of those. These documents
-originate from SEDAR (TMX/QuoteMedia-hosted, `app.quotemedia.com/data/downloadFiling`);
-`sedarplus.ca` is never accessed. This pass is **slow** (a headless browser
-navigating months per company), so it runs last and only on the leftover
-TSX/TSXV tail. Requires Playwright. List them with
+For a TSX/TSXV company with no first-party PDF — and not already flagged as
+an SEC filer — a pass queries TMX Money's own GraphQL API directly
+(`app-money.tmx.com/graphql`, operation `getCompanyFilings`) with a
+symbol + date range. No browser and no auth token are needed — just an
+Origin/Referer pair identifying the request as coming from money.tmx.com.
+One query per calendar year (falling back to four quarterly sub-queries if a
+year's result hits the row cap, which happens for high-filing-volume issuers
+like large banks) returns each filing's date/description/name and a direct
+`urlToPdf`. The latest **Audited annual financial statements** match is
+recorded, tagged `discovery_method='tmx_filings_api'`. If nothing matches
+that strict category, it falls back to a broader match (an Annual
+Information Form or an unlabelled "audited financial statements") for
+issuers that only file one of those. These documents originate from SEDAR
+(TMX/QuoteMedia-hosted, `app.quotemedia.com/data/downloadFiling`);
+`sedarplus.ca` is never accessed. This is a cheap plain-HTTP pass (no
+Playwright needed) and reaches back up to `MAX_HISTORY_YEARS`. List them with
 `SELECT ticker, pdf_url FROM filings WHERE discovery_method LIKE 'tmx_filings%';`.
 
 ### Verified vs. unverified finds
@@ -186,7 +188,7 @@ To use it anyway (e.g. for a small batch):
 | `render.py` | Tier-2 headless-browser (Playwright) render pass. |
 | `sec_edgar.py` | SEC-filer detection + latest-annual-filing lookup (EDGAR). |
 | `cse_filings.py` | CSE/XCNQ exchange-filings fallback (thecse.com API). |
-| `tmx_filings.py` | TSX/TSXV exchange-filings fallback (money.tmx.com Filings widget). |
+| `tmx_filings.py` | TSX/TSXV exchange-filings fallback (money.tmx.com's own GraphQL filings API). |
 | `validate.py` | PDF reachability check + verified/blocked/fail classification. |
 | `pipeline.py` | Two-tier orchestration, concurrency, SQLite checkpointing. |
 | `ingest.py` | Loads the GuruFocus `.xlsx` or a CSV. |

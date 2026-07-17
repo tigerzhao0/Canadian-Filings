@@ -115,7 +115,7 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=None,
                     help="(--step 3/4) Process at most N rows (smoke testing).")
     ap.add_argument("--tickers", default=None,
-                    help="(--step 3/4) Comma-separated ticker allow-list.")
+                    help="(--step 2/3/4) Comma-separated ticker allow-list.")
     ap.add_argument("--method", choices=("rules", "llm"), default="rules",
                     help="(--step 4) Mapping method. 'rules' (default) = "
                          "deterministic matcher, no model needed. 'llm' = legacy "
@@ -161,9 +161,12 @@ def main() -> None:
     # from the DB, needs no --input, and stops without touching the finder.
     if args.step == 2:
         from pdf_pipeline import run_pdf_processing
+        tickers = ({t.strip() for t in args.tickers.split(",") if t.strip()}
+                   if args.tickers else None)
         db_path = cfg.get("storage", {}).get("db_path", "output/filings.db")
-        print(f"Step 2: PDF processing  |  DB: {db_path}")
-        result = asyncio.run(run_pdf_processing(cfg, progress=print))
+        print(f"Step 2: PDF processing  |  DB: {db_path}"
+              + (f"  |  tickers: {', '.join(sorted(tickers))}" if tickers else ""))
+        result = asyncio.run(run_pdf_processing(cfg, tickers=tickers, progress=print))
         print("\n" + "=" * 44)
         print("  PDF processing complete")
         print("=" * 44)
@@ -228,6 +231,13 @@ def main() -> None:
         print("  " + "-" * 42)
         print("  QUALITY")
         print(f"  label map rate            : {result['label_map_rate_pct']:.1f}%")
+        print(f"  derived lines             : {result.get('derived_lines', 0)}")
+        print(f"  zero-filled (absent)      : {result.get('zero_filled_lines', 0)}")
+        print(f"  TEMPLATE FILL RATE median : {result.get('fill_median_pct', 0):.0f}%")
+        fills = result.get("fill_by_ticker") or {}
+        if fills:
+            low = [f"{t} {p:.0f}%" for t, p in sorted(fills.items(), key=lambda kv: kv[1])[:8]]
+            print(f"  lowest-fill companies     : {', '.join(low)}")
         bp, bc = result['balance_identity_pass'], result['balance_identity_checked']
         print(f"  balance-sheet identity    : {bp}/{bc} pass"
               f"{'  (' + f'{bp/bc*100:.0f}%)' if bc else ''}")

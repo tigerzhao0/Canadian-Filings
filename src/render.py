@@ -42,11 +42,9 @@ class Renderer:
         self._max_hops = int(render.get("max_hops", 2))
         self._max_pages = int(render.get("max_pages", 12))
         self._concurrency = int(render.get("concurrency", 3))
-        self._tmx_concurrency = int(cfg.get("tmx", {}).get("concurrency", 2))
         self._pw = None
         self._browser = None
         self._sem: asyncio.Semaphore | None = None
-        self._tmx_sem: asyncio.Semaphore | None = None
 
     async def __aenter__(self):
         try:
@@ -66,7 +64,6 @@ class Renderer:
                 "    playwright install chromium"
             ) from exc
         self._sem = asyncio.Semaphore(self._concurrency)
-        self._tmx_sem = asyncio.Semaphore(self._tmx_concurrency)
         return self
 
     async def __aexit__(self, *exc):
@@ -84,24 +81,6 @@ class Renderer:
                 return await self._crawl_rendered(homepage_url)
             except Exception:  # noqa: BLE001 - never let one site kill the pass
                 return []
-
-    async def tmx_annual_statements(self, symbol: str, max_months: int = 60,
-                                    limit: int = 5) -> list[dict]:
-        """Drive the TMX Money Filings widget back through months, collecting up
-        to `limit` annual financial statements (one per distinct fiscal year,
-        most-recent first) — may be empty. `page` is a fresh context per call."""
-        assert self._tmx_sem is not None
-        from tmx_filings import annual_statements_from_page
-        async with self._tmx_sem:
-            context = await self._browser.new_context(user_agent=self._user_agent)
-            page = await context.new_page()
-            try:
-                return await annual_statements_from_page(
-                    page, symbol, max_months, int(self._timeout), limit=limit)
-            except Exception:  # noqa: BLE001
-                return []
-            finally:
-                await context.close()
 
     async def _crawl_rendered(self, homepage_url: str) -> list[PDFCandidate]:
         start_reg = _registrable_domain(urlparse(homepage_url).netloc)

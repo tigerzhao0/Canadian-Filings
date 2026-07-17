@@ -192,6 +192,8 @@ class FinancialsStore:
             "pdf_llm_consistency": {"pattern": "TEXT"},
             # pdf_llm_status gained confidence + doc_type (rule extractor).
             "pdf_llm_status": {"confidence": "REAL", "doc_type": "TEXT"},
+            # statement_line_quality gained match_kind (mapped/derived/absent_on_face).
+            "statement_line_quality": {"match_kind": "TEXT"},
         }
         for table, cols in additions.items():
             existing = {r[1] for r in self._conn.execute(f"PRAGMA table_info({table})")}
