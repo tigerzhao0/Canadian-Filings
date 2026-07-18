@@ -83,13 +83,18 @@ def classify_from_pages(pages: list[str]) -> DocClass:
     return DocClass(OTHER, n_types, has_auditor, False, npages)
 
 
-def classify_document(pdf_bytes: bytes) -> DocClass:
+def classify_document(pdf_bytes: bytes, pages: list[str] | None = None) -> DocClass:
     """Classify a PDF's bytes. Returns UNPARSEABLE when there's no text layer
     (scanned) or it isn't a parseable PDF -- the caller decides how conservative
-    to be there (we never want a false 'not a statement' on an unreadable file)."""
+    to be there (we never want a false 'not a statement' on an unreadable file).
+
+    `pages` lets a caller that already ran `_page_texts` (e.g. because it also
+    needs `extract_statements`/`content_fiscal_years` on the same PDF) pass
+    that result in directly instead of re-parsing the PDF from scratch."""
     if not pdf_bytes or not pdf_bytes[:5].startswith(b"%PDF"):
         return DocClass(UNPARSEABLE, 0, False, False, 0)
-    pages = _page_texts(pdf_bytes)
+    if pages is None:
+        pages = _page_texts(pdf_bytes)
     if pages is None:
         return DocClass(UNPARSEABLE, 0, False, False, 0)
     total_chars = sum(len(p) for p in pages)

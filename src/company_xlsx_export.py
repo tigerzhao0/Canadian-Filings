@@ -286,6 +286,13 @@ def build_workbook(conn: sqlite3.Connection, ticker: str) -> openpyxl.Workbook |
     bold_font = Font(size=12, bold=True)
     plain_font = Font(size=12, bold=False)
 
+    # Wide enough for the longest row label ("  Cash Flow Depreciation,
+    # Depletion and Amortization", 52 chars) and for large dollar figures in
+    # the fiscal-year columns (raw dollar amounts can run to 11+ digits).
+    ws.column_dimensions["A"].width = 56
+    for col in range(2, 2 + len(years)):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 18
+
     for kind, label, stmt, item, scale in ROW_SPEC:
         if kind == "data_bank" and not has_bank:
             continue

@@ -201,10 +201,45 @@ storage:
 blocklist_path: "data/blocklist.txt"
 
 # run.py --step 2 (PDF processing: download -> extract statement text -> delete).
-# Plain HTTP downloads + local pdfplumber parsing on the small leftover tail, so
-# a modest concurrency is plenty.
+# Parsing (PyMuPDF, with a pdfplumber fallback) runs in a separate worker-
+# process pool from the download step (plain I/O waits) -- the two no longer
+# share one bottleneck. Both are deliberately kept modest by default: every
+# in-flight download holds a full PDF in memory (sometimes 20-30MB), and each
+# parse worker holds one PDF's parsed representation -- concurrency x
+# process_workers-many of those in flight at once adds up on a typical
+# desktop's RAM. Raise only after confirming you have the memory headroom.
 pdf_processing:
-  concurrency: 6
+  # Raised again after fixing a real bug: `sem` used to wrap BOTH the
+  # download AND the parse-and-wait, so a row mid-parse kept occupying a
+  # download slot the whole time -- most of the 24 slots ended up held by
+  # in-progress parses, throttling downloads well below what the network/
+  # process pool could actually sustain. Decoupled: `sem` now gates ONLY the
+  # download; parse concurrency is capped independently by process_workers
+  # via the ProcessPoolExecutor's own queue. Confirmed via a real 50-company/
+  # 850-PDF run: 0 rate-limit hits, peak memory only ~2.2GB, ~2.9x faster
+  # per-PDF than the coupled version. Pushing further since there's still
+  # large headroom on both fronts.
+  # NOTE: "idle" system memory (background apps, OS, browser) already uses
+  # a meaningful chunk of a typical desktop's total RAM -- check actual free
+  # memory before raising these further, not just total installed RAM.
+  concurrency: 48         # concurrent PDF downloads -- I/O-bound, no
+                          # rate-limiting observed yet at 24; watch for 429s/
+                          # repeated failures if raising further.
+  process_workers: 20     # worker processes for PDF text-extraction/parsing
+                          # (ProcessPoolExecutor -- ProcessPool gets true
+                          # multi-core parallelism for this pure-Python, CPU-
+                          # heavy work; a thread pool would still serialize on
+                          # the GIL). Capped at 20 -- this machine's actual
+                          # logical processor count; going above that
+                          # oversubscribes the CPU (context-switching
+                          # overhead) for work that's genuinely CPU-bound
+                          # most of the time, so it isn't free upside the way
+                          # download concurrency is. Defaults to
+                          # min(4, os.cpu_count()) -- deliberately NOT "one
+                          # per core" by default: this is memory-bound, not
+                          # just CPU-bound, so more cores doesn't
+                          # automatically mean it's safe to run more of these
+                          # at once on every machine.
 
 # LEGACY / opt-in only -- the default pipeline (step 3 line-item parsing +
 # step 4 --method rules, both deterministic) never reads this section; `enabled`

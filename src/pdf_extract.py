@@ -46,14 +46,29 @@ _NOTES_RE = re.compile(
 # numbered-note PAGE TOP, or the primary span drags a dozen note pages in
 # (and a notes page mentioning "statement of income" re-anchors the section).
 _NOTES_PAGE_TOP_RE = re.compile(r"^notes? \d{1,3}\b")
+# A statement page's FOOTER reference -- "See accompanying notes to the
+# consolidated financial statements" / "The accompanying notes are an integral
+# part..." -- is NOT the start of the notes section, it's a footnote that sits
+# at the bottom of every primary-statement page. It must not end the
+# primary-statements window (that would exclude the very statements it sits on).
+# pdfplumber happened to drop this footer text; PyMuPDF captures it, which
+# surfaced the false positive -- so exclude any _NOTES_RE match preceded by
+# "accompanying". The real notes-section header ("Notes to ... Financial
+# Statements" at a page top) is never preceded by "accompanying".
+_NOTES_FOOTER_REF_RE = re.compile(r"accompanying\s+notes?\s+to")
 
 
 def _notes_boundary(pages: list[str], collapsed: list[str], lo: int, npages: int) -> int | None:
     """First page index >= lo that starts the notes: either the classic banner
-    anywhere on the page, or a numbered-note page top."""
+    anywhere on the page, or a numbered-note page top. A "see accompanying
+    notes to..." FOOTER reference is skipped -- it's not the notes section
+    start (see _NOTES_FOOTER_REF_RE)."""
     for i in range(lo, npages):
-        if _NOTES_RE.search(collapsed[i]):
-            return i
+        m = _NOTES_RE.search(collapsed[i])
+        if m:
+            pre = collapsed[i][max(0, m.start() - 14):m.end()]
+            if not _NOTES_FOOTER_REF_RE.search(pre):
+                return i
         if _NOTES_PAGE_TOP_RE.match(_top3_collapsed(pages[i])):
             return i
     return None
@@ -245,7 +260,72 @@ def _smallest_span_covering_all_types(hits: dict[str, list[int]]) -> tuple[int, 
 
 
 def _page_texts(pdf_bytes: bytes) -> list[str] | None:
-    """Per-page text via pdfplumber; None if pdfplumber can't open it at all."""
+    """Per-page text, PyMuPDF (fitz) primary + pdfplumber fallback.
+
+    PyMuPDF's C-backed MuPDF engine extracts text ~7x faster than
+    pdfplumber/pdfminer.six's pure-Python path (benchmarked: 850 real
+    annual-report PDFs in 72s vs ~500s), and step 2 is CPU-bound on exactly
+    this call. Two normalizations make its output equivalent to pdfplumber's
+    so all downstream header/section logic works unchanged:
+      - get_text("text", sort=True): WITHOUT sort=True, label/number pairs in
+        financial tables get separated and the numbers silently vanish (some
+        PDFs draw all labels then all numbers in separate content-stream
+        passes); sort=True reads in geometric order and keeps them together.
+      - strip whitespace-only lines: PyMuPDF interleaves a blank line between
+        every real line, which would push each page's real statement header
+        past the top-3-lines window the section detector uses
+        (_statement_header_pages), so every statement would go undetected.
+    Falls back to the original pdfplumber implementation if PyMuPDF isn't
+    installed, errors, or yields effectively-empty text on a PDF that isn't
+    actually scanned -- a cheap safety net (rarely triggers) that also keeps
+    pdfplumber's glued-text x_tolerance retry available."""
+    pages = _page_texts_pymupdf(pdf_bytes)
+    if pages is not None:
+        total = sum(len(t) for t in pages)
+        # Non-empty text layer -> trust PyMuPDF. If it came back all-empty the
+        # doc is either genuinely scanned (pdfplumber would agree) or something
+        # PyMuPDF choked on -- either way let pdfplumber have a look.
+        if total > 0:
+            return pages
+    return _page_texts_pdfplumber(pdf_bytes)
+
+
+def _page_texts_pymupdf(pdf_bytes: bytes) -> list[str] | None:
+    """Per-page text via PyMuPDF/fitz. None if fitz is missing or can't open
+    the bytes. See _page_texts for why sort=True + blank-line stripping."""
+    try:
+        import fitz
+    except Exception:  # noqa: BLE001 - dependency missing
+        return None
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    except Exception:  # noqa: BLE001 - encrypted / corrupt / not a PDF
+        return None
+    try:
+        pages = []
+        for page in doc:
+            txt = page.get_text("text", sort=True) or ""
+            pages.append("\n".join(ln for ln in txt.splitlines() if ln.strip()))
+        return pages
+    except Exception:  # noqa: BLE001 - malformed page mid-document
+        return None
+    finally:
+        doc.close()
+
+
+def _page_texts_pdfplumber(pdf_bytes: bytes) -> list[str] | None:
+    """Per-page text via pdfplumber; None if pdfplumber can't open it at all.
+    Fallback path (see _page_texts) -- kept for robustness and its glued-text
+    x_tolerance retry.
+
+    Closes each Page immediately after extracting its text (p.close(), which
+    flushes pdfplumber's cached chars/rects/lines/curves/image-metadata for
+    that page). Without this, pdfplumber never releases a page's parsed
+    object model once accessed, so a 100-200 page annual report keeps EVERY
+    page's objects resident simultaneously for the life of the `with` block
+    -- confirmed as the dominant memory cost (not image decoding, which
+    pdfplumber never does for extract_text() -- only lightweight bbox/
+    colorspace metadata is kept per image regardless)."""
     try:
         import pdfplumber
     except Exception:  # noqa: BLE001 - dependency missing
@@ -253,7 +333,10 @@ def _page_texts(pdf_bytes: bytes) -> list[str] | None:
     import io
     try:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-            pages = [(p.extract_text() or "") for p in pdf.pages]
+            pages = []
+            for p in pdf.pages:
+                pages.append(p.extract_text() or "")
+                p.close()
             # Glued-text fallback: some text layers (e.g. RBC's pre-2021
             # annual reports) extract with NO inter-word spaces at the default
             # x_tolerance=3 ("oftherisksandrewards..."), defeating every
@@ -262,20 +345,30 @@ def _page_texts(pdf_bytes: bytes) -> list[str] | None:
             # word breaks on those PDFs.
             total = sum(len(t) for t in pages)
             if total > 1000 and sum(t.count(" ") for t in pages) / total < 0.05:
-                pages = [(p.extract_text(x_tolerance=1.5) or "") for p in pdf.pages]
+                pages = []
+                for p in pdf.pages:
+                    pages.append(p.extract_text(x_tolerance=1.5) or "")
+                    p.close()
             return pages
     except Exception:  # noqa: BLE001 - encrypted / corrupt / not a PDF
         return None
 
 
-def extract_statements(pdf_bytes: bytes) -> ExtractResult:
+def extract_statements(pdf_bytes: bytes, pages: list[str] | None = None) -> ExtractResult:
     """Turn a CSE annual-statement PDF into per-statement text blocks. Never
     raises -- returns ok=False with a reason instead, so a batch caller can
-    keep going."""
+    keep going.
+
+    `pages` lets a caller that already ran `_page_texts` (e.g. because it also
+    needs `classify_from_pages`/`content_fiscal_years` on the same PDF) pass
+    that result in directly instead of re-parsing the PDF from scratch --
+    pdfplumber's per-page extraction is the dominant CPU cost here, so reusing
+    it across all three callers avoids doing it 3x per PDF for no reason."""
     if not pdf_bytes or not pdf_bytes[:5].startswith(b"%PDF"):
         return ExtractResult(ok=False, reason="not_a_pdf")
 
-    pages = _page_texts(pdf_bytes)
+    if pages is None:
+        pages = _page_texts(pdf_bytes)
     if pages is None:
         return ExtractResult(ok=False, reason="unparseable")
 
@@ -410,7 +503,8 @@ _ANNUAL_PHRASE_RE = re.compile(
     r"|exercices? (clos|termin[ée])|rapport annuel", re.I)
 
 
-def content_fiscal_years(pdf_bytes: bytes):
+def content_fiscal_years(pdf_bytes: bytes, pages: list[str] | None = None,
+                         res: "ExtractResult | None" = None):
     """Read a PDF's OWN fiscal year(s) from its CONTENT (not its URL).
 
     Returns (years, headline, is_interim):
@@ -422,15 +516,20 @@ def content_fiscal_years(pdf_bytes: bytes):
       - is_interim: True when the document reads as a quarterly/interim filing
                   (its column 'years' would be quarter period-ends, not annual).
 
+    `pages`/`res` let a caller pass in an already-computed `_page_texts` result
+    and/or `extract_statements` result (see extract_statements' docstring for
+    why -- avoids re-parsing the same PDF from scratch).
+
     Pure/offline. Reuses extract_statements + rule_extract's column and cover
     detectors -- the same content-year logic the data path is already keyed on.
     Never raises."""
     from rule_extract import _detect_columns, detect_cover_year
 
-    try:
-        res = extract_statements(pdf_bytes)
-    except Exception:  # noqa: BLE001 - never let a bad PDF crash a caller
-        return [], None, False
+    if res is None:
+        try:
+            res = extract_statements(pdf_bytes, pages=pages)
+        except Exception:  # noqa: BLE001 - never let a bad PDF crash a caller
+            return [], None, False
 
     years: set[int] = set()
     if res.ok:
@@ -440,7 +539,8 @@ def content_fiscal_years(pdf_bytes: bytes):
             years.update(_detect_columns(res.primary_block))
 
     # Cover-page cross-check / fallback (works even when columns don't parse).
-    pages = _page_texts(pdf_bytes) or []
+    if pages is None:
+        pages = _page_texts(pdf_bytes) or []
     front = "\n".join(pages[:6])
     cover = detect_cover_year(front)
     if cover is not None:
