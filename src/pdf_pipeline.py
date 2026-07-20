@@ -193,6 +193,19 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
     # simultaneously.
     process_workers = int(cfg.get("pdf_processing", {}).get(
         "process_workers", min(4, os.cpu_count() or 4)))
+    # Wall-clock cap on the CPU-bound parse step, separate from the download
+    # timeout above. Observed on a full-backlog run (~23,454 PDFs): one PDF
+    # (a large multinational's dense annual report) sent a worker process
+    # into a 2.9+ hour spin (vs ~45min for sibling workers doing similar
+    # volume) with no exception ever raised -- run_in_executor has no timeout
+    # of its own, so the coroutine just never completed. With 99.95% of rows
+    # already done, this single stuck row blocked
+    # process_pool.shutdown(wait=True) from ever returning, stalling
+    # completion of the entire run. 900s (15min) comfortably covers even very
+    # long real annual reports (observed worst-case sibling: ~45min for a
+    # whole WORKER's batch, not one PDF).
+    parse_timeout = float(cfg.get("pdf_processing", {}).get(
+        "parse_timeout_seconds", 900))
 
     rows = _rows_to_process(db_path, tickers)
     if progress:
@@ -213,7 +226,28 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
     flush_lock = asyncio.Lock()
     # Plain instantiation (not `async with` -- ProcessPoolExecutor only
     # supports the sync context-manager protocol), shut down explicitly below.
-    process_pool = ProcessPoolExecutor(max_workers=process_workers)
+    # Held in a 1-element list (not a bare local) so a parse timeout can swap
+    # in a fresh pool -- see `_recycle_pool_after_timeout` below.
+    pool_box = [ProcessPoolExecutor(max_workers=process_workers)]
+    pool_lock = asyncio.Lock()
+
+    async def _recycle_pool_after_timeout():
+        """A parse that timed out leaves its worker PROCESS still running the
+        pathological PDF indefinitely -- asyncio.wait_for only abandons OUR
+        wait on that future, it can't kill the OS process actually stuck
+        inside it (ProcessPoolExecutor exposes no per-worker kill). If we
+        left that same pool in place, the stuck worker would sit occupied
+        forever, and the final `process_pool.shutdown(wait=True)` would hang
+        waiting on it exactly like the incident this guards against. Instead,
+        abandon the whole pool (shutdown wait=False, cancel any other queued
+        futures) and swap in a fresh one so the rest of the run -- and the
+        eventual shutdown -- never waits on the stuck process again. The
+        orphaned process is left running until the interpreter exits; that's
+        an acceptable one-off cost for a rare pathological PDF."""
+        async with pool_lock:
+            stale = pool_box[0]
+            pool_box[0] = ProcessPoolExecutor(max_workers=process_workers)
+            stale.shutdown(wait=False, cancel_futures=True)
 
     async def _maybe_flush():
         # Write completed rows to the DB as we go (same cadence as the
@@ -308,36 +342,50 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
                 # resources once ~15-20 large PDFs are in flight at once
                 # (observed: WinError 1450). A path is a few bytes; the
                 # worker reads the file itself instead.
+                timed_out = False
                 try:
                     if tmp:
-                        parsed = await loop.run_in_executor(
-                            process_pool, _parse_pdf_path, tmp)
+                        parsed = await asyncio.wait_for(
+                            loop.run_in_executor(
+                                pool_box[0], _parse_pdf_path, tmp),
+                            timeout=parse_timeout)
                     else:
-                        parsed = await loop.run_in_executor(
-                            process_pool, _parse_pdf, pdf_bytes)
+                        parsed = await asyncio.wait_for(
+                            loop.run_in_executor(
+                                pool_box[0], _parse_pdf, pdf_bytes),
+                            timeout=parse_timeout)
+                except asyncio.TimeoutError:
+                    timed_out = True
+                    await _recycle_pool_after_timeout()
                 finally:
                     if tmp:
                         try:
                             Path(tmp).unlink()  # DELETE the downloaded file
                         except OSError:
                             pass
-                res_ok, reason, sc = (parsed["ok"], parsed["reason"],
-                                     1 if parsed["scanned"] else 0)
-                doc_type = parsed["doc_type"]
-                content_years = parsed["content_years"]
-                true_fy = parsed["true_fy"]
-                is_interim = parsed["is_interim"]
-                sec = parsed["sections"] or {}
-                primary_block = parsed["primary_block"]
-                unit_scale_hint = parsed["unit_scale_hint"]
-                labeled = row["fiscal_year"]
-                # Reject a quarterly/interim doc, or one whose content year is
-                # WILDLY off its label (>1yr) -- a wrong document for this row.
-                if res_ok and is_interim:
-                    res_ok, reason = False, "interim_or_quarterly_report"
-                elif (res_ok and content_years and labeled is not None
-                      and not any(abs(y - labeled) <= 1 for y in content_years)):
-                    res_ok, reason = False, f"wrong_year_content_{content_years[0]}"
+                if timed_out:
+                    res_ok, reason, sc = False, "parse_timeout", 0
+                    doc_type = None
+                    content_years, true_fy = [], None
+                else:
+                    res_ok, reason, sc = (parsed["ok"], parsed["reason"],
+                                         1 if parsed["scanned"] else 0)
+                    doc_type = parsed["doc_type"]
+                    content_years = parsed["content_years"]
+                    true_fy = parsed["true_fy"]
+                    is_interim = parsed["is_interim"]
+                    sec = parsed["sections"] or {}
+                    primary_block = parsed["primary_block"]
+                    unit_scale_hint = parsed["unit_scale_hint"]
+                    labeled = row["fiscal_year"]
+                    # Reject a quarterly/interim doc, or one whose content
+                    # year is WILDLY off its label (>1yr) -- a wrong document
+                    # for this row.
+                    if res_ok and is_interim:
+                        res_ok, reason = False, "interim_or_quarterly_report"
+                    elif (res_ok and content_years and labeled is not None
+                          and not any(abs(y - labeled) <= 1 for y in content_years)):
+                        res_ok, reason = False, f"wrong_year_content_{content_years[0]}"
             # The STORAGE fiscal_year (== raw_line_items.pdf_year) is left as
             # the original filing-year label ON PURPOSE: schema_map's merge
             # processes newest-pdf_year-first so the newest FILING wins each
@@ -376,7 +424,7 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
 
         await asyncio.gather(*(handle(r) for r in rows))
     finally:
-        process_pool.shutdown(wait=True)
+        pool_box[0].shutdown(wait=True)
 
     _bulk_write(db_path, results)
     elapsed = time.monotonic() - t0

@@ -240,6 +240,18 @@ pdf_processing:
                           # just CPU-bound, so more cores doesn't
                           # automatically mean it's safe to run more of these
                           # at once on every machine.
+  parse_timeout_seconds: 900  # wall-clock cap on ONE PDF's CPU-bound parse
+                          # step (pdfplumber/pdfminer text extraction),
+                          # separate from the download timeout above. Without
+                          # this, a single pathological PDF can spin a worker
+                          # process forever with no exception raised --
+                          # observed on a full-backlog run: one large
+                          # multinational's annual report spun for 2.9+ hours
+                          # (vs ~45min for sibling workers' entire batches)
+                          # and blocked the run from ever finishing, even
+                          # with 99.95% of rows already done. A timeout here
+                          # is recorded as a normal failed row
+                          # (reason="parse_timeout") and the run continues.
 
 # LEGACY / opt-in only -- the default pipeline (step 3 line-item parsing +
 # step 4 --method rules, both deterministic) never reads this section; `enabled`
