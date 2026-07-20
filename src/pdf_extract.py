@@ -183,6 +183,34 @@ _BOILERPLATE_RE = re.compile(
     r"|annual report (19|20)\d\d"
     r"|rapport annuel (19|20)\d\d", re.I)
 
+# Statement COLUMN-HEADER date lines ("For the year ended February 28, 2023" /
+# "As at December 31, 2022" / French equivalents) legitimately repeat, near-
+# verbatim, across a filing's own statement pages -- every primary statement
+# carries the same fiscal year-end date. On a short filing (a handful of
+# statement pages), that's enough to cross _furniture_lines' 30%-of-pages
+# threshold once digit-normalized ("february #, #" collapses BOTH the current
+# and comparative year onto the same key), so this genuine per-page column
+# header -- the ONE place _detect_columns finds the year -- got silently
+# stripped as if it were a running footer. Confirmed on AAA.P FY2023: the date
+# line was present in raw PyMuPDF/pdfplumber page text but vanished from the
+# stored section text, leaving parse_lines with no year to key columns on.
+# Exempt these lines from furniture stripping outright, regardless of key.
+_DATE_HEADER_RE = re.compile(
+    r"for the years?\s*ended|for the periods?\s*ended|periods?\s*ended"
+    r"|as (at|of)\b"
+    r"|pour l['’]exercice (clos|termin[ée])|au \d{1,2}", re.I)
+# The date header often WRAPS across 2-3 physical lines ("For the year
+# ended" / "February 28," / "2023"), e.g. First Tidal Acquisition Corp (AAA.P)
+# FY2023 -- _DATE_HEADER_RE only catches the first line. The trailing
+# "Month Day," and bare-year lines don't mention "ended"/"as at" themselves,
+# so they need their own exemption; the bare-year line also matches
+# _PAGE_NO_RE (a lone 4-digit number) and would otherwise be stripped as a
+# page number.
+_MONTH_DAY_RE = re.compile(
+    r"^(\s*(january|february|march|april|may|june|july|august|september|"
+    r"october|november|december)\.?\s+\d{1,2},?\s*)+$", re.I)
+_BARE_YEAR_LINE_RE = re.compile(r"^(\s*(19|20)\d{2}\s*)+$")
+
 
 def _furniture_key(line: str) -> str:
     """Digit-normalized collapsed form: running headers embed the PAGE NUMBER in
@@ -208,16 +236,35 @@ def _furniture_lines(pages: list[str]) -> set[str]:
 
 def _strip_furniture(page_text: str, furniture: set[str]) -> str:
     """Remove running-header/footer lines and bare page numbers from a page."""
+    lines = page_text.splitlines()
     kept = []
-    for ln in page_text.splitlines():
+    prev_nonblank: str | None = None
+    for ln in lines:
         if not ln.strip():
             continue
+        if _DATE_HEADER_RE.search(ln) or _MONTH_DAY_RE.match(ln):
+            kept.append(ln)
+            prev_nonblank = ln
+            continue
+        # A bare year on its own line ("2023" / "2023   2022") right after a
+        # "Month Day," line is the tail of a wrapped column-header date, not a
+        # page number -- checked BEFORE _PAGE_NO_RE, which would otherwise
+        # match it (a lone 1-4 digit line).
+        if (_BARE_YEAR_LINE_RE.match(ln) and prev_nonblank is not None
+                and _MONTH_DAY_RE.match(prev_nonblank)):
+            kept.append(ln)
+            prev_nonblank = ln
+            continue
         if _PAGE_NO_RE.match(ln):
+            prev_nonblank = ln
             continue
         if _BOILERPLATE_RE.search(ln):
+            prev_nonblank = ln
             continue
         if _furniture_key(ln) in furniture:
+            prev_nonblank = ln
             continue
+        prev_nonblank = ln
         kept.append(ln)
     return "\n".join(kept)
 
