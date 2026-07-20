@@ -212,6 +212,17 @@ ROW_SPEC = [
 
 MILLIONS_DIVISOR = 1_000_000.0
 
+# GuruFocus's own export shows these two as a SIGNED CONTRIBUTION to the next
+# subtotal (negative = reduces income) while every other expense-type row
+# (COGS, SG&A, R&D, Other Operating Expense, D&A) stays a positive magnitude.
+# Confirmed against a real GuruFocus export for Stingray Group (RAY): Tax
+# Provision -1.7/-16/..., Interest Expense -17.5/-17.8/..., but SG&A 19.5 /
+# Other Operating Expense 230.7 / D&A 40.3 (all positive). Internal storage
+# MUST stay positive (derive.py's EBIT/NetIncome identities assume positive
+# magnitudes) -- this flip is Sheet1-render-only, applied nowhere else (the
+# "All Line Items" tab keeps the true stored value for traceability).
+_NEGATE_ON_DISPLAY = {"TaxProvision", "InterestExpenseNonOperating"}
+
 # Keys whose presence marks a company as a BANK (renders the data_bank rows).
 _BANK_MARKER_KEYS = ("NetInterestIncome", "GrossLoan", "TotalDeposits",
                      "CreditLossesProvision", "NonInterestIncome")
@@ -332,6 +343,8 @@ def build_workbook(conn: sqlite3.Connection, ticker: str) -> openpyxl.Workbook |
                 c.value = "-"
             else:
                 v = raw / MILLIONS_DIVISOR if scale == "m" else raw
+                if item in _NEGATE_ON_DISPLAY:
+                    v = -v
                 c.value = v
                 c.number_format = "0.00"
 
