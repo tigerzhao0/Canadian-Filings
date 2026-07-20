@@ -170,6 +170,10 @@ tmx:
 rules:
   db_path: "output/pdf_financials.db"
   # vocab_path: "data/canonical_lineitems.json"   # (default) the canonical target keys
+  # Step 4 (schema mapping) is CPU-bound (regex/alias matching per line item)
+  # and fully parallel across tickers -- one ProcessPoolExecutor worker per
+  # ticker, no shared state (default: min(20, cpu_count)).
+  # process_workers: 20
 
 tmx_financials:
   db_path: "output/financials.db"

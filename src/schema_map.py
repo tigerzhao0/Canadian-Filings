@@ -17,9 +17,11 @@ a bank's; EPS keys require per-share context.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sqlite3
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import derive as derive_mod
@@ -185,18 +187,34 @@ def _load_raw_line_items(src_db: str, tickers: set[str] | None,
     return grouped, identity, hints
 
 
-def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
-                       tickers: set[str] | None = None, progress=None) -> dict:
-    src_db = cfg.get("storage", {}).get("db_path", "output/filings.db")
-    fin_db = cfg.get("rules", {}).get("db_path") or "output/pdf_financials.db"
-    vocab = _load_vocab(Path(cfg.get("rules", {}).get("vocab_path", DEFAULT_VOCAB)))
-    alias_index = build_alias_index(vocab)
-    compound_index = build_compound_index(vocab)
+# ---- per-ticker worker (runs in a subprocess) --------------------------
+# Every structure below is keyed with the ticker INCLUDED in the tuple
+# (ticker, col_year, stmt, key) exactly as in the original single-threaded
+# loop, even though a worker only ever handles one ticker -- this keeps the
+# candidate-picking / fanout / derive / zero-fill / fill-rate logic below
+# byte-identical to the pre-parallelization version (nothing here reads or
+# writes another ticker's data; the merge-newest-pdf-wins tie-break, the
+# bank/revenue flags, and the derived-metric fixpoint are ALL scoped to a
+# single ticker's own (col_year) slots), so splitting the outer "for ticker
+# in grouped" loop into independent process-pool tasks changes nothing about
+# what gets computed -- only that it now happens in parallel.
+_WORKER_ALIAS_INDEX = None
+_WORKER_COMPOUND_INDEX = None
 
-    grouped, identity, hints = _load_raw_line_items(src_db, tickers, limit)
-    store = FinancialsStore(fin_db)
-    already = set() if force else store.completed_statements()
-    prior_tickers = store.existing_tickers()
+
+def _init_worker(vocab_path: str) -> None:
+    """ProcessPoolExecutor initializer: build the (fairly expensive) alias/
+    compound indexes ONCE per worker process, not once per ticker task."""
+    global _WORKER_ALIAS_INDEX, _WORKER_COMPOUND_INDEX
+    vocab = _load_vocab(Path(vocab_path))
+    _WORKER_ALIAS_INDEX = build_alias_index(vocab)
+    _WORKER_COMPOUND_INDEX = build_compound_index(vocab)
+
+
+def _process_ticker(ticker: str, by_pdf: dict, hints: dict, already: set,
+                    identity_entry: dict, is_new_company: bool) -> dict:
+    alias_index = _WORKER_ALIAS_INDEX
+    compound_index = _WORKER_COMPOUND_INDEX
 
     company_rows: list[dict] = []
     year_meta: dict[tuple, dict] = {}     # (ticker, col_year) -> meta
@@ -214,12 +232,9 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
     bank_tickers: set[str] = set()
     rev_labelled: set[tuple] = set()      # (ticker, col_year) whose IS mentions revenue/sales
     prov: dict[tuple, str] = {}           # slot -> 'derived' | 'absent_on_face'
-    t0 = time.monotonic()
+    log_lines: list[str] = []
 
-    if progress:
-        progress(f"Schema mapping: {len(grouped)} ticker(s) from {src_db} -> {fin_db}")
-
-    for ticker, by_pdf in grouped.items():
+    if True:
         latest_currency = None
         for pdf_year in sorted(by_pdf, reverse=True):     # newest PDF first
             hint = hints.get((ticker, pdf_year), {})
@@ -380,12 +395,11 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
                                                  statement_type=stmt, line_item=k,
                                                  confidence=conf_stmt,
                                                  match_kind="mapped"))
-                if progress:
-                    progress(f"  {ticker} pdf{pdf_year} {stmt:16} "
-                             f"{n_mapped}/{len(by_line)} labels mapped  "
-                             f"conf={conf_stmt:.2f}")
-        if ticker not in prior_tickers:
-            ident = identity.get(ticker, {})
+                log_lines.append(f"  {ticker} pdf{pdf_year} {stmt:16} "
+                                 f"{n_mapped}/{len(by_line)} labels mapped  "
+                                 f"conf={conf_stmt:.2f}")
+        if is_new_company:
+            ident = identity_entry
             company_rows.append(dict(ticker=ticker,
                                      company_name=ident.get("company_name"),
                                      exchange=ident.get("exchange"),
@@ -471,19 +485,107 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
             continue
         filled = sum(1 for y in years for (s, k) in keys if (t, y, s, k) in picked)
         fill_by_ticker[t] = 100.0 * filled / (len(keys) * len(years))
-    fills = sorted(fill_by_ticker.values())
-    fill_median = fills[len(fills) // 2] if fills else 0.0
-    if progress and fill_by_ticker:
-        worst = sorted(fill_by_ticker.items(), key=lambda kv: kv[1])[:5]
-        progress(f"  fill rate: median {fill_median:.0f}%  "
-                 f"(worst: {', '.join(f'{t} {p:.0f}%' for t, p in worst)})")
-
     line_rows = [dict(ticker=t, fiscal_year=y, statement_type=s, line_item=k,
                       value=v[0]) for (t, y, s, k), v in picked.items()]
     year_rows = [dict(ticker=t, fiscal_year=y, period_end=m["period_end"],
                       currency=m["currency"], source="cse_pdf_extract",
                       source_ref=m["source_ref"])
                  for (t, y), m in year_meta.items()]
+
+    return dict(
+        company_rows=company_rows, year_rows=year_rows, line_rows=line_rows,
+        full_rows=full_rows, quality_rows=quality_rows, status_rows=status_rows,
+        raw_rows=raw_rows, confidences=confidences,
+        parsed_ok=parsed_ok, skipped=skipped, needs_review=needs_review,
+        balance_pass=balance_pass, balance_checked=balance_checked,
+        mapped_labels=mapped_labels, total_labels=total_labels,
+        derived_n=derived_n, zero_n=zero_n, fill_by_ticker=fill_by_ticker,
+        log_lines=log_lines,
+    )
+
+
+def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
+                       tickers: set[str] | None = None, progress=None) -> dict:
+    src_db = cfg.get("storage", {}).get("db_path", "output/filings.db")
+    fin_db = cfg.get("rules", {}).get("db_path") or "output/pdf_financials.db"
+    vocab_path = str(Path(cfg.get("rules", {}).get("vocab_path", DEFAULT_VOCAB)))
+    process_workers = int(cfg.get("rules", {}).get(
+        "process_workers", min(20, os.cpu_count() or 4)))
+
+    grouped, identity, hints = _load_raw_line_items(src_db, tickers, limit)
+    store = FinancialsStore(fin_db)
+    already = set() if force else store.completed_statements()
+    prior_tickers = store.existing_tickers()
+    t0 = time.monotonic()
+
+    # Slice the global already/hints sets down to each ticker's own subset
+    # BEFORE dispatch -- keeps each task's pickled payload small (a company's
+    # own filings, not the whole backlog's).
+    already_by_ticker: dict[str, set] = {}
+    for entry in already:
+        already_by_ticker.setdefault(entry[0], set()).add(entry)
+    hints_by_ticker: dict[str, dict] = {}
+    for key in hints:
+        hints_by_ticker.setdefault(key[0], {})[key] = hints[key]
+
+    company_rows: list[dict] = []
+    year_rows: list[dict] = []
+    line_rows: list[dict] = []
+    full_rows: list[dict] = []
+    quality_rows: list[dict] = []
+    status_rows: list[dict] = []
+    raw_rows: list[dict] = []
+    confidences: list[float] = []
+    parsed_ok = skipped = needs_review = 0
+    balance_pass = balance_checked = 0
+    mapped_labels = total_labels = 0
+    derived_n = zero_n = 0
+    fill_by_ticker: dict[str, float] = {}
+
+    if progress:
+        progress(f"Schema mapping: {len(grouped)} ticker(s) from {src_db} -> {fin_db}  "
+                 f"(process_workers={process_workers})")
+
+    with ProcessPoolExecutor(max_workers=process_workers,
+                             initializer=_init_worker,
+                             initargs=(vocab_path,)) as pool:
+        futures = [
+            pool.submit(_process_ticker, ticker, by_pdf,
+                       hints_by_ticker.get(ticker, {}),
+                       already_by_ticker.get(ticker, set()),
+                       identity.get(ticker, {}), ticker not in prior_tickers)
+            for ticker, by_pdf in grouped.items()
+        ]
+        for fut in as_completed(futures):
+            res = fut.result()
+            if progress:
+                for line in res["log_lines"]:
+                    progress(line)
+            company_rows.extend(res["company_rows"])
+            year_rows.extend(res["year_rows"])
+            line_rows.extend(res["line_rows"])
+            full_rows.extend(res["full_rows"])
+            quality_rows.extend(res["quality_rows"])
+            status_rows.extend(res["status_rows"])
+            raw_rows.extend(res["raw_rows"])
+            confidences.extend(res["confidences"])
+            parsed_ok += res["parsed_ok"]
+            skipped += res["skipped"]
+            needs_review += res["needs_review"]
+            balance_pass += res["balance_pass"]
+            balance_checked += res["balance_checked"]
+            mapped_labels += res["mapped_labels"]
+            total_labels += res["total_labels"]
+            derived_n += res["derived_n"]
+            zero_n += res["zero_n"]
+            fill_by_ticker.update(res["fill_by_ticker"])
+
+    fills = sorted(fill_by_ticker.values())
+    fill_median = fills[len(fills) // 2] if fills else 0.0
+    if progress and fill_by_ticker:
+        worst = sorted(fill_by_ticker.items(), key=lambda kv: kv[1])[:5]
+        progress(f"  fill rate: median {fill_median:.0f}%  "
+                 f"(worst: {', '.join(f'{t} {p:.0f}%' for t, p in worst)})")
 
     # A ticker's lines are always rebuilt whole from raw_line_items, so purge
     # first -- otherwise keys mapped/derived/zero-filled on a previous run but
