@@ -15,6 +15,16 @@ output/companies/
 output/*.html
 output/*.xlsx
 
+# AUX/PRN tickers' xlsx exports: AUX and PRN are Windows reserved device
+# names (like CON/NUL/COM1) — any path component named that, with ANY
+# extension, can't be opened via the normal Win32 file API, and Git for
+# Windows itself refuses to write such a path into the index (even via
+# `git update-index --cacheinfo`) since a checkout could never materialize
+# it. Un-committable from any Windows machine; ignored rather than fought.
+# Regenerate with: python src/company_xlsx_export.py --all --db output/financials.db --out-dir output/financials_xlsx
+output/financials_xlsx/AUX.xlsx
+output/financials_xlsx/PRN.xlsx
+
 # Python
 __pycache__/
 *.pyc
