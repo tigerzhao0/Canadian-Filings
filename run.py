@@ -134,25 +134,31 @@ def main() -> None:
                     help="(deprecated, now the DEFAULT) Step 1 skips the QuoteMedia "
                          "API and finds PDF links directly. Kept as a no-op.")
     ap.add_argument("--with-financials", action="store_true",
-                    help="(--step 1) Legacy combined flow: QuoteMedia structured "
-                         "financials first, then the PDF finder only on the tail "
-                         "QuoteMedia missed.")
+                    help="DISABLED. (--step 1) Legacy combined flow: QuoteMedia "
+                         "structured financials first, then the PDF finder only on "
+                         "the tail QuoteMedia missed.")
     ap.add_argument("--overwrite", action="store_true",
                     help="(--step 1) Re-process companies already marked 'found' "
                          "(default skips them). Resets their status + clears old PDF "
                          "links so the finder re-runs and overwrites the results.")
     ap.add_argument("--financials", action="store_true",
-                    help="Run ONLY the structured-financials stage (TSX/TSXV/CSE/XCNQ/"
-                         "NEOE via QuoteMedia -- CSE/XCNQ via a :CNX symbol suffix, "
-                         "NEOE via an ATS suffix like :OMG, ~99%% coverage) and stop -- "
-                         "skips the PDF finder entirely. Without this flag, the default "
-                         "run does financials first anyway, then falls through to the "
-                         "PDF finder only for whatever those exchanges didn't cover. "
-                         "Writes to its own DB (see tmx_financials.db_path in config), "
-                         "separate from filings.db.")
+                    help="DISABLED. Run ONLY the structured-financials stage (TSX/"
+                         "TSXV/CSE/XCNQ/NEOE via QuoteMedia -- CSE/XCNQ via a :CNX "
+                         "symbol suffix, NEOE via an ATS suffix like :OMG, ~99%% "
+                         "coverage) and stop -- skips the PDF finder entirely. "
+                         "Writes to its own DB (see tmx_financials.db_path in "
+                         "config), separate from filings.db.")
     args = ap.parse_args()
 
     # --- fail-fast validation ------------------------------------------------
+    if args.financials or args.with_financials:
+        _die("--financials / --with-financials are DISABLED: the direct QuoteMedia "
+             "structured-financials API pipeline (financials_pipeline.py + "
+             "tmx_financials.py) is no longer in use -- the PDF-extraction pipeline "
+             "(pdf_financials.db / pdf_financials_xlsx/, run.py --step 4) is the one "
+             "actively maintained. The QuoteMedia code is kept for reference but not "
+             "wired up to run; remove this check in run.py's main() if you need to "
+             "re-enable it.")
     if not args.config.exists():
         _die(f"Config file not found: {args.config}")
     cfg = _load_config(args.config)
