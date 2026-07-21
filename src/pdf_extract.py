@@ -228,6 +228,19 @@ _DATE_HEADER_RE = re.compile(
 _MONTH_DAY_RE = re.compile(
     r"^(\s*(january|february|march|april|may|june|july|august|september|"
     r"october|november|december)\.?\s+\d{1,2},?\s*)+$", re.I)
+# Unanchored variant: matches a "Month Day," occurring ANYWHERE on the line,
+# not just when the whole line is nothing else. Confirmed on Gatekeeper
+# Systems (GSI) FY2013: the line reads "(expressed in Canadian dollars)
+# August 31,          August 31," -- a units note glued onto the SAME line
+# as the date. _MONTH_DAY_RE's anchored match requires the line to be
+# JUST the date, so it never protected this line or (via the bare-year-
+# follows-month-day rule below) the next line's "2013    2012" -- which
+# then fell through to the generic furniture-frequency filter (a bare
+# "# #" digit-normalized pattern recurs on nearly every statement page in
+# ANY filing, so it crosses the 30%-of-pages threshold almost every time).
+_MONTH_DAY_ANYWHERE_RE = re.compile(
+    r"(january|february|march|april|may|june|july|august|september|"
+    r"october|november|december)\.?\s+\d{1,2},?", re.I)
 _BARE_YEAR_LINE_RE = re.compile(r"^(\s*(19|20)\d{2}\s*)+$")
 
 
@@ -266,11 +279,12 @@ def _strip_furniture(page_text: str, furniture: set[str]) -> str:
             prev_nonblank = ln
             continue
         # A bare year on its own line ("2023" / "2023   2022") right after a
-        # "Month Day," line is the tail of a wrapped column-header date, not a
-        # page number -- checked BEFORE _PAGE_NO_RE, which would otherwise
-        # match it (a lone 1-4 digit line).
+        # line CONTAINING a "Month Day," (whole-line OR mixed with other text,
+        # e.g. a units note glued onto the same line) is the tail of a
+        # wrapped column-header date, not a page number -- checked BEFORE
+        # _PAGE_NO_RE, which would otherwise match it (a lone 1-4 digit line).
         if (_BARE_YEAR_LINE_RE.match(ln) and prev_nonblank is not None
-                and _MONTH_DAY_RE.match(prev_nonblank)):
+                and _MONTH_DAY_ANYWHERE_RE.search(prev_nonblank)):
             kept.append(ln)
             prev_nonblank = ln
             continue
