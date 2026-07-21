@@ -15,7 +15,9 @@ Standalone (sqlite3 + openpyxl only). Read-only against the DB; re-run any time.
 from __future__ import annotations
 
 import argparse
+import os
 import sqlite3
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import openpyxl
@@ -406,6 +408,21 @@ def _add_all_lines_sheet(wb, conn, ticker: str, years: list[int]) -> None:
         r += 1
 
 
+def _export_one(db_path: str, out_dir: str, ticker: str) -> bool:
+    """Build + save ONE company's workbook, opening its own (read-only)
+    connection -- used both inline and as a ProcessPoolExecutor worker, so
+    it can't share a connection object across threads/processes."""
+    conn = sqlite3.connect(db_path)
+    try:
+        wb = build_workbook(conn, ticker)
+    finally:
+        conn.close()
+    if wb is None:
+        return False
+    wb.save(Path(out_dir) / f"{ticker}.xlsx")
+    return True
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -421,29 +438,32 @@ def main() -> None:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    conn = sqlite3.connect(args.db)
-    try:
-        if args.all:
+    if args.all:
+        conn = sqlite3.connect(args.db)
+        try:
             tickers = [r[0] for r in conn.execute("SELECT ticker FROM companies ORDER BY ticker")]
-        else:
-            tickers = [args.ticker.upper()]
-
+        finally:
+            conn.close()
+        # Each company's export is fully independent (its own read-only
+        # connection, its own output file) -- CPU-bound (openpyxl cell/style
+        # construction), so a process pool gets real parallelism a thread
+        # pool wouldn't (the GIL would serialize it). Previously sequential:
+        # ~111ms/file * 2,441 companies = ~4.5min single-threaded.
+        workers = min(20, os.cpu_count() or 4)
         written = 0
-        for tk in tickers:
-            wb = build_workbook(conn, tk)
-            if wb is None:
-                if not args.all:
-                    print(f"'{tk}' not in companies table (never resolved). "
-                         "Run the financials stage first.")
-                continue
-            wb.save(out_dir / f"{tk}.xlsx")
-            written += 1
-        if args.all:
-            print(f"Wrote {written} company .xlsx file(s) to {out_dir}/")
-        elif written:
-            print(f"Wrote {out_dir}/{tickers[0]}.xlsx")
-    finally:
-        conn.close()
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            for ok in pool.map(_export_one, [args.db] * len(tickers),
+                               [str(out_dir)] * len(tickers), tickers):
+                written += 1 if ok else 0
+        print(f"Wrote {written} company .xlsx file(s) to {out_dir}/")
+    else:
+        tk = args.ticker.upper()
+        ok = _export_one(args.db, str(out_dir), tk)
+        if ok:
+            print(f"Wrote {out_dir}/{tk}.xlsx")
+        else:
+            print(f"'{tk}' not in companies table (never resolved). "
+                 "Run the financials stage first.")
 
 
 if __name__ == "__main__":
