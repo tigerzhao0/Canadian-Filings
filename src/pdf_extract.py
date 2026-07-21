@@ -302,13 +302,27 @@ def _strip_furniture(page_text: str, furniture: set[str]) -> str:
     return "\n".join(kept)
 
 
+# Widened from 3 to 5 -- confirmed on Metals Creek Resources (MEK) FY2009:
+# every statement page opens with THREE lines of running boilerplate (bare
+# page number / company name / "(A Development Stage Enterprise)" subtitle)
+# before the real title, e.g. "1\nMetals Creek Resources Corp.\n(A
+# Development Stage Enterprise)\nBALANCE SHEETS" -- pushing the actual
+# header past a top-3-line window entirely, so n_statement_types stayed 0
+# and the whole document (audited financial statements, formDescription
+# confirmed) got misclassified as doc_type='other' and excluded from step 3.
+# Still narrow enough to distinguish a real statement page from a mid-notes
+# mention (the original purpose of restricting to a "top" window at all).
+_HEADER_WINDOW = 5
+
+
 def _top3_collapsed(page_text: str) -> str:
-    return _collapse("\n".join(page_text.splitlines()[:3]))
+    return _collapse("\n".join(page_text.splitlines()[:_HEADER_WINDOW]))
 
 
 def _statement_header_pages(pages: list[str]) -> dict[str, list[int]]:
-    """Page indices whose TOP 3 lines match each statement's header regex --
-    i.e. pages that actually START a primary statement (not a mid-notes mention)."""
+    """Page indices whose top lines (see _HEADER_WINDOW) match each
+    statement's header regex -- i.e. pages that actually START a primary
+    statement (not a mid-notes mention)."""
     top3 = [_top3_collapsed(p) for p in pages]
     return {name: [i for i, t in enumerate(top3) if rx.search(t)]
             for name, rx in _STATEMENT_RES.items()}
@@ -515,7 +529,7 @@ def extract_statements(pdf_bytes: bytes, pages: list[str] | None = None) -> Extr
     # Real primary statements are 1-2 pages; the notes still live in primary_block.
     MAX_CONT = 2
     for i in primary_pages:
-        head = _collapse("\n".join(pages[i].splitlines()[:3]))
+        head = _top3_collapsed(pages[i])
         # A changes-in-equity page sits between the statements we keep -- it is
         # NOT a continuation of anything; stop absorbing so it can't bloat the
         # previous section.
