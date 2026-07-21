@@ -13,10 +13,12 @@ filing_pdfs), and it's slower per company (a real download + parse each).
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import sqlite3
 import tempfile
 import time
+import zlib
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +28,18 @@ import httpx
 from pdf_extract import extract_statements
 
 SCHEMA_PATH = Path(__file__).resolve().parent.parent / "sql" / "schema.sql"
+
+
+def _compress_pages(pages: list[str] | None) -> bytes | None:
+    if not pages:
+        return None
+    return zlib.compress(json.dumps(pages).encode("utf-8"), 9)
+
+
+def _decompress_pages(blob: bytes | None) -> list[str] | None:
+    if not blob:
+        return None
+    return json.loads(zlib.decompress(blob).decode("utf-8"))
 
 
 def _parse_pdf(pdf_bytes: bytes) -> dict:
@@ -47,7 +61,15 @@ def _parse_pdf(pdf_bytes: bytes) -> dict:
          proceeding concurrently while this one parses.
 
     Returns a plain (picklable) dict -- deliberately not the ExtractResult/
-    DocClass dataclasses, to keep the cross-process payload simple."""
+    DocClass dataclasses, to keep the cross-process payload simple.
+
+    Also returns `pages_compressed`: the raw per-page text (pre-boundary-trim,
+    pre-furniture-strip), zlib-compressed, so run_pdf_processing can cache it
+    in pdf_raw_pages -- letting a later tweak to pdf_extract.py's OWN logic
+    (furniture-stripping, notes-boundary, statement-slicing -- ~5% of a PDF's
+    CPU cost) be replayed via _reparse_from_cache without re-downloading or
+    re-running _page_texts() (~95% of the cost, benchmarked). Compressed HERE
+    (in the worker) so only the smaller blob crosses process-pool IPC."""
     from pdf_extract import _page_texts, content_fiscal_years
     from doc_classify import classify_document
 
@@ -60,6 +82,35 @@ def _parse_pdf(pdf_bytes: bytes) -> dict:
     try:
         content_years, true_fy, is_interim = content_fiscal_years(
             pdf_bytes, pages=pages, res=res)
+    except Exception:  # noqa: BLE001
+        content_years, true_fy, is_interim = [], None, False
+    return {
+        "ok": res.ok, "reason": res.reason, "scanned": res.scanned,
+        "sections": dict(res.sections), "primary_block": res.primary_block,
+        "unit_scale_hint": res.unit_scale_hint,
+        "doc_type": doc_type, "content_years": content_years,
+        "true_fy": true_fy, "is_interim": is_interim,
+        "pages_compressed": _compress_pages(pages),
+    }
+
+
+def _reparse_from_cache(pages: list[str]) -> dict:
+    """Same result shape as _parse_pdf, but replays pdf_extract.py's logic
+    against ALREADY-EXTRACTED page text instead of raw PDF bytes -- skips
+    _page_texts() entirely (no PDF library work, no download). Used by
+    run_pdf_processing_from_cache for fast re-scans after a tweak to
+    boundary-detection/furniture-stripping/slicing."""
+    from pdf_extract import content_fiscal_years
+    from doc_classify import classify_document
+
+    res = extract_statements(b"%PDF-cached", pages=pages)
+    try:
+        doc_type = classify_document(b"%PDF-cached", pages=pages).doc_type
+    except Exception:  # noqa: BLE001
+        doc_type = None
+    try:
+        content_years, true_fy, is_interim = content_fiscal_years(
+            b"%PDF-cached", pages=pages, res=res)
     except Exception:  # noqa: BLE001
         content_years, true_fy, is_interim = [], None, False
     return {
@@ -220,6 +271,7 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
 
     sem = asyncio.Semaphore(concurrency)
     results: list[dict] = []
+    raw_page_rows: list[dict] = []
     extracted = scanned = failed = sec_skipped = done = 0
     t0 = time.monotonic()
     loop = asyncio.get_running_loop()
@@ -260,6 +312,9 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
                 if results:
                     _bulk_write(db_path, results)
                     results.clear()
+                if raw_page_rows:
+                    _bulk_write_raw_pages(db_path, raw_page_rows)
+                    raw_page_rows.clear()
 
     try:
       async with httpx.AsyncClient(follow_redirects=True) as client:
@@ -377,6 +432,11 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
                     sec = parsed["sections"] or {}
                     primary_block = parsed["primary_block"]
                     unit_scale_hint = parsed["unit_scale_hint"]
+                    if parsed.get("pages_compressed"):
+                        raw_page_rows.append(dict(
+                            ticker=row["ticker"], fiscal_year=row["fiscal_year"],
+                            pdf_url=row["pdf_url"],
+                            pages_compressed=parsed["pages_compressed"]))
                     labeled = row["fiscal_year"]
                     # Reject a quarterly/interim doc, or one whose content
                     # year is WILDLY off its label (>1yr) -- a wrong document
@@ -427,6 +487,7 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
         pool_box[0].shutdown(wait=True)
 
     _bulk_write(db_path, results)
+    _bulk_write_raw_pages(db_path, raw_page_rows)
     elapsed = time.monotonic() - t0
     # "attempted" = rows genuinely tried as PDF downloads (excludes SEC-skipped,
     # which were never meant to be PDFs -- see the note above). Success rate
@@ -435,6 +496,160 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
     return {"attempted": attempted, "extracted": extracted, "scanned": scanned,
             "failed": failed, "sec_skipped": sec_skipped,
             "elapsed": elapsed, "db_path": db_path}
+
+
+def _rows_from_cache(db_path: str, tickers: set[str] | None = None) -> list[dict]:
+    conn = sqlite3.connect(db_path)
+    try:
+        sql = "SELECT ticker, fiscal_year, pdf_url, pages_compressed FROM pdf_raw_pages"
+        params: tuple = ()
+        if tickers:
+            placeholders = ",".join("?" * len(tickers))
+            sql += f" WHERE ticker IN ({placeholders})"
+            params = tuple(tickers)
+        sql += " ORDER BY ticker, fiscal_year DESC"
+        cur = conn.execute(sql, params)
+        cols = [c[0] for c in cur.description]
+        return [dict(zip(cols, r)) for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+async def run_pdf_processing_from_cache(cfg, *, tickers: set[str] | None = None,
+                                        progress=None) -> dict:
+    """Replay pdf_extract.py's boundary-detection/furniture-stripping/
+    statement-slicing logic against the pdf_raw_pages cache -- no download, no
+    PDF-library re-parse (_page_texts() is ~95% of a PDF's CPU cost,
+    benchmarked; this skips it entirely). For iterating on a tweak to that
+    downstream logic once run_pdf_processing has already populated the cache.
+    Rows with nothing cached yet (never processed since the cache was added)
+    are silently skipped -- run the normal run_pdf_processing first."""
+    db_path = cfg.get("storage", {}).get("db_path", "output/filings.db")
+    process_workers = int(cfg.get("pdf_processing", {}).get(
+        "process_workers", min(20, os.cpu_count() or 4)))
+    parse_timeout = float(cfg.get("pdf_processing", {}).get(
+        "parse_timeout_seconds", 900))
+
+    rows = _rows_from_cache(db_path, tickers)
+    if progress:
+        progress(f"PDF re-parse (from cache): {len(rows)} cached page-set(s) "
+                 f"in {db_path} ...")
+    if not rows:
+        if progress:
+            progress("  nothing cached -- run run_pdf_processing (--step 2) first "
+                     "so it populates pdf_raw_pages.")
+        return {"attempted": 0, "extracted": 0, "scanned": 0, "failed": 0,
+                "elapsed": 0.0, "db_path": db_path}
+
+    results: list[dict] = []
+    extracted = scanned = failed = done = 0
+    t0 = time.monotonic()
+    loop = asyncio.get_running_loop()
+    flush_lock = asyncio.Lock()
+    pool_box = [ProcessPoolExecutor(max_workers=process_workers)]
+    pool_lock = asyncio.Lock()
+
+    async def _maybe_flush():
+        if done % 200 == 0 or done == len(rows):
+            async with flush_lock:
+                if results:
+                    _bulk_write(db_path, results)
+                    results.clear()
+
+    async def handle(row):
+        nonlocal extracted, scanned, failed, done
+        pages = _decompress_pages(row["pages_compressed"])
+        if not pages:
+            done += 1
+            await _maybe_flush()
+            return
+        try:
+            parsed = await asyncio.wait_for(
+                loop.run_in_executor(pool_box[0], _reparse_from_cache, pages),
+                timeout=parse_timeout)
+            timed_out = False
+        except asyncio.TimeoutError:
+            timed_out = True
+            async with pool_lock:
+                stale = pool_box[0]
+                pool_box[0] = ProcessPoolExecutor(max_workers=process_workers)
+                stale.shutdown(wait=False, cancel_futures=True)
+
+        if timed_out:
+            res_ok, reason, sc = False, "parse_timeout", 0
+            doc_type, content_years, true_fy = None, [], None
+            sec, primary_block, unit_scale_hint = {}, None, None
+        else:
+            res_ok, reason, sc = (parsed["ok"], parsed["reason"],
+                                 1 if parsed["scanned"] else 0)
+            doc_type = parsed["doc_type"]
+            content_years = parsed["content_years"]
+            true_fy = parsed["true_fy"]
+            sec = parsed["sections"] or {}
+            primary_block = parsed["primary_block"]
+            unit_scale_hint = parsed["unit_scale_hint"]
+            labeled = row["fiscal_year"]
+            if res_ok and parsed["is_interim"]:
+                res_ok, reason = False, "interim_or_quarterly_report"
+            elif (res_ok and content_years and labeled is not None
+                  and not any(abs(y - labeled) <= 1 for y in content_years)):
+                res_ok, reason = False, f"wrong_year_content_{content_years[0]}"
+
+        results.append(dict(
+            ticker=row["ticker"], fiscal_year=row["fiscal_year"],
+            pdf_url=row["pdf_url"], scanned=sc,
+            income_statement=sec.get("income_statement"),
+            balance_sheet=sec.get("balance_sheet"),
+            cash_flow=sec.get("cash_flow"),
+            primary_block=primary_block,
+            extract_ok=1 if res_ok else 0, reason=reason,
+            doc_type=doc_type,
+            unit_scale_hint=unit_scale_hint,
+            content_years=(",".join(str(y) for y in content_years)
+                           if content_years else None),
+            true_fiscal_year=true_fy))
+        if res_ok:
+            extracted += 1
+        elif sc:
+            scanned += 1
+        else:
+            failed += 1
+        done += 1
+        if progress and (done % 500 == 0 or done == len(rows)):
+            progress(f"  reparsed {done}/{len(rows)} (ok {extracted}, "
+                     f"scanned {scanned}, failed {failed})")
+        await _maybe_flush()
+
+    try:
+        await asyncio.gather(*(handle(r) for r in rows))
+    finally:
+        pool_box[0].shutdown(wait=True)
+
+    _bulk_write(db_path, results)
+    elapsed = time.monotonic() - t0
+    return {"attempted": len(rows), "extracted": extracted, "scanned": scanned,
+            "failed": failed, "elapsed": elapsed, "db_path": db_path}
+
+
+def _bulk_write_raw_pages(db_path: str, rows: list[dict]) -> None:
+    """Cache each PDF's raw per-page text (see pdf_raw_pages in schema.sql)."""
+    if not rows:
+        return
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.executemany(
+            "INSERT INTO pdf_raw_pages (ticker, fiscal_year, pdf_url, "
+            "pages_compressed, cached_at) VALUES (?,?,?,?,?) "
+            "ON CONFLICT(ticker, fiscal_year) DO UPDATE SET "
+            "pdf_url=excluded.pdf_url, pages_compressed=excluded.pages_compressed, "
+            "cached_at=excluded.cached_at",
+            [(r["ticker"], r["fiscal_year"], r["pdf_url"], r["pages_compressed"], now)
+             for r in rows])
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def _bulk_write(db_path: str, rows: list[dict]) -> None:

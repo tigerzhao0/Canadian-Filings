@@ -116,6 +116,12 @@ def main() -> None:
                     help="(--step 3/4) Process at most N rows (smoke testing).")
     ap.add_argument("--tickers", default=None,
                     help="(--step 2/3/4) Comma-separated ticker allow-list.")
+    ap.add_argument("--from-cache", action="store_true",
+                    help="(--step 2) Skip downloading -- replay pdf_extract.py's "
+                         "boundary-detection/furniture-stripping/statement-slicing "
+                         "logic against the pdf_raw_pages cache instead (populated "
+                         "by prior normal --step 2 runs). For fast re-scans after a "
+                         "tweak to that logic; rows never cached are skipped.")
     ap.add_argument("--method", choices=("rules", "llm"), default="rules",
                     help="(--step 4) Mapping method. 'rules' (default) = "
                          "deterministic matcher, no model needed. 'llm' = legacy "
@@ -166,13 +172,18 @@ def main() -> None:
     # Step 2: PDF processing (download -> extract -> delete). Reads filing_pdfs
     # from the DB, needs no --input, and stops without touching the finder.
     if args.step == 2:
-        from pdf_pipeline import run_pdf_processing
+        from pdf_pipeline import run_pdf_processing, run_pdf_processing_from_cache
         tickers = ({t.strip() for t in args.tickers.split(",") if t.strip()}
                    if args.tickers else None)
         db_path = cfg.get("storage", {}).get("db_path", "output/filings.db")
-        print(f"Step 2: PDF processing  |  DB: {db_path}"
+        label = "PDF re-parse (from cache)" if args.from_cache else "PDF processing"
+        print(f"Step 2: {label}  |  DB: {db_path}"
               + (f"  |  tickers: {', '.join(sorted(tickers))}" if tickers else ""))
-        result = asyncio.run(run_pdf_processing(cfg, tickers=tickers, progress=print))
+        if args.from_cache:
+            result = asyncio.run(run_pdf_processing_from_cache(
+                cfg, tickers=tickers, progress=print))
+        else:
+            result = asyncio.run(run_pdf_processing(cfg, tickers=tickers, progress=print))
         print("\n" + "=" * 44)
         print("  PDF processing complete")
         print("=" * 44)

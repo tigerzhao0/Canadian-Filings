@@ -70,3 +70,24 @@ CREATE TABLE IF NOT EXISTS pdf_extractions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pdf_extractions_ticker ON pdf_extractions(ticker);
+
+-- Cache of each PDF's RAW per-page text (pre-boundary-trim, pre-furniture-strip
+-- -- i.e. straight out of _page_texts(), before any of pdf_extract.py's own
+-- logic runs on it). The PDF bytes themselves are never kept (downloaded to a
+-- temp file and deleted immediately -- see pdf_pipeline.py); this is plain
+-- extracted text, zlib-compressed (JSON list of per-page strings). Lets a
+-- future tweak to furniture-stripping / notes-boundary detection / statement-
+-- slicing (pdf_extract.py's own logic -- where most of this pipeline's real
+-- bugs have been) be REPLAYED against every cached PDF without re-downloading
+-- or re-running the PDF library extraction (~95% of a PDF's CPU cost,
+-- benchmarked). A tweak to _page_texts() itself (a different PDF engine, OCR,
+-- extraction flags) is the one thing this can't shortcut -- that still needs
+-- fresh bytes.
+CREATE TABLE IF NOT EXISTS pdf_raw_pages (
+    ticker            TEXT NOT NULL,
+    fiscal_year       INTEGER NOT NULL,
+    pdf_url           TEXT,
+    pages_compressed  BLOB,          -- zlib(json.dumps(list[str]))
+    cached_at         TIMESTAMP,
+    PRIMARY KEY (ticker, fiscal_year)
+);
