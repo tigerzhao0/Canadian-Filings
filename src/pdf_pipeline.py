@@ -278,28 +278,30 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
     flush_lock = asyncio.Lock()
     # Plain instantiation (not `async with` -- ProcessPoolExecutor only
     # supports the sync context-manager protocol), shut down explicitly below.
-    # Held in a 1-element list (not a bare local) so a parse timeout can swap
-    # in a fresh pool -- see `_recycle_pool_after_timeout` below.
+    # Held in a 1-element list for symmetry with the (now-removed) recycle
+    # path this used to support -- see the CRITICAL note below.
+    #
+    # CRITICAL: do NOT recycle this pool mid-run on a parse timeout, even
+    # though a timed-out task leaves its worker PROCESS stuck indefinitely
+    # (asyncio.wait_for only abandons OUR await, it can't kill the OS process
+    # -- ProcessPoolExecutor exposes no per-worker kill). An earlier version
+    # of this code called stale.shutdown(wait=False, cancel_futures=True) on
+    # the WHOLE pool to swap in a fresh one -- but cancel_futures=True cancels
+    # every OTHER task still queued/in-flight on that pool too, not just the
+    # stuck one. Confirmed on a full ~23,454-PDF run: one straggler recycled
+    # the pool ~32min in, silently orphaning every other in-flight task at
+    # that moment; each of THOSE then independently burned the full 900s
+    # parse_timeout before being wrongly marked failed -- 11,462 of 23,454
+    # rows (49%) came back parse_timeout, none of them actually pathological,
+    # just unlucky enough to share a pool with the one real straggler.
+    #
+    # Instead: leave a stuck worker in place (permanently costs 1 of
+    # process_workers slots for the rest of THIS run -- rare, and far
+    # cheaper than mass-orphaning). The only other place a stuck worker could
+    # cause a problem is the FINAL shutdown -- handled by using
+    # shutdown(wait=False) there instead of wait=True (see below), so
+    # completion never blocks on it either.
     pool_box = [ProcessPoolExecutor(max_workers=process_workers)]
-    pool_lock = asyncio.Lock()
-
-    async def _recycle_pool_after_timeout():
-        """A parse that timed out leaves its worker PROCESS still running the
-        pathological PDF indefinitely -- asyncio.wait_for only abandons OUR
-        wait on that future, it can't kill the OS process actually stuck
-        inside it (ProcessPoolExecutor exposes no per-worker kill). If we
-        left that same pool in place, the stuck worker would sit occupied
-        forever, and the final `process_pool.shutdown(wait=True)` would hang
-        waiting on it exactly like the incident this guards against. Instead,
-        abandon the whole pool (shutdown wait=False, cancel any other queued
-        futures) and swap in a fresh one so the rest of the run -- and the
-        eventual shutdown -- never waits on the stuck process again. The
-        orphaned process is left running until the interpreter exits; that's
-        an acceptable one-off cost for a rare pathological PDF."""
-        async with pool_lock:
-            stale = pool_box[0]
-            pool_box[0] = ProcessPoolExecutor(max_workers=process_workers)
-            stale.shutdown(wait=False, cancel_futures=True)
 
     async def _maybe_flush():
         # Write completed rows to the DB as we go (same cadence as the
@@ -411,7 +413,6 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
                             timeout=parse_timeout)
                 except asyncio.TimeoutError:
                     timed_out = True
-                    await _recycle_pool_after_timeout()
                 finally:
                     if tmp:
                         try:
@@ -484,7 +485,12 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
 
         await asyncio.gather(*(handle(r) for r in rows))
     finally:
-        pool_box[0].shutdown(wait=True)
+        # wait=False, not wait=True: if a stuck worker is sitting on a
+        # pathological PDF (see the note above pool_box), waiting here would
+        # hang the whole run's completion on it. The orphaned process is left
+        # running until the interpreter exits -- an acceptable one-off cost
+        # for a rare pathological PDF, and no worse than before.
+        pool_box[0].shutdown(wait=False)
 
     _bulk_write(db_path, results)
     _bulk_write_raw_pages(db_path, raw_page_rows)
@@ -546,8 +552,13 @@ async def run_pdf_processing_from_cache(cfg, *, tickers: set[str] | None = None,
     t0 = time.monotonic()
     loop = asyncio.get_running_loop()
     flush_lock = asyncio.Lock()
+    # Do NOT recycle this pool on a timeout -- see the detailed note in
+    # run_pdf_processing above pool_box for why: cancel_futures=True on a
+    # stale pool orphans every OTHER in-flight task on it too, not just the
+    # stuck one, which cascaded into 49% of a real run coming back false
+    # parse_timeouts. A stuck worker just permanently costs 1 of
+    # process_workers slots for the rest of this run instead.
     pool_box = [ProcessPoolExecutor(max_workers=process_workers)]
-    pool_lock = asyncio.Lock()
 
     async def _maybe_flush():
         if done % 200 == 0 or done == len(rows):
@@ -570,10 +581,6 @@ async def run_pdf_processing_from_cache(cfg, *, tickers: set[str] | None = None,
             timed_out = False
         except asyncio.TimeoutError:
             timed_out = True
-            async with pool_lock:
-                stale = pool_box[0]
-                pool_box[0] = ProcessPoolExecutor(max_workers=process_workers)
-                stale.shutdown(wait=False, cancel_futures=True)
 
         if timed_out:
             res_ok, reason, sc = False, "parse_timeout", 0
@@ -623,7 +630,7 @@ async def run_pdf_processing_from_cache(cfg, *, tickers: set[str] | None = None,
     try:
         await asyncio.gather(*(handle(r) for r in rows))
     finally:
-        pool_box[0].shutdown(wait=True)
+        pool_box[0].shutdown(wait=False)  # see note above -- never wait=True here
 
     _bulk_write(db_path, results)
     elapsed = time.monotonic() - t0
