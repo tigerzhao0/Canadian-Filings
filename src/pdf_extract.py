@@ -32,8 +32,16 @@ class ExtractResult:
 # inconsistent word-spacing in the PDF text layer doesn't defeat them. Both
 # English and FRENCH (Quebec / bilingual issuers file in French); accented
 # classes like [ée] also tolerate accent-stripped extraction.
+# auditor(?:['’]s|s['’]|s)?\s*report handles BOTH apostrophe placements --
+# "auditor's report" (singular possessive) AND "auditors' report" (plural
+# possessive, apostrophe AFTER the s -- an older/Canadian convention the
+# previous auditor'?s pattern missed entirely, confirmed on ABI/Orex
+# Exploration FY2010: that miss left auditor_page=None, which cascaded into
+# _notes_boundary starting its scan from page 0 instead of past the auditor's
+# report, exposing it to a false-positive TOC-page match (see _NOTES_RE) and
+# collapsing the whole primary-statements window down to 2 pages).
 _AUDITOR_RE = re.compile(
-    r"independent auditor|auditor'?s report|report of independent"
+    r"independent auditor|auditor(?:['’]s|s['’]|s)?\s*report|report of independent"
     r"|rapport de l['’]auditeur ind[ée]pendant|rapport des auditeurs ind[ée]pendants"
     r"|rapport de l['’]auditeur")
 _NOTES_RE = re.compile(
@@ -77,7 +85,13 @@ _STATEMENT_RES = {
         r"statements? of financial position|balance sheets?"
         r"|[ée]tats? de la situation financi[eè]re|bilans?"),
     "income_statement": re.compile(
-        r"statements? of (loss|income|operations|comprehensive (income|loss)|profit)"
+        # "earnings" is older/pre-IFRS Canadian terminology ("Statements of
+        # Earnings and Comprehensive Income") -- confirmed on ABI/Orex
+        # Exploration FY2010, where its absence left header_pages empty for
+        # income_statement, which in turn defeated the _smallest_span_
+        # covering_all_types safety re-anchor (needs >=1 header page per
+        # statement type to compute a valid span).
+        r"statements? of (loss|income|operations|comprehensive (income|loss)|profit|earnings)"
         r"|[ée]tats? (du|des) r[ée]sultats?( global| net)?"
         r"|[ée]tats? du r[ée]sultat global"),
     "cash_flow": re.compile(
