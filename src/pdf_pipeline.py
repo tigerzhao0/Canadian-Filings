@@ -14,12 +14,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+import multiprocessing as mp
 import os
 import sqlite3
 import tempfile
 import time
 import zlib
-from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -28,6 +28,91 @@ import httpx
 from pdf_extract import extract_statements
 
 SCHEMA_PATH = Path(__file__).resolve().parent.parent / "sql" / "schema.sql"
+
+
+def _isolated_worker(fn, args: tuple, result_queue) -> None:
+    """Runs INSIDE a freshly-spawned, single-use process (see _run_isolated)."""
+    try:
+        result_queue.put(("ok", fn(*args)))
+    except Exception as e:  # noqa: BLE001 -- report, don't crash the child silently
+        result_queue.put(("error", repr(e)))
+
+
+async def _run_isolated(fn, args: tuple, timeout: float):
+    """Run fn(*args) in a DEDICATED, single-use process with a genuine
+    kill-on-timeout -- NOT a shared ProcessPoolExecutor.
+
+    A shared pool can't do this safely: concurrent.futures.ProcessPoolExecutor
+    has no supported way to kill ONE misbehaving worker without poisoning the
+    whole pool (any unexpected worker death is treated as fatal to every
+    other pending/future task on it) -- confirmed the hard way. A prior
+    version tried working around this by recreating the whole pool on a
+    timeout (cancelling everything else queued on it), which cascaded into
+    49% of a real ~23,454-PDF run coming back as false parse_timeouts
+    (innocent PDFs orphaned by the recycle, not actually slow). Removing the
+    recycle entirely was tried next and was WORSE: without any way to
+    reclaim a stuck worker's slot, multiple genuinely pathological PDFs (not
+    just the rare one) permanently consumed workers over the course of a
+    long run, shrinking the pool's real capacity until everything still
+    queued behind it also blew past the timeout waiting for a free slot.
+
+    A dedicated process per call sidesteps both failure modes: killing it
+    can never affect any other in-flight PDF, because there is no other work
+    sharing it. The cost is a process spawn per call (~50-150ms measured on
+    Windows) -- worth it against _page_texts() (~1-2s typical, benchmarked at
+    ~95% of a PDF's CPU cost), and it's the only way to actually reclaim a
+    slot from a truly stuck PDF instead of losing it forever.
+
+    CRITICAL ordering: the result MUST be read from the queue before (or
+    concurrently with) proc.join(), never strictly after. A result larger
+    than the OS pipe buffer (~64KB on Windows -- a real annual report's
+    extracted text/sections easily exceeds this) makes the child block
+    inside queue.put() until the parent reads it; joining first waits for
+    the child to exit, which it can't do while blocked on put() -- a
+    textbook multiprocessing deadlock (Python's own docs warn about this
+    exact ordering). Confirmed the hard way: a real run showed multiple
+    worker processes' CPU time completely FLAT (zero growth) for 19+
+    minutes straight -- not slow computation (which would show CPU still
+    climbing), but two sides each waiting on the other forever. Fixed by
+    polling the queue (via a short-timeout blocking get in a thread) in the
+    SAME loop that watches the deadline, so a result is drained the moment
+    it arrives, well before any join is attempted."""
+    ctx = mp.get_context("spawn")
+    q = ctx.Queue()
+    proc = ctx.Process(target=_isolated_worker, args=(fn, args, q))
+    proc.start()
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout
+
+    result = None
+    while loop.time() < deadline:
+        try:
+            result = await loop.run_in_executor(None, q.get, True, 0.1)
+            break
+        except Exception:  # noqa: BLE001 -- queue.Empty (or similar): keep polling
+            if not proc.is_alive():
+                try:
+                    result = q.get_nowait()
+                except Exception:  # noqa: BLE001
+                    result = None
+                break
+
+    if result is None:
+        proc.terminate()
+        await loop.run_in_executor(None, proc.join, 5)
+        if proc.is_alive():
+            proc.kill()
+        await loop.run_in_executor(None, proc.join, 5)
+        q.close()
+        return None
+
+    await loop.run_in_executor(None, proc.join, 5)
+    if proc.is_alive():
+        proc.terminate()
+        await loop.run_in_executor(None, proc.join, 5)
+    q.close()
+    status, payload = result
+    return payload if status == "ok" else None
 
 
 def _compress_pages(pages: list[str] | None) -> bytes | None:
@@ -44,7 +129,7 @@ def _decompress_pages(blob: bytes | None) -> list[str] | None:
 
 def _parse_pdf(pdf_bytes: bytes) -> dict:
     """All CPU-bound PDF parsing for one document, done in ONE pass and
-    intended to run in a worker PROCESS (see the ProcessPoolExecutor in
+    intended to run in a dedicated worker PROCESS (see _run_isolated, used by
     run_pdf_processing) rather than inline on the asyncio event loop.
 
     Two independent wins over the old inline approach:
@@ -56,8 +141,8 @@ def _parse_pdf(pdf_bytes: bytes) -> dict:
       2. Running in a separate OS process (not just a thread) gets real
          multi-core parallelism for this pure-Python, CPU-heavy parsing --
          threads would still serialize on the GIL. Called via
-         loop.run_in_executor(process_pool, _parse_pdf, pdf_bytes), which also
-         keeps the event loop free so OTHER companies' downloads keep
+         _run_isolated(_parse_pdf, (pdf_bytes,), timeout), which also keeps
+         the event loop free so OTHER companies' downloads keep
          proceeding concurrently while this one parses.
 
     Returns a plain (picklable) dict -- deliberately not the ExtractResult/
@@ -276,32 +361,13 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
     t0 = time.monotonic()
     loop = asyncio.get_running_loop()
     flush_lock = asyncio.Lock()
-    # Plain instantiation (not `async with` -- ProcessPoolExecutor only
-    # supports the sync context-manager protocol), shut down explicitly below.
-    # Held in a 1-element list for symmetry with the (now-removed) recycle
-    # path this used to support -- see the CRITICAL note below.
-    #
-    # CRITICAL: do NOT recycle this pool mid-run on a parse timeout, even
-    # though a timed-out task leaves its worker PROCESS stuck indefinitely
-    # (asyncio.wait_for only abandons OUR await, it can't kill the OS process
-    # -- ProcessPoolExecutor exposes no per-worker kill). An earlier version
-    # of this code called stale.shutdown(wait=False, cancel_futures=True) on
-    # the WHOLE pool to swap in a fresh one -- but cancel_futures=True cancels
-    # every OTHER task still queued/in-flight on that pool too, not just the
-    # stuck one. Confirmed on a full ~23,454-PDF run: one straggler recycled
-    # the pool ~32min in, silently orphaning every other in-flight task at
-    # that moment; each of THOSE then independently burned the full 900s
-    # parse_timeout before being wrongly marked failed -- 11,462 of 23,454
-    # rows (49%) came back parse_timeout, none of them actually pathological,
-    # just unlucky enough to share a pool with the one real straggler.
-    #
-    # Instead: leave a stuck worker in place (permanently costs 1 of
-    # process_workers slots for the rest of THIS run -- rare, and far
-    # cheaper than mass-orphaning). The only other place a stuck worker could
-    # cause a problem is the FINAL shutdown -- handled by using
-    # shutdown(wait=False) there instead of wait=True (see below), so
-    # completion never blocks on it either.
-    pool_box = [ProcessPoolExecutor(max_workers=process_workers)]
+    # Bounds how many _run_isolated (one-process-per-PDF) calls run at once --
+    # see _run_isolated's docstring for why this replaced a shared
+    # ProcessPoolExecutor (killing one stuck worker in a shared pool poisons
+    # the whole pool; recycling the whole pool on a timeout cascaded into 49%
+    # false failures on a real run; not recycling at all let multiple
+    # genuinely-stuck PDFs permanently eat workers until the pool starved).
+    parse_sem = asyncio.Semaphore(process_workers)
 
     async def _maybe_flush():
         # Write completed rows to the DB as we go (same cadence as the
@@ -318,8 +384,7 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
                     _bulk_write_raw_pages(db_path, raw_page_rows)
                     raw_page_rows.clear()
 
-    try:
-      async with httpx.AsyncClient(follow_redirects=True) as client:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         async def handle(row):
             nonlocal extracted, scanned, failed, sec_skipped, done
             url = row["pdf_url"] or ""
@@ -388,37 +453,31 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
                 reason = dl_reason or "download_failed"
                 sc = 0
             else:
-                # Offload to a worker PROCESS: this is the CPU-heavy part
-                # (pdfplumber/pdfminer text extraction), and running it in
-                # a separate process both frees the event loop for other
-                # companies' downloads and gets genuine multi-core
-                # parallelism (a thread would still serialize on the GIL).
-                # Pass the temp file PATH, not the raw bytes -- marshaling
-                # multi-MB PDF payloads through the process pool's IPC
+                # Offload to a DEDICATED, single-use process (see
+                # _run_isolated) -- real multi-core parallelism (a thread
+                # would still serialize on the GIL) plus a genuine
+                # kill-on-timeout no shared pool can safely offer. Pass the
+                # temp file PATH, not the raw bytes, when available --
+                # marshaling multi-MB PDF payloads through process IPC
                 # (Windows named pipes) for every PDF exhausts OS pipe
                 # resources once ~15-20 large PDFs are in flight at once
                 # (observed: WinError 1450). A path is a few bytes; the
                 # worker reads the file itself instead.
-                timed_out = False
-                try:
-                    if tmp:
-                        parsed = await asyncio.wait_for(
-                            loop.run_in_executor(
-                                pool_box[0], _parse_pdf_path, tmp),
-                            timeout=parse_timeout)
-                    else:
-                        parsed = await asyncio.wait_for(
-                            loop.run_in_executor(
-                                pool_box[0], _parse_pdf, pdf_bytes),
-                            timeout=parse_timeout)
-                except asyncio.TimeoutError:
-                    timed_out = True
-                finally:
-                    if tmp:
-                        try:
-                            Path(tmp).unlink()  # DELETE the downloaded file
-                        except OSError:
-                            pass
+                async with parse_sem:
+                    try:
+                        if tmp:
+                            parsed = await _run_isolated(
+                                _parse_pdf_path, (tmp,), parse_timeout)
+                        else:
+                            parsed = await _run_isolated(
+                                _parse_pdf, (pdf_bytes,), parse_timeout)
+                    finally:
+                        if tmp:
+                            try:
+                                Path(tmp).unlink()  # DELETE the downloaded file
+                            except OSError:
+                                pass
+                timed_out = parsed is None
                 if timed_out:
                     res_ok, reason, sc = False, "parse_timeout", 0
                     doc_type = None
@@ -484,13 +543,6 @@ async def run_pdf_processing(cfg, *, tickers: set[str] | None = None, progress=N
             await _maybe_flush()
 
         await asyncio.gather(*(handle(r) for r in rows))
-    finally:
-        # wait=False, not wait=True: if a stuck worker is sitting on a
-        # pathological PDF (see the note above pool_box), waiting here would
-        # hang the whole run's completion on it. The orphaned process is left
-        # running until the interpreter exits -- an acceptable one-off cost
-        # for a rare pathological PDF, and no worse than before.
-        pool_box[0].shutdown(wait=False)
 
     _bulk_write(db_path, results)
     _bulk_write_raw_pages(db_path, raw_page_rows)
@@ -550,15 +602,12 @@ async def run_pdf_processing_from_cache(cfg, *, tickers: set[str] | None = None,
     results: list[dict] = []
     extracted = scanned = failed = done = 0
     t0 = time.monotonic()
-    loop = asyncio.get_running_loop()
     flush_lock = asyncio.Lock()
-    # Do NOT recycle this pool on a timeout -- see the detailed note in
-    # run_pdf_processing above pool_box for why: cancel_futures=True on a
-    # stale pool orphans every OTHER in-flight task on it too, not just the
-    # stuck one, which cascaded into 49% of a real run coming back false
-    # parse_timeouts. A stuck worker just permanently costs 1 of
-    # process_workers slots for the rest of this run instead.
-    pool_box = [ProcessPoolExecutor(max_workers=process_workers)]
+    # See _run_isolated's docstring: one dedicated process per call, not a
+    # shared pool -- a shared pool has no safe way to kill just one stuck
+    # worker (recycling the whole pool cascaded into 49% false failures on a
+    # real run; not recycling let multiple stuck PDFs permanently starve it).
+    parse_sem = asyncio.Semaphore(process_workers)
 
     async def _maybe_flush():
         if done % 200 == 0 or done == len(rows):
@@ -574,13 +623,9 @@ async def run_pdf_processing_from_cache(cfg, *, tickers: set[str] | None = None,
             done += 1
             await _maybe_flush()
             return
-        try:
-            parsed = await asyncio.wait_for(
-                loop.run_in_executor(pool_box[0], _reparse_from_cache, pages),
-                timeout=parse_timeout)
-            timed_out = False
-        except asyncio.TimeoutError:
-            timed_out = True
+        async with parse_sem:
+            parsed = await _run_isolated(_reparse_from_cache, (pages,), parse_timeout)
+        timed_out = parsed is None
 
         if timed_out:
             res_ok, reason, sc = False, "parse_timeout", 0
@@ -627,10 +672,7 @@ async def run_pdf_processing_from_cache(cfg, *, tickers: set[str] | None = None,
                      f"scanned {scanned}, failed {failed})")
         await _maybe_flush()
 
-    try:
-        await asyncio.gather(*(handle(r) for r in rows))
-    finally:
-        pool_box[0].shutdown(wait=False)  # see note above -- never wait=True here
+    await asyncio.gather(*(handle(r) for r in rows))
 
     _bulk_write(db_path, results)
     elapsed = time.monotonic() - t0
