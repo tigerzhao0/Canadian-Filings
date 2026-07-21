@@ -210,7 +210,12 @@ _BOILERPLATE_RE = re.compile(
 # stored section text, leaving parse_lines with no year to key columns on.
 # Exempt these lines from furniture stripping outright, regardless of key.
 _DATE_HEADER_RE = re.compile(
+    # "years? ended" without a "for the" prefix -- confirmed on ABI/Orex
+    # Exploration's own statements-of-deficit continuation page, which reads
+    # bare "YEARS ENDED JUNE 30" (no "For the"). Some issuers drop the
+    # leading phrase entirely on subsequent statement pages.
     r"for the years?\s*ended|for the periods?\s*ended|periods?\s*ended"
+    r"|years?\s*ended"
     r"|as (at|of)\b"
     r"|pour l['’]exercice (clos|termin[ée])|au \d{1,2}", re.I)
 # The date header often WRAPS across 2-3 physical lines ("For the year
