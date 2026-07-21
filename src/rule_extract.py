@@ -808,6 +808,55 @@ _extend_aliases({
     "StockBasedCompensation": ["share-based compensation psu and dsu expenses"],
 })
 
+# Fifth mined pass (systematic corpus-wide frequency sweep: every distinct
+# label with >=15 occurrences across raw_line_items tested against the
+# matcher, ranked by how many rows/tickers it affected). Only the
+# confidently-safe, verified-against-the-real-vocab additions from that
+# sweep -- ambiguous candidates (bare "Reserves"/"Deposits", "Royalties",
+# "Deferred income tax recovery" -- the last needs TaxProvision added to
+# AGGREGATE_KEYS first, or it can only ever pick ONE of a current/deferred
+# pair instead of summing both) were deliberately left out rather than
+# guessed at.
+_extend_aliases({
+    # --- income statement ---
+    # A bare anchor total, not a sub-component -- confirmed via the sweep at
+    # 1,263 rows / 209 tickers, i.e. a large fraction of loss-making issuers
+    # were falling through entirely on this one missing synonym.
+    "OperatingIncome": ["operating loss"],
+    "InterestIncomeNonOperating": ["finance income"],
+    "ForeignExchangeTradingGains": ["foreign exchange", "foreign exchange gain",
+                                    "foreign exchange loss",
+                                    "foreign exchange gain (loss)",
+                                    "foreign exchange loss (gain)"],
+    # G&A broken into itemized sub-lines instead of one combined figure (very
+    # common for small-cap/CPC issuers) -- these join OtherOperatingExpenses'
+    # existing AGGREGATE_KEYS membership, so multiple sub-lines on the same
+    # statement SUM instead of best-match-wins overwriting. Verified this
+    # can't double-count against an explicit "General and administrative"/
+    # "Selling, general and administrative" SUBTOTAL line, if one is also
+    # present: those map to the separate GeneralAndAdministrativeExpense /
+    # SellingGeneralAndAdministration keys, not this one.
+    "OtherOperatingExpenses": [
+        "office", "consulting", "legal", "marketing", "telephone",
+        "travel and promotion", "advertising and promotion",
+        "transfer agent", "listing and filing fees",
+        "bank charges and interest", "salaries and benefits",
+    ],
+    # --- balance sheet ---
+    "RestrictedCash": ["restricted cash"],
+    "TaxesReceivable": ["income taxes recoverable", "income tax recoverable"],
+    "MachineryFurnitureEquipment": ["equipment"],
+    # --- cash flow ---
+    # Standard supplemental cash-paid disclosures -- dedicated keys already
+    # exist in the vocab, just had no alias pointing to the plain-English
+    # label filers actually print. "Interest paid"/"Income taxes paid" were
+    # respectively the #1 and top-5 highest-frequency unmapped labels in the
+    # whole corpus sweep (4,447 and 2,609+793 rows).
+    "InterestPaidSupplementalData": ["interest paid", "interest paid $"],
+    "IncomeTaxPaidSupplementalData": ["income taxes paid", "income tax paid",
+                                       "income taxes paid $", "income tax paid $"],
+})
+
 # CONTEXT-DEPENDENT aliases: the same label means different things under
 # different sections/zones ("Loans" under Interest income vs under Assets;
 # "Derivatives" on the asset vs liability side). Tried BEFORE bare aliases.
