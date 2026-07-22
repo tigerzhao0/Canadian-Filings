@@ -882,6 +882,47 @@ COMPOUND_ALIASES: dict[str, dict[str, str]] = {
         "loss per share > basic and diluted": "BasicEPS",
         "earnings per share > basic": "BasicEPS",
         "earnings per share > diluted": "DilutedEPS",
+        # "Basic"/"Diluted" print as their OWN bare lines under an EPS-family
+        # SECTION header, not "basic and diluted" glued into one label --
+        # confirmed on VQS: raw_line_items correctly captures section="Net
+        # loss per share" for label="Basic", but no compound alias existed
+        # for that exact section text (only "loss per share" and "earnings
+        # per share" were covered) -- a corpus-wide sweep found "Basic"/
+        # "Diluted" as bare labels at 2,616/2,477 rows across 286/276
+        # tickers, the single largest unmapped-label category found. Most
+        # of that volume is actually a DIFFERENT context though (weighted-
+        # average SHARE COUNT, not EPS) -- both are covered below, each
+        # verified against its own section text before adding.
+        "loss per share > basic": "BasicEPS",
+        "loss per share > diluted": "DilutedEPS",
+        "net loss per share > basic": "BasicEPS",
+        "net loss per share > diluted": "DilutedEPS",
+        "net income per share > basic": "BasicEPS",
+        "net income per share > diluted": "DilutedEPS",
+        "net earnings per share > basic": "BasicEPS",
+        "net earnings per share > diluted": "DilutedEPS",
+        "income per share > basic": "BasicEPS",
+        "income per share > diluted": "DilutedEPS",
+        "income per common share > basic": "BasicEPS",
+        "income per common share > diluted": "DilutedEPS",
+        "net income per common share > basic": "BasicEPS",
+        "net income per common share > diluted": "DilutedEPS",
+        "earnings loss per share > basic": "BasicEPS",
+        "earnings loss per share > diluted": "DilutedEPS",
+        "weighted average number of common shares outstanding > basic": "BasicAverageShares",
+        "weighted average number of common shares outstanding > diluted": "DilutedAverageShares",
+        "weighted average number of shares outstanding > basic": "BasicAverageShares",
+        "weighted average number of shares outstanding > diluted": "DilutedAverageShares",
+        "weighted average number of shares > basic": "BasicAverageShares",
+        "weighted average number of shares > diluted": "DilutedAverageShares",
+        "weighted average number of common shares > basic": "BasicAverageShares",
+        "weighted average number of common shares > diluted": "DilutedAverageShares",
+        "weighted average common shares outstanding > basic": "BasicAverageShares",
+        "weighted average common shares outstanding > diluted": "DilutedAverageShares",
+        "weighted average shares outstanding > basic": "BasicAverageShares",
+        "weighted average shares outstanding > diluted": "DilutedAverageShares",
+        "shares outstanding > basic": "BasicAverageShares",
+        "shares outstanding > diluted": "DilutedAverageShares",
     },
     "balance_sheet": {
         "securities > trading": "TradingSecurities",
