@@ -22,6 +22,7 @@ import re
 import sqlite3
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from functools import lru_cache
 from pathlib import Path
 
 import derive as derive_mod
@@ -209,12 +210,34 @@ def _init_worker(vocab_path: str) -> None:
     vocab = _load_vocab(Path(vocab_path))
     _WORKER_ALIAS_INDEX = build_alias_index(vocab)
     _WORKER_COMPOUND_INDEX = build_compound_index(vocab)
+    # The label matcher is a PURE function of (label, section, zone,
+    # statement_type) once the alias/compound indexes are fixed -- and those
+    # indexes are built exactly once here per worker and never mutated. Reset
+    # the per-process memo cache on (re-)init so it can never carry a stale
+    # result from a different vocab; in practice a worker inits once and lives
+    # for the whole run, accumulating hits across every ticker it handles.
+    _match_cached.cache_clear()
+
+
+@lru_cache(maxsize=None)
+def _match_cached(label, section, zone, statement_type):
+    """Per-worker memoized wrapper around match_label_ctx. Keyed on the
+    4-tuple only (the alias/compound indexes are dicts -- unhashable, and
+    constant per worker -- so they're read from the process globals rather
+    than passed as cache args). Financial-statement labels are massively
+    repetitive across issuers/years (~4:1 total-to-distinct), and the
+    expensive difflib fuzzy fallback fires on the most-repeated long-tail
+    labels, so this eliminates the bulk of redundant matching work. Output
+    is provably identical to calling match_label_ctx directly."""
+    return match_label_ctx(label, section, zone, statement_type,
+                           _WORKER_ALIAS_INDEX, _WORKER_COMPOUND_INDEX)
 
 
 def _process_ticker(ticker: str, by_pdf: dict, hints: dict, already: set,
                     identity_entry: dict, is_new_company: bool) -> dict:
+    # compound_index is read directly by _match_cached from the process
+    # globals; only alias_index is still needed locally (for _reroute_statement).
     alias_index = _WORKER_ALIAS_INDEX
-    compound_index = _WORKER_COMPOUND_INDEX
 
     company_rows: list[dict] = []
     year_meta: dict[tuple, dict] = {}     # (ticker, col_year) -> meta
@@ -290,8 +313,7 @@ def _process_ticker(ticker: str, by_pdf: dict, hints: dict, already: set,
                     if prose:
                         key, conf, kind = None, 0.0, None
                     else:
-                        key, conf, kind = match_label_ctx(label, section, zone, stmt,
-                                                          alias_index, compound_index)
+                        key, conf, kind = _match_cached(label, section, zone, stmt)
                     if key and key in BANK_ONLY_KEYS and not is_bank:
                         key, conf, kind = None, 0.0, None
                         flags.append("bank_key_on_nonbank")
