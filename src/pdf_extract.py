@@ -490,6 +490,24 @@ def extract_statements(pdf_bytes: bytes, pages: list[str] | None = None) -> Extr
     # land on a span containing NO real statement pages at all. Detect that and
     # re-anchor to the tightest page cluster that starts a header of EACH
     # statement type -- reliable regardless of how far apart the text markers are.
+    #
+    # KNOWN GAP (deliberately NOT fixed here, reverted after verification): on
+    # BlackBerry's (BB) Form 10-K, the naive window [29, 62) contains a
+    # balance_sheet + income_statement match (probably an MD&A false
+    # positive on page 30) but not cash_flow, which only appears later at
+    # page 70 -- so this any()-based check accepts the window and cash_flow
+    # comes back empty. Tried requiring ALL 3 types present before accepting
+    # the window (re-anchoring via _smallest_span_covering_all_types
+    # otherwise), plus searching _notes_boundary from hi+1 instead of hi (hi
+    # itself can have a legitimate footer "Notes to..." reference on its own
+    # page, e.g. BB's real cash-flow page 70, which must never be excluded).
+    # Both fixes verified correct on BB, but a broader regression check
+    # found they make things WORSE on RY (a big bank, 5 distinct statement
+    # types on 5 pages instead of the usual 3): the re-anchored window
+    # over-absorbed the Statement of Changes in Equity into the "oci"
+    # section (36,705 chars, clearly wrong). Reverted rather than risk
+    # regressing bank-style multi-statement filers, which matter more than
+    # this one 10-K -- BB's cash_flow gap stays a known, deferred issue.
     header_pages = _statement_header_pages(pages)
     window_has_header = any(start <= p < end
                             for ps in header_pages.values() for p in ps)
