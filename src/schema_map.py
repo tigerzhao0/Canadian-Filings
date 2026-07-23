@@ -78,6 +78,17 @@ AGGREGATE_KEYS = {
     # (AD.UN, BKMT, ITR, ORIO: ~2% of cases) they're distinct sibling
     # components of the one OCI template row, not alternates.
     "GainsLossesNotAffectingRetainedEarnings",
+    # Identity-verified on ACQ 2022: "Repayment of indebtedness" (-770,064)
+    # + "Principal portion of lease payments" (-27,214) + every other
+    # financing line sums EXACTLY to the stated "Financing activities
+    # total" (83,213) -- two genuinely separate debt-repayment components,
+    # not one being a subtotal of the other.
+    "RepaymentOfDebt",
+    # Identity-verified on BLDS 2012: "Restricted cash" (28,750) +
+    # "Reclamation deposits" (28,000) + E&E assets + PP&E sums EXACTLY to
+    # "Non-current assets total" (19,337,794) -- distinct sibling
+    # non-current-asset lines, common for mining/exploration issuers.
+    "RestrictedCash", "ChangeInRestrictedCash",
 }
 
 # Prose guard: a "statement" whose lines read like sentences is a mis-isolated

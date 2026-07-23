@@ -356,8 +356,12 @@ CURATED_ALIASES: dict[str, list[str]] = {
     "CurrentAssets": ["total current assets", "current assets"],
     "TotalNonCurrentAssets": ["total non current assets", "non current assets",
                               "total long term assets", "total long-term assets"],
+    # "cash and due from banks" deliberately excluded -- it's CashAndDueFromBanks'
+    # own alias (below), a DIFFERENT bank-specific aggregate (QM's
+    # CashAndCashEquivalents = cash + interest-bearing deposits for a bank,
+    # confirmed on RY 2024: 56,723 + 66,020 = 122,743 -- see EQUIVALENT_FANOUT).
     "CashAndCashEquivalents": ["cash and cash equivalents", "cash and cash equivalent",
-                               "cash", "cash and due from banks", "cash and bank balances"],
+                               "cash", "cash and bank balances"],
     "AccountsReceivable": ["accounts receivable", "trade receivables", "trade accounts receivable"],
     "Receivables": ["receivables", "trade and other receivables", "accounts and other receivables"],
     "Inventory": ["inventory", "inventories"],
@@ -867,7 +871,10 @@ _extend_aliases({
         "royalty expense",
     ],
     # --- balance sheet ---
-    "RestrictedCash": ["restricted cash"],
+    # Identity-verified sibling of "restricted cash" (BLDS 2012: both sum
+    # exactly into Non-current assets total) -- now safe since RestrictedCash
+    # joined AGGREGATE_KEYS.
+    "RestrictedCash": ["restricted cash", "reclamation deposits", "reclamation deposit"],
     "TaxesReceivable": ["income taxes recoverable", "income tax recoverable"],
     "MachineryFurnitureEquipment": ["equipment"],
     # Reordered phrasing of the already-mapped "deposits and prepaid
@@ -890,6 +897,19 @@ _extend_aliases({
     # phrasing of the same investing-activity line.
     "NetOtherInvestingChanges": ["exploration and evaluation expenditures",
                                  "exploration and evaluation asset expenditures"],
+    # Same reclamation-deposit sibling as the balance-sheet entry above, cash
+    # flow side (also now aggregate).
+    "ChangeInRestrictedCash": ["reclamation deposits", "reclamation deposit"],
+    # Identity-verified on ACQ 2022: "Repayment of indebtedness" + "Principal
+    # portion of lease payments" + every other financing line sums EXACTLY
+    # to the stated "Financing activities total" -- genuinely separate debt
+    # instruments, not one being a subtotal of the other. Now safe since
+    # RepaymentOfDebt joined AGGREGATE_KEYS.
+    "RepaymentOfDebt": ["repayment of indebtedness", "lease payments",
+                        "finance lease payments", "capital lease payments",
+                        "principal portion of lease payments",
+                        "principal elements of lease payments",
+                        "principal portion of lease payment"],
 })
 
 # CONTEXT-DEPENDENT aliases: the same label means different things under
@@ -996,17 +1016,29 @@ COMPOUND_ALIASES: dict[str, dict[str, str]] = {
 
 def build_alias_index(vocab: dict[str, list[str]]) -> dict[str, dict[str, str]]:
     """{statement_type: {normalized_alias: canonical_key}}. Humanized canonical
-    key + curated synonyms; only keys actually in that statement's vocab."""
+    key + curated synonyms; only keys actually in that statement's vocab.
+    Curated goes FIRST (via setdefault, so first-claim wins): a reviewed,
+    intentional alias must win over another key's incidental auto-humanized
+    name landing on the same normalized string. Found via a ground-truth
+    diff (bare "Cash" was silently resolving to the rarely-used "Cash" key's
+    own humanized name instead of CashAndCashEquivalents' explicit curated
+    "cash" alias, since the OLD order let humanize claim it first and
+    setdefault never overrides) -- confirmed on AAB/ASCU where
+    CashAndCashEquivalents was 0 despite a plain "Cash" line with a real
+    value. Only 5 such collisions exist corpus-wide; the other 4 (all
+    income-statement Interest/Total-Expense generic-vs-specific pairs) were
+    reviewed and are intentional routing from an earlier corpus sweep, not
+    bugs -- this reorder just lets that sweep's own aliases take effect."""
     index: dict[str, dict[str, str]] = {s: {} for s in STATEMENTS}
     for stmt in STATEMENTS:
         allowed = set(vocab.get(stmt, []))
-        for key in allowed:
-            index[stmt].setdefault(_normalize_label(_humanize(key)), key)
         for key, aliases in CURATED_ALIASES.items():
             if key not in allowed:
                 continue
             for alias in aliases:
                 index[stmt].setdefault(_normalize_label(alias), key)
+        for key in allowed:
+            index[stmt].setdefault(_normalize_label(_humanize(key)), key)
     return index
 
 
