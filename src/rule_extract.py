@@ -261,6 +261,14 @@ def _humanize(key: str) -> str:
 # "Provision for credit losses (Notes 4 and 5)". These defeated matching when
 # only TRAILING refs were stripped.
 _NOTE_PAREN_RE = re.compile(r"\(\s*notes?\b[^)]*\)", re.I)
+# UNPARENTHESIZED trailing note reference: "Property, plant and equipment Note 7
+# and 8", "Repayment of debt Note 12", "Provision Notes 4 and 5", "Goodwill Note
+# 7, 8". Anchored to end + gated on the "note(s)" keyword so it can't eat real
+# trailing content. Confirmed via the line-item audit: these left NetPPE /
+# RepaymentOfDebt / etc. unmapped (canonical_key NULL) and thus zero-filled,
+# because the trailing "note 7 and" survived the digit-only tail stripper.
+_NOTE_TAIL_WORD_RE = re.compile(
+    r"\s+notes?\s+\d[\d,]*(?:\s*(?:,|and|to|&)\s*\d[\d,]*)*\s*$", re.I)
 
 
 def _normalize_label(label: str) -> str:
@@ -272,6 +280,7 @@ def _normalize_label(label: str) -> str:
     while prev != s:
         prev = s
         s = _TRAIL_DOLLAR_RE.sub("", s).strip()
+        s = _NOTE_TAIL_WORD_RE.sub("", s).strip()   # "note 7 and 8" (unparenthesized)
         s = _NOTE_TAIL_RE.sub("", s).strip()
     s = _PUNCT_RE.sub(" ", s)             # keep word chars, whitespace, '&'
     s = re.sub(r"\s+", " ", s).strip()

@@ -1,0 +1,1366 @@
+statement,key,year,match_kind,stored_value,expected_from_page,verdict,raw_label,src_pdf_year,note
+balance_sheet,AccountsPayable,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AccountsReceivable,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AccumulatedDepreciation,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AdditionalPaidInCapital,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,BuildingsAndImprovements,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2012,mapped,127700000.0,127.7,PASS,Cash and cash equivalents (note 6),2014,"label='Cash and cash equivalents (note 6)' x1,000,000 sheet=127.700"
+balance_sheet,CommonStock,2012,None,903300000.0,,SUSPECT,,,unexpected match_kind=None
+balance_sheet,ConstructionInProgress,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAssets,2012,mapped,810100000.0,810.1,PASS,Current assets total,2014,"label='Current assets total' x1,000,000 sheet=810.100"
+balance_sheet,CurrentCapitalLeaseObligation,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDebt,2012,mapped,9600000.0,5+4.6,PASS,Loan payable,2014,"label='Loan payable' x1,000,000 sheet=9.600"
+balance_sheet,CurrentDeferredLiabilities,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2012,mapped,529900000.0,529.9,PASS,Current liabilities total,2014,"label='Current liabilities total' x1,000,000 sheet=529.900"
+balance_sheet,FinishedGoods,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2012,mapped,13100000.0,13.1,PASS,Accumulated other comprehensive income,2014,"label='Accumulated other comprehensive income' x1,000,000 sheet=13.100"
+balance_sheet,Goodwill,2012,mapped,701100000.0,701.1,PASS,Goodwill (note 11),2014,"label='Goodwill (note 11)' x1,000,000 sheet=701.100"
+balance_sheet,GrossPPE,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InventoriesAdjustmentsAllowances,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InvestmentsAndAdvances,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LandAndImprovements,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermDebt,2012,mapped,8700000.0,8.7,PASS,Long-term debts (note 14),2014,"label='Long-term debts (note 14)' x1,000,000 sheet=8.700"
+balance_sheet,MachineryFurnitureEquipment,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,MinorityInterest,2012,mapped,2000000.0,2,PASS,Non-controlling interest,2014,"label='Non-controlling interest' x1,000,000 sheet=2.000"
+balance_sheet,NetPPE,2012,mapped,88100000.0,88.1,PASS,"Property, plant and equipment (note 9)",2014,"label='Property, plant and equipment (note 9)' x1,000,000 sheet=88.100"
+balance_sheet,NonCurrentDeferredLiabilities,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2012,mapped,157100000.0,157.1,PASS,Intangible assets (note 10),2014,"label='Intangible assets (note 10)' x1,000,000 sheet=157.100"
+balance_sheet,OtherInventories,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherReceivables,2012,mapped,466700000.0,466.7,PASS,"Trade, prepaid and other receivables (note 7)",2014,"label='Trade, prepaid and other receivables (note 7)' x1,000,000 sheet=466.700"
+balance_sheet,PayablesAndAccruedExpenses,2012,mapped,361000000.0,361,PASS,Accounts payable and accrued liabilities (note 13),2014,"label='Accounts payable and accrued liabilities (note 13)' x1,000,000 sheet=361.000"
+balance_sheet,PreferredStock,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,RawMaterials,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,RetainedEarnings,2012,mapped,700000.0,0.7,PASS,Retained earnings (deficit),2014,"label='Retained earnings (deficit)' x1,000,000 sheet=0.700"
+balance_sheet,ShortTermInvestments,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,StockholdersEquity,2012,mapped,917100000.0,917.1,PASS,Equity attributable to shareholders total,2014,"label='Equity attributable to shareholders total' x1,000,000 sheet=917.100"
+balance_sheet,TotalAssets,2012,mapped,1819800000.0,1819.8,PASS,Total assets,2014,"label='Total assets' x1,000,000 sheet=1,819.800"
+balance_sheet,TotalEquityGrossMinorityInterest,2012,mapped,919100000.0,919.1,PASS,Total equity,2014,"label='Total equity' x1,000,000 sheet=919.100"
+balance_sheet,TotalLiabilities,2012,mapped,900700000.0,900.7,PASS,Total liabilities,2014,"label='Total liabilities' x1,000,000 sheet=900.700"
+balance_sheet,TotalTaxPayable,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,WorkInProcess,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashDividendsPaid,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedInvestingActivities,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInOtherWorkingCapital,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPrepaidAssets,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInReceivables,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInWorkingCapital,2012,mapped,3600000.0,3.6,PASS,Change in non-cash working capital items (note 22b)),2014,"label='Change in non-cash working capital items (note 22b))' x1,000,000 sheet=3.600"
+cash_flow,ChangesInCash,2012,mapped,-22700000.0,-22.7,PASS,Net change in cash and cash equivalents,2014,"label='Net change in cash and cash equivalents' x1,000,000 sheet=-22.700"
+cash_flow,DepreciationAmortizationDepletion,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfCapitalStock,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIntangiblesPurchaseAndSale,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIssuancePaymentsOfDebt,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherInvestingChanges,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2012,mapped,-16600000.000000002,-16.6,PASS,"Additions to property, plant and equipment",2014,"label='Additions to property, plant and equipment' x1,000,000 sheet=-16.600"
+cash_flow,RepaymentOfDebt,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,RepurchaseOfCapitalStock,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfPPE,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,CostOfRevenue,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,DepreciationAmortizationDepletion,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestIncomeNonOperating,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,MinorityInterests,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetIncomeDiscontinuousOperations,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherOperatingExpenses,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,PretaxIncome,2012,mapped,57000000.0,57,PASS,Earnings before income taxes,2014,"label='Earnings before income taxes' x1,000,000 sheet=57.000"
+income_statement,ResearchAndDevelopment,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,SellingGeneralAndAdministration,2012,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,TaxProvision,2012,mapped,10700000.0,10.7,PASS,Income tax expenses (note 20),2014,"label='Income tax expenses (note 20)' x1,000,000 sheet=-10.700"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2012,derived,127700000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2012,derived,9600000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2012,derived,8700000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2012,derived,215700000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2012,derived,159300000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2012,derived,63400000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2012,derived,362100000.0,,PASS,,,identities clean
+balance_sheet,Receivables,2012,derived,466700000.0,,PASS,,,identities clean
+balance_sheet,TotalNonCurrentAssets,2012,derived,1009700000.0,,PASS,,,identities clean
+balance_sheet,TotalNonCurrentLiabilities,2012,derived,370800000.0,,PASS,,,identities clean
+cash_flow,CapitalExpenditure,2012,derived,-16600000.000000002,,PASS,,,identities clean
+cash_flow,FreeCashFlow,2012,derived,75800000.0,,PASS,,,identities clean
+cash_flow,NetIncomeFromContinuingOperations,2012,derived,46300000.0,,PASS,,,identities clean
+income_statement,EBIT,2012,derived,57000000.0,,PASS,,,identities clean
+income_statement,EBITDA,2012,derived,57000000.0,,PASS,,,identities clean
+income_statement,NetIncome,2012,derived,46300000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2012,derived,46300000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2012,derived,0.0,,PASS,,,identities clean
+balance_sheet,AccountsPayable,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AccountsReceivable,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AccumulatedDepreciation,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AdditionalPaidInCapital,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,BuildingsAndImprovements,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2013,mapped,131900000.0,131.9,PASS,Cash and cash equivalents (note 6),2015,"label='Cash and cash equivalents (note 6)' x1,000,000 sheet=131.900"
+balance_sheet,CommonStock,2013,None,934400000.0,,SUSPECT,,,unexpected match_kind=None
+balance_sheet,ConstructionInProgress,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAssets,2013,mapped,825400000.0,825.4,PASS,Current assets total,2015,"label='Current assets total' x1,000,000 sheet=825.400"
+balance_sheet,CurrentCapitalLeaseObligation,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDebt,2013,mapped,1500000.0,1.5,PASS,Current portion of long-term debts (note 14),2015,"label='Current portion of long-term debts (note 14)' x1,000,000 sheet=1.500"
+balance_sheet,CurrentDeferredLiabilities,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2013,mapped,542200000.0,542.2,PASS,Current liabilities total,2015,"label='Current liabilities total' x1,000,000 sheet=542.200"
+balance_sheet,FinishedGoods,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2013,mapped,45300000.0,45.3,PASS,Accumulated other comprehensive income,2015,"label='Accumulated other comprehensive income' x1,000,000 sheet=45.300"
+balance_sheet,Goodwill,2013,mapped,734600000.0,734.6,PASS,Goodwill (note 11),2015,"label='Goodwill (note 11)' x1,000,000 sheet=734.600"
+balance_sheet,GrossPPE,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InventoriesAdjustmentsAllowances,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InvestmentsAndAdvances,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LandAndImprovements,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermDebt,2013,mapped,187700000.0,187.7,PASS,Long-term debts (note 14),2015,"label='Long-term debts (note 14)' x1,000,000 sheet=187.700"
+balance_sheet,MachineryFurnitureEquipment,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,MinorityInterest,2013,mapped,-700000.0,-0.7,PASS,Non-controlling interest,2015,"label='Non-controlling interest' x1,000,000 sheet=-0.700"
+balance_sheet,NetPPE,2013,mapped,87400000.0,87.4,PASS,"Property, plant and equipment (note 9)",2015,"label='Property, plant and equipment (note 9)' x1,000,000 sheet=87.400"
+balance_sheet,NonCurrentDeferredLiabilities,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2013,mapped,146400000.0,146.4,PASS,Intangible assets (note 10),2015,"label='Intangible assets (note 10)' x1,000,000 sheet=146.400"
+balance_sheet,OtherInventories,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherReceivables,2013,mapped,483300000.0,483.3,PASS,"Trade, prepaid and other receivables (note 7)",2015,"label='Trade, prepaid and other receivables (note 7)' x1,000,000 sheet=483.300"
+balance_sheet,PayablesAndAccruedExpenses,2013,mapped,363500000.0,363.5,PASS,Accounts payable and accrued liabilities (note 13),2015,"label='Accounts payable and accrued liabilities (note 13)' x1,000,000 sheet=363.500"
+balance_sheet,PreferredStock,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,RawMaterials,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,RetainedEarnings,2013,mapped,-5400000.0,-5.4,PASS,Retained earnings (deﬁcit),2015,"label='Retained earnings (deﬁcit)' x1,000,000 sheet=-5.400"
+balance_sheet,ShortTermInvestments,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,StockholdersEquity,2013,mapped,974300000.0,974.3,PASS,Equity attributable to shareholders total,2015,"label='Equity attributable to shareholders total' x1,000,000 sheet=974.300"
+balance_sheet,TotalAssets,2013,mapped,1859900000.0,1859.9,PASS,Total assets,2015,"label='Total assets' x1,000,000 sheet=1,859.900"
+balance_sheet,TotalEquityGrossMinorityInterest,2013,mapped,973600000.0,973.6,PASS,Total equity,2015,"label='Total equity' x1,000,000 sheet=973.600"
+balance_sheet,TotalLiabilities,2013,mapped,886300000.0,886.3,PASS,Total liabilities,2015,"label='Total liabilities' x1,000,000 sheet=886.300"
+balance_sheet,TotalTaxPayable,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,WorkInProcess,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashDividendsPaid,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedInvestingActivities,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInOtherWorkingCapital,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPrepaidAssets,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInReceivables,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInWorkingCapital,2013,mapped,-4300000.0,-4.3,PASS,Change in non-cash working capital items (note 23b)),2015,"label='Change in non-cash working capital items (note 23b))' x1,000,000 sheet=-4.300"
+cash_flow,ChangesInCash,2013,mapped,-21200000.0,-21.2,PASS,Net change in cash and cash equivalents,2015,"label='Net change in cash and cash equivalents' x1,000,000 sheet=-21.200"
+cash_flow,DepreciationAmortizationDepletion,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfCapitalStock,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIntangiblesPurchaseAndSale,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIssuancePaymentsOfDebt,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherInvestingChanges,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2013,mapped,-22300000.0,-22.3,PASS,"Additions to property, plant and equipment",2015,"label='Additions to property, plant and equipment' x1,000,000 sheet=-22.300"
+cash_flow,RepaymentOfDebt,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,RepurchaseOfCapitalStock,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfPPE,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,CostOfRevenue,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,DepreciationAmortizationDepletion,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestIncomeNonOperating,2013,mapped,-2700000.0,-2.7,PASS,Interest income,2015,"label='Interest income' x1,000,000 sheet=-2.700"
+income_statement,MinorityInterests,2013,mapped,1500000.0,-1.5,PASS,Non-controlling interests,2015,"label='Non-controlling interests' x1,000,000 sheet=1.500"
+income_statement,NetIncomeDiscontinuousOperations,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherOperatingExpenses,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,PretaxIncome,2013,mapped,92500000.0,92.5,PASS,Earnings before income taxes,2015,"label='Earnings before income taxes' x1,000,000 sheet=92.500"
+income_statement,ResearchAndDevelopment,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,SellingGeneralAndAdministration,2013,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,TaxProvision,2013,mapped,22300000.0,22.3,PASS,Income tax expenses (note 21),2015,"label='Income tax expenses (note 21)' x1,000,000 sheet=-22.300"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2013,derived,131900000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2013,derived,1500000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2013,derived,187700000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2013,derived,210200000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2013,derived,177200000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2013,derived,66100000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2013,derived,156400000.0,,PASS,,,identities clean
+balance_sheet,Receivables,2013,derived,483300000.0,,PASS,,,identities clean
+balance_sheet,TotalNonCurrentAssets,2013,derived,1034500000.0,,PASS,,,identities clean
+balance_sheet,TotalNonCurrentLiabilities,2013,derived,344100000.0,,PASS,,,identities clean
+cash_flow,CapitalExpenditure,2013,derived,-22300000.0,,PASS,,,identities clean
+cash_flow,FreeCashFlow,2013,derived,101600000.0,,PASS,,,identities clean
+cash_flow,NetIncomeFromContinuingOperations,2013,derived,70200000.0,,PASS,,,identities clean
+income_statement,EBIT,2013,derived,95200000.0,,PASS,,,identities clean
+income_statement,EBITDA,2013,derived,95200000.0,,PASS,,,identities clean
+income_statement,NetIncome,2013,derived,70200000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2013,derived,70200000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2013,derived,0.0,,PASS,,,identities clean
+balance_sheet,AccountsPayable,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts payable' appears only in notes
+balance_sheet,AccountsReceivable,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+balance_sheet,AccumulatedDepreciation,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accumulated depreciation' appears only in notes
+balance_sheet,AdditionalPaidInCapital,2014,mapped,200000000.0,200,PASS,Contributed surplus (note 17),2015,"label='Contributed surplus (note 17)' x1,000,000 sheet=200.000"
+balance_sheet,BuildingsAndImprovements,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2014,mapped,201500000.0,201.5,PASS,Cash and cash equivalents (note 6),2015,"label='Cash and cash equivalents (note 6)' x1,000,000 sheet=201.500"
+balance_sheet,CommonStock,2014,None,1976600000.0,,SUSPECT,,,unexpected match_kind=None
+balance_sheet,ConstructionInProgress,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accrued liabilities' appears only in notes
+balance_sheet,CurrentAssets,2014,mapped,2128000000.0,2128,PASS,Current assets total,2015,"label='Current assets total' x1,000,000 sheet=2,128.000"
+balance_sheet,CurrentCapitalLeaseObligation,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDebt,2014,mapped,11000000.0,11,PASS,Current portion of long-term debts (note 14),2015,"label='Current portion of long-term debts (note 14)' x1,000,000 sheet=11.000"
+balance_sheet,CurrentDeferredLiabilities,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2014,mapped,1633900000.0,1633.9,PASS,Current liabilities total,2015,"label='Current liabilities total' x1,000,000 sheet=1,633.900"
+balance_sheet,FinishedGoods,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2014,mapped,30200000.0,30.2,PASS,Accumulated other comprehensive income,2015,"label='Accumulated other comprehensive income' x1,000,000 sheet=30.200"
+balance_sheet,Goodwill,2014,mapped,1985100000.0,1985.1,PASS,Goodwill (note 11),2015,"label='Goodwill (note 11)' x1,000,000 sheet=1,985.100"
+balance_sheet,GrossPPE,2014,absent_on_face,0.0,,BUG_FACE,"Property, plant and equipment (note 9)                                                                            87.4                             88.1",,"zero-filled but concept on FACE (fuzzy): 'Property, plant and equipment (note 9)                                                                            87.4                             88.1'"
+balance_sheet,InventoriesAdjustmentsAllowances,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InvestmentsAndAdvances,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'investments' appears only in notes
+balance_sheet,LandAndImprovements,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermDebt,2014,mapped,788100000.0,788.1,PASS,Long-term debts (note 14),2015,"label='Long-term debts (note 14)' x1,000,000 sheet=788.100"
+balance_sheet,MachineryFurnitureEquipment,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'equipment' appears only in notes
+balance_sheet,MinorityInterest,2014,mapped,-2800000.0,-2.8,PASS,Non-controlling interest,2015,"label='Non-controlling interest' x1,000,000 sheet=-2.800"
+balance_sheet,NetPPE,2014,mapped,202400000.0,202.4,PASS,"Property, plant and equipment (note 9)",2015,"label='Property, plant and equipment (note 9)' x1,000,000 sheet=202.400"
+balance_sheet,NonCurrentDeferredLiabilities,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'deferred tax liabilities' appears only in notes
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2014,mapped,375000000.0,375,PASS,Intangible assets (note 10),2015,"label='Intangible assets (note 10)' x1,000,000 sheet=375.000"
+balance_sheet,OtherInventories,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'distributions payable' appears only in notes
+balance_sheet,OtherReceivables,2014,mapped,1234100000.0,1234.1,PASS,"Trade, prepaid and other receivables (note 7)",2015,"label='Trade, prepaid and other receivables (note 7)' x1,000,000 sheet=1,234.100"
+balance_sheet,PayablesAndAccruedExpenses,2014,mapped,1064400000.0000001,1064.4,PASS,Accounts payable and accrued liabilities (note 13),2015,"label='Accounts payable and accrued liabilities (note 13)' x1,000,000 sheet=1,064.400"
+balance_sheet,PreferredStock,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'preferred shares' appears only in notes
+balance_sheet,RawMaterials,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,RetainedEarnings,2014,mapped,-55000000.0,-55,PASS,Retained earnings (deﬁcit),2015,"label='Retained earnings (deﬁcit)' x1,000,000 sheet=-55.000"
+balance_sheet,ShortTermInvestments,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'short term investments' appears only in notes
+balance_sheet,StockholdersEquity,2014,mapped,2151800000.0,2151.8,PASS,Equity attributable to shareholders total,2015,"label='Equity attributable to shareholders total' x1,000,000 sheet=2,151.800"
+balance_sheet,TotalAssets,2014,mapped,4943100000.0,4943.1,PASS,Total assets,2015,"label='Total assets' x1,000,000 sheet=4,943.100"
+balance_sheet,TotalEquityGrossMinorityInterest,2014,mapped,2149000000.0,2149,PASS,Total equity,2015,"label='Total equity' x1,000,000 sheet=2,149.000"
+balance_sheet,TotalLiabilities,2014,mapped,2794100000.0,2794.1,PASS,Total liabilities,2015,"label='Total liabilities' x1,000,000 sheet=2,794.100"
+balance_sheet,TotalTaxPayable,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'treasury stock' appears only in notes
+balance_sheet,WorkInProcess,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashDividendsPaid,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'dividends paid' appears only in notes
+cash_flow,CashFromDiscontinuedInvestingActivities,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInOtherWorkingCapital,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'increase decrease in accounts payable' appears only in notes
+cash_flow,ChangeInPrepaidAssets,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'prepaid expenses' appears only in notes
+cash_flow,ChangeInReceivables,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+cash_flow,ChangeInWorkingCapital,2014,mapped,90500000.0,90.5,PASS,Change in non-cash working capital items (note 23b)),2015,"label='Change in non-cash working capital items (note 23b))' x1,000,000 sheet=90.500"
+cash_flow,ChangesInCash,2014,mapped,76200000.0,76.2,PASS,Net change in cash and cash equivalents,2015,"label='Net change in cash and cash equivalents' x1,000,000 sheet=76.200"
+cash_flow,DepreciationAmortizationDepletion,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfCapitalStock,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIntangiblesPurchaseAndSale,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIssuancePaymentsOfDebt,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherInvestingChanges,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2014,mapped,-39600000.0,-39.6,PASS,"Additions to property, plant and equipment",2015,"label='Additions to property, plant and equipment' x1,000,000 sheet=-39.600"
+cash_flow,RepaymentOfDebt,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'lease payments' appears only in notes
+cash_flow,RepurchaseOfCapitalStock,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfPPE,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,CostOfRevenue,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,DepreciationAmortizationDepletion,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestIncomeNonOperating,2014,mapped,-1300000.0,-1.3,PASS,Interest income,2015,"label='Interest income' x1,000,000 sheet=-1.300"
+income_statement,MinorityInterests,2014,mapped,600000.0,-0.6,PASS,Non-controlling interests,2015,"label='Non-controlling interests' x1,000,000 sheet=0.600"
+income_statement,NetIncomeDiscontinuousOperations,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'foreign exchange gain' appears only in notes
+income_statement,OtherOperatingExpenses,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'office' appears only in notes
+income_statement,PretaxIncome,2014,mapped,87500000.0,87.5,PASS,Earnings before income taxes,2015,"label='Earnings before income taxes' x1,000,000 sheet=87.500"
+income_statement,ResearchAndDevelopment,2014,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,SellingGeneralAndAdministration,2014,absent_on_face,0.0,,NOTE_ONLY,,,alias 'insurance' appears only in notes
+income_statement,TaxProvision,2014,mapped,25300000.0,25.3,PASS,Income tax expenses (note 21),2015,"label='Income tax expenses (note 21)' x1,000,000 sheet=-25.300"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2014,derived,201500000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2014,derived,11000000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2014,derived,788100000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2014,derived,692400000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2014,derived,558500000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2014,derived,252600000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2014,derived,372100000.0,,PASS,,,identities clean
+balance_sheet,Receivables,2014,derived,1234100000.0,,PASS,,,identities clean
+balance_sheet,TotalNonCurrentAssets,2014,derived,2815100000.0,,PASS,,,identities clean
+balance_sheet,TotalNonCurrentLiabilities,2014,derived,1160200000.0,,PASS,,,identities clean
+cash_flow,CapitalExpenditure,2014,derived,-39600000.0,,PASS,,,identities clean
+cash_flow,FreeCashFlow,2014,derived,94599999.99999999,,PASS,,,identities clean
+cash_flow,NetIncomeFromContinuingOperations,2014,derived,62200000.0,,PASS,,,identities clean
+income_statement,EBIT,2014,derived,88800000.0,,PASS,,,identities clean
+income_statement,EBITDA,2014,derived,88800000.0,,PASS,,,identities clean
+income_statement,NetIncome,2014,derived,62200000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2014,derived,62200000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2014,derived,0.0,,PASS,,,identities clean
+balance_sheet,AccountsPayable,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AccountsReceivable,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AccumulatedDepreciation,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AdditionalPaidInCapital,2016,mapped,203300000.0,203.3,PASS,Contributed surplus,2018,"label='Contributed surplus' x1,000,000 sheet=203.300"
+balance_sheet,BuildingsAndImprovements,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2016,mapped,230800000.0,230.8,PASS,Cash (note 6),2018,"label='Cash (note 6)' x1,000,000 sheet=230.800"
+balance_sheet,CommonStock,2016,None,2491600000.0,,SUSPECT,,,unexpected match_kind=None
+balance_sheet,ConstructionInProgress,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAssets,2016,mapped,2505900000.0,2505.9,PASS,Current assets total,2018,"label='Current assets total' x1,000,000 sheet=2,505.900"
+balance_sheet,CurrentCapitalLeaseObligation,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDebt,2016,mapped,135900000.0,135.9,PASS,Current portion of long-term debts (note 14),2018,"label='Current portion of long-term debts (note 14)' x1,000,000 sheet=135.900"
+balance_sheet,CurrentDeferredLiabilities,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2016,mapped,1927400000.0,1927.4,PASS,Current liabilities total,2018,"label='Current liabilities total' x1,000,000 sheet=1,927.400"
+balance_sheet,FinishedGoods,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2016,mapped,132800000.00000001,132.8,PASS,Accumulated other comprehensive income,2018,"label='Accumulated other comprehensive income' x1,000,000 sheet=132.800"
+balance_sheet,Goodwill,2016,mapped,2783600000.0,2783.6,PASS,Goodwill (note 11),2018,"label='Goodwill (note 11)' x1,000,000 sheet=2,783.600"
+balance_sheet,GrossPPE,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InventoriesAdjustmentsAllowances,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InvestmentsAndAdvances,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LandAndImprovements,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermDebt,2016,mapped,914200000.0,914.2,PASS,Long-term debts (note 14),2018,"label='Long-term debts (note 14)' x1,000,000 sheet=914.200"
+balance_sheet,MachineryFurnitureEquipment,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,MinorityInterest,2016,mapped,900000.0,0.9,PASS,Non-controlling interest,2018,"label='Non-controlling interest' x1,000,000 sheet=0.900"
+balance_sheet,NetPPE,2016,mapped,292700000.0,292.7,PASS,Property and equipment (note 9),2018,"label='Property and equipment (note 9)' x1,000,000 sheet=292.700"
+balance_sheet,NonCurrentDeferredLiabilities,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2016,mapped,355700000.0,355.7,PASS,Intangible assets (note 10),2018,"label='Intangible assets (note 10)' x1,000,000 sheet=355.700"
+balance_sheet,OtherInventories,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherReceivables,2016,mapped,1414500000.0,1414.5,PASS,"Trade, prepaid and other receivables (note 7)",2018,"label='Trade, prepaid and other receivables (note 7)' x1,000,000 sheet=1,414.500"
+balance_sheet,PayablesAndAccruedExpenses,2016,mapped,1213500000.0,1213.5,PASS,Accounts payable and accrued liabilities (note 13),2018,"label='Accounts payable and accrued liabilities (note 13)' x1,000,000 sheet=1,213.500"
+balance_sheet,PreferredStock,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,RawMaterials,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,RetainedEarnings,2016,mapped,31900000.0,31.9,PASS,Retained earnings,2018,"label='Retained earnings' x1,000,000 sheet=31.900"
+balance_sheet,ShortTermInvestments,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,StockholdersEquity,2016,mapped,2859600000.0,2859.6,PASS,Equity attributable to shareholders total,2018,"label='Equity attributable to shareholders total' x1,000,000 sheet=2,859.600"
+balance_sheet,TotalAssets,2016,mapped,6128700000.0,6128.7,PASS,Total assets,2018,"label='Total assets' x1,000,000 sheet=6,128.700"
+balance_sheet,TotalEquityGrossMinorityInterest,2016,mapped,2860500000.0,2860.5,PASS,Total equity,2018,"label='Total equity' x1,000,000 sheet=2,860.500"
+balance_sheet,TotalLiabilities,2016,mapped,3268200000.0,3268.2,PASS,Total liabilities,2018,"label='Total liabilities' x1,000,000 sheet=3,268.200"
+balance_sheet,TotalTaxPayable,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,WorkInProcess,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashDividendsPaid,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedInvestingActivities,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInOtherWorkingCapital,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPrepaidAssets,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInReceivables,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInWorkingCapital,2016,mapped,-2800000.0,-2.8,PASS,Change in non-cash working capital items (note 23b)),2018,"label='Change in non-cash working capital items (note 23b))' x1,000,000 sheet=-2.800"
+cash_flow,ChangesInCash,2016,mapped,28300000.0,28.3,PASS,Net change in cash,2018,"label='Net change in cash' x1,000,000 sheet=28.300"
+cash_flow,DepreciationAmortizationDepletion,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2016,mapped,-22900000.0,-22.9,PASS,Effect of exchange rate change on cash,2018,"label='Effect of exchange rate change on cash' x1,000,000 sheet=-22.900"
+cash_flow,IssuanceOfCapitalStock,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIntangiblesPurchaseAndSale,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIssuancePaymentsOfDebt,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherInvestingChanges,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2016,mapped,-108800000.0,-108.8,PASS,Additions to property and equipment,2018,"label='Additions to property and equipment' x1,000,000 sheet=-108.800"
+cash_flow,RepaymentOfDebt,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,RepurchaseOfCapitalStock,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfPPE,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,DepreciationAmortizationDepletion,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestIncomeNonOperating,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,MinorityInterests,2016,mapped,400000.0,-0.4,PASS,Non-controlling interests,2018,"label='Non-controlling interests' x1,000,000 sheet=0.400"
+income_statement,NetIncomeDiscontinuousOperations,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherOperatingExpenses,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,PretaxIncome,2016,mapped,265800000.0,265.8,PASS,Earnings before income taxes,2018,"label='Earnings before income taxes' x1,000,000 sheet=265.800"
+income_statement,ResearchAndDevelopment,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,SellingGeneralAndAdministration,2016,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,TaxProvision,2016,mapped,67099999.99999999,67.1,PASS,Income-tax expense (note 21),2018,"label='Income-tax expense (note 21)' x1,000,000 sheet=-67.100"
+income_statement,TotalRevenue,2016,mapped,6379600000.0,6379.6,PASS,Revenues,2018,"label='Revenues' x1,000,000 sheet=6,379.600"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2016,derived,230800000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2016,derived,135900000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2016,derived,914200000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2016,derived,860600000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2016,derived,578000000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2016,derived,190800000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2016,derived,426600000.0,,PASS,,,identities clean
+balance_sheet,Receivables,2016,derived,1414500000.0,,PASS,,,identities clean
+balance_sheet,TotalNonCurrentAssets,2016,derived,3622800000.0,,PASS,,,identities clean
+balance_sheet,TotalNonCurrentLiabilities,2016,derived,1340800000.0,,PASS,,,identities clean
+cash_flow,CapitalExpenditure,2016,derived,-108800000.0,,PASS,,,identities clean
+cash_flow,NetIncomeFromContinuingOperations,2016,derived,198700000.0,,PASS,,,identities clean
+income_statement,CostOfRevenue,2016,derived,0.0,,PASS,,,identities clean
+income_statement,EBIT,2016,derived,265800000.0,,PASS,,,identities clean
+income_statement,EBITDA,2016,derived,265800000.0,,PASS,,,identities clean
+income_statement,GrossProfit,2016,derived,6379600000.0,,PASS,,,identities clean
+income_statement,NetIncome,2016,derived,198700000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2016,derived,198700000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2016,derived,0.0,,PASS,,,identities clean
+income_statement,OperatingIncome,2016,derived,6379600000.0,,PASS,,,identities clean
+balance_sheet,AccountsPayable,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AccountsReceivable,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AccumulatedDepreciation,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AdditionalPaidInCapital,2017,mapped,204200000.0,204.2,PASS,Contributed surplus,2019,"label='Contributed surplus' x1,000,000 sheet=204.200"
+balance_sheet,BuildingsAndImprovements,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2017,mapped,185100000.0,185.1,PASS,Cash (note 6),2019,"label='Cash (note 6)' x1,000,000 sheet=185.100"
+balance_sheet,CommonStock,2017,None,2577400000.0,,SUSPECT,,,unexpected match_kind=None
+balance_sheet,ConstructionInProgress,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAssets,2017,mapped,2669600000.0,2669.6,PASS,Current assets total,2019,"label='Current assets total' x1,000,000 sheet=2,669.600"
+balance_sheet,CurrentCapitalLeaseObligation,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDebt,2017,mapped,276300000.0,276.3,PASS,Current portion of long-term debts (note 15),2019,"label='Current portion of long-term debts (note 15)' x1,000,000 sheet=276.300"
+balance_sheet,CurrentDeferredLiabilities,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2017,mapped,2254400000.0,2254.4,PASS,Current liabilities total,2019,"label='Current liabilities total' x1,000,000 sheet=2,254.400"
+balance_sheet,FinishedGoods,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2017,mapped,86000000.0,86,PASS,Accumulated other comprehensive income,2019,"label='Accumulated other comprehensive income' x1,000,000 sheet=86.000"
+balance_sheet,Goodwill,2017,mapped,2979000000.0,2979,PASS,Goodwill (note 12),2019,"label='Goodwill (note 12)' x1,000,000 sheet=2,979.000"
+balance_sheet,GrossPPE,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InventoriesAdjustmentsAllowances,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InvestmentsAndAdvances,2017,absent_on_face,0.0,,NOTE_ONLY,,,alias 'investments' appears only in notes
+balance_sheet,LandAndImprovements,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermDebt,2017,mapped,882400000.0,882.4,PASS,Long-term debts (note 14),2018,"label='Long-term debts (note 14)' x1,000,000 sheet=882.400"
+balance_sheet,MachineryFurnitureEquipment,2017,absent_on_face,0.0,,NOTE_ONLY,,,alias 'equipment' appears only in notes
+balance_sheet,MinorityInterest,2017,absent_on_face,0.0,,NOTE_ONLY,,,alias 'non controlling interests' appears only in notes
+balance_sheet,NetPPE,2017,mapped,315400000.0,315.4,PASS,Property and equipment (note 10),2019,"label='Property and equipment (note 10)' x1,000,000 sheet=315.400"
+balance_sheet,NonCurrentDeferredLiabilities,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2017,mapped,355200000.0,355.2,PASS,Intangible assets (note 11),2019,"label='Intangible assets (note 11)' x1,000,000 sheet=355.200"
+balance_sheet,OtherInventories,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherReceivables,2017,mapped,1554700000.0,1554.7,PASS,"Trade, prepaids and other receivables (note 7)",2019,"label='Trade, prepaids and other receivables (note 7)' x1,000,000 sheet=1,554.700"
+balance_sheet,PayablesAndAccruedExpenses,2017,mapped,1361900000.0,1361.9,PASS,Accounts payable and accrued liabilities (note 14),2019,"label='Accounts payable and accrued liabilities (note 14)' x1,000,000 sheet=1,361.900"
+balance_sheet,PreferredStock,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,RawMaterials,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,RetainedEarnings,2017,mapped,91400000.0,91.4,PASS,Retained earnings,2019,"label='Retained earnings' x1,000,000 sheet=91.400"
+balance_sheet,ShortTermInvestments,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,StockholdersEquity,2017,mapped,2959000000.0,2959,PASS,Equity attributable to shareholders total,2019,"label='Equity attributable to shareholders total' x1,000,000 sheet=2,959.000"
+balance_sheet,TotalAssets,2017,mapped,6523600000.0,6523.6,PASS,Total assets,2019,"label='Total assets' x1,000,000 sheet=6,523.600"
+balance_sheet,TotalEquityGrossMinorityInterest,2017,mapped,2959000000.0,2959,PASS,Total equity,2019,"label='Total equity' x1,000,000 sheet=2,959.000"
+balance_sheet,TotalLiabilities,2017,mapped,3564600000.0,3564.6,PASS,Total liabilities,2019,"label='Total liabilities' x1,000,000 sheet=3,564.600"
+balance_sheet,TotalTaxPayable,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,WorkInProcess,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashDividendsPaid,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedInvestingActivities,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInOtherWorkingCapital,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPrepaidAssets,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInReceivables,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInWorkingCapital,2017,mapped,-37800000.0,-37.8,PASS,Change in non-cash working capital items (note 25b)),2019,"label='Change in non-cash working capital items (note 25b))' x1,000,000 sheet=-37.800"
+cash_flow,ChangesInCash,2017,mapped,-51900000.0,-51.9,PASS,Net change in cash,2018,"label='Net change in cash' x1,000,000 sheet=-51.900"
+cash_flow,DepreciationAmortizationDepletion,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2017,mapped,-200000.0,-0.2,PASS,Effect of exchange rate change on cash,2018,"label='Effect of exchange rate change on cash' x1,000,000 sheet=-0.200"
+cash_flow,IssuanceOfCapitalStock,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIntangiblesPurchaseAndSale,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIssuancePaymentsOfDebt,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherInvestingChanges,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2017,mapped,-79700000.0,-79.7,PASS,Additions to property and equipment,2019,"label='Additions to property and equipment' x1,000,000 sheet=-79.700"
+cash_flow,RepaymentOfDebt,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,RepurchaseOfCapitalStock,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfPPE,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,DepreciationAmortizationDepletion,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestIncomeNonOperating,2017,absent_on_face,0.0,,NOTE_ONLY,,,alias 'interest income' appears only in notes
+income_statement,MinorityInterests,2017,mapped,-213300000.0,213.3,PASS,Non-controlling interests 0.7 — 123,2019,"label='Non-controlling interests 0.7 — 123' x1,000,000 sheet=-213.300"
+income_statement,NetIncomeDiscontinuousOperations,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2017,absent_on_face,0.0,,NOTE_ONLY,,,alias 'foreign exchange gain' appears only in notes
+income_statement,OtherOperatingExpenses,2017,absent_on_face,0.0,,NOTE_ONLY,,,alias 'office' appears only in notes
+income_statement,PretaxIncome,2017,mapped,315400000.0,315.4,PASS,Earnings before income taxes,2019,"label='Earnings before income taxes' x1,000,000 sheet=315.400"
+income_statement,ResearchAndDevelopment,2017,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,SellingGeneralAndAdministration,2017,absent_on_face,0.0,,NOTE_ONLY,,,alias 'travel' appears only in notes
+income_statement,TaxProvision,2017,mapped,102100000.0,102.1,PASS,Income-tax expense (note 23),2019,"label='Income-tax expense (note 23)' x1,000,000 sheet=-102.100"
+income_statement,TotalRevenue,2017,mapped,6942200000.0,6942.2,PASS,Revenues (note 20),2019,"label='Revenues (note 20)' x1,000,000 sheet=6,942.200"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2017,derived,185100000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2017,derived,276300000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2017,derived,882400000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2017,derived,929800000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2017,derived,616200000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2017,derived,204400000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2017,derived,427800000.0,,PASS,,,identities clean
+balance_sheet,Receivables,2017,derived,1554700000.0,,PASS,,,identities clean
+balance_sheet,TotalNonCurrentAssets,2017,derived,3854000000.0,,PASS,,,identities clean
+balance_sheet,TotalNonCurrentLiabilities,2017,derived,1310200000.0,,PASS,,,identities clean
+cash_flow,CapitalExpenditure,2017,derived,-79700000.0,,PASS,,,identities clean
+cash_flow,NetIncomeFromContinuingOperations,2017,derived,213300000.0,,PASS,,,identities clean
+income_statement,CostOfRevenue,2017,derived,0.0,,PASS,,,identities clean
+income_statement,EBIT,2017,derived,315400000.0,,PASS,,,identities clean
+income_statement,EBITDA,2017,derived,315400000.0,,PASS,,,identities clean
+income_statement,GrossProfit,2017,derived,6942200000.0,,PASS,,,identities clean
+income_statement,NetIncome,2017,derived,213300000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2017,derived,213300000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2017,derived,0.0,,PASS,,,identities clean
+income_statement,OperatingIncome,2017,derived,6942200000.0,,PASS,,,identities clean
+balance_sheet,AccountsPayable,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts payable' appears only in notes
+balance_sheet,AccountsReceivable,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+balance_sheet,AccumulatedDepreciation,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accumulated depreciation' appears only in notes
+balance_sheet,AdditionalPaidInCapital,2018,mapped,204900000.0,204.9,PASS,Contributed surplus,2019,"label='Contributed surplus' x1,000,000 sheet=204.900"
+balance_sheet,BuildingsAndImprovements,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2018,mapped,254700000.0,254.7,PASS,Cash,2020,"label='Cash' x1,000,000 sheet=254.700"
+balance_sheet,CommonStock,2018,None,2656500000.0,,SUSPECT,,,unexpected match_kind=None
+balance_sheet,ConstructionInProgress,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accrued liabilities' appears only in notes
+balance_sheet,CurrentAssets,2018,mapped,3342600000.0,3342.6,PASS,Current assets total,2020,"label='Current assets total' x1,000,000 sheet=3,342.600"
+balance_sheet,CurrentCapitalLeaseObligation,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDebt,2018,mapped,56800000.0,56.8,PASS,Current portion of long-term debt (note 24),2020,"label='Current portion of long-term debt (note 24)' x1,000,000 sheet=56.800"
+balance_sheet,CurrentDeferredLiabilities,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2018,mapped,2613900000.0,2613.9,PASS,Current liabilities total,2020,"label='Current liabilities total' x1,000,000 sheet=2,613.900"
+balance_sheet,FinishedGoods,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2018,mapped,216300000.0,216.3,PASS,Accumulated other comprehensive income,2019,"label='Accumulated other comprehensive income' x1,000,000 sheet=216.300"
+balance_sheet,Goodwill,2018,mapped,3493200000.0,3493.2,PASS,Goodwill (note 20),2020,"label='Goodwill (note 20)' x1,000,000 sheet=3,493.200"
+balance_sheet,GrossPPE,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InventoriesAdjustmentsAllowances,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'inventories' appears only in notes
+balance_sheet,InvestmentsAndAdvances,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'investments' appears only in notes
+balance_sheet,LandAndImprovements,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermDebt,2018,mapped,1467900000.0,1467.9,PASS,Long-term debt (note 24),2020,"label='Long-term debt (note 24)' x1,000,000 sheet=1,467.900"
+balance_sheet,MachineryFurnitureEquipment,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'equipment' appears only in notes
+balance_sheet,MinorityInterest,2018,mapped,700000.0,0.7,PASS,Non-controlling interests,2020,"label='Non-controlling interests' x1,000,000 sheet=0.700"
+balance_sheet,NetPPE,2018,mapped,350600000.0,350.6,PASS,Right-of-use assets (note 17),2020,"label='Right-of-use assets (note 17)' x1,000,000 sheet=350.600"
+balance_sheet,NonCurrentDeferredLiabilities,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2018,mapped,367700000.0,367.7,PASS,Intangible assets (note 19),2020,"label='Intangible assets (note 19)' x1,000,000 sheet=367.700"
+balance_sheet,OtherInventories,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'other payable' appears only in notes
+balance_sheet,OtherReceivables,2018,mapped,1758600000.0,1758.6,PASS,Trade receivables and other receivables (note 14),2020,"label='Trade receivables and other receivables (note 14)' x1,000,000 sheet=1,758.600"
+balance_sheet,PayablesAndAccruedExpenses,2018,mapped,1693700000.0,1693.7,PASS,Accounts payable and accrued liabilities (note 22),2020,"label='Accounts payable and accrued liabilities (note 22)' x1,000,000 sheet=1,693.700"
+balance_sheet,PreferredStock,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'preferred shares' appears only in notes
+balance_sheet,RawMaterials,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,RetainedEarnings,2018,mapped,181300000.0,181.3,PASS,Retained earnings,2019,"label='Retained earnings' x1,000,000 sheet=181.300"
+balance_sheet,ShortTermInvestments,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'short term investments' appears only in notes
+balance_sheet,StockholdersEquity,2018,mapped,3259000000.0,3259,PASS,Equity attributable to shareholders total,2019,"label='Equity attributable to shareholders total' x1,000,000 sheet=3,259.000"
+balance_sheet,TotalAssets,2018,mapped,7766600000.0,7766.6,PASS,Total assets,2020,"label='Total assets' x1,000,000 sheet=7,766.600"
+balance_sheet,TotalEquityGrossMinorityInterest,2018,mapped,3259700000.0,3259.7,PASS,Total equity,2020,"label='Total equity' x1,000,000 sheet=3,259.700"
+balance_sheet,TotalLiabilities,2018,mapped,4506900000.0,4506.9,PASS,Total liabilities,2020,"label='Total liabilities' x1,000,000 sheet=4,506.900"
+balance_sheet,TotalNonCurrentAssets,2018,mapped,4424000000.0,4424,PASS,Non-current assets total,2020,"label='Non-current assets total' x1,000,000 sheet=4,424.000"
+balance_sheet,TotalNonCurrentLiabilities,2018,mapped,1893000000.0,1893,PASS,Non-current liabilities total,2020,"label='Non-current liabilities total' x1,000,000 sheet=1,893.000"
+balance_sheet,TotalTaxPayable,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'treasury stock' appears only in notes
+balance_sheet,WorkInProcess,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashDividendsPaid,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'dividends paid' appears only in notes
+cash_flow,CashFromDiscontinuedInvestingActivities,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'inventories' appears only in notes
+cash_flow,ChangeInOtherWorkingCapital,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'increase decrease in accounts payable' appears only in notes
+cash_flow,ChangeInPrepaidAssets,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'prepaid expenses' appears only in notes
+cash_flow,ChangeInReceivables,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+cash_flow,ChangeInWorkingCapital,2018,mapped,174400000.0,174.4,PASS,Change in non-cash working capital items (note 28),2020,"label='Change in non-cash working capital items (note 28)' x1,000,000 sheet=174.400"
+cash_flow,DepreciationAmortizationDepletion,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2018,mapped,6000000.0,6,PASS,Effect of exchange rate change on cash,2020,"label='Effect of exchange rate change on cash' x1,000,000 sheet=6.000"
+cash_flow,InvestingCashFlow,2018,mapped,-678100000.0,-678.1,PASS,Cash outflows from investing activities,2020,"label='Cash outflows from investing activities' x1,000,000 sheet=-678.100"
+cash_flow,IssuanceOfCapitalStock,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIncomeFromContinuingOperations,2018,mapped,248800000.0,248.8,PASS,Net earnings,2020,"label='Net earnings' x1,000,000 sheet=248.800"
+cash_flow,NetIntangiblesPurchaseAndSale,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIssuancePaymentsOfDebt,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherInvestingChanges,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2018,mapped,-98100000.0,-98.1,PASS,Additions to property and equipment,2019,"label='Additions to property and equipment' x1,000,000 sheet=-98.100"
+cash_flow,RepaymentOfDebt,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'repayment of debt' appears only in notes
+cash_flow,RepurchaseOfCapitalStock,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfPPE,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'stock based compensation' appears only in notes
+income_statement,DepreciationAmortizationDepletion,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestIncomeNonOperating,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'interest income' appears only in notes
+income_statement,MinorityInterests,2018,mapped,-700000.0,0.7,PASS,Non-controlling interests,2020,"label='Non-controlling interests' x1,000,000 sheet=-0.700"
+income_statement,NetIncome,2018,mapped,248800000.0,248.8,PASS,Net earnings,2020,"label='Net earnings' x1,000,000 sheet=248.800"
+income_statement,NetIncomeDiscontinuousOperations,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'foreign exchange gain' appears only in notes
+income_statement,OtherOperatingExpenses,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'office' appears only in notes
+income_statement,PretaxIncome,2018,mapped,329300000.0,329.3,PASS,Earnings before income taxes,2020,"label='Earnings before income taxes' x1,000,000 sheet=329.300"
+income_statement,ResearchAndDevelopment,2018,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,SellingGeneralAndAdministration,2018,absent_on_face,0.0,,NOTE_ONLY,,,alias 'travel' appears only in notes
+income_statement,TaxProvision,2018,mapped,80500000.0,80.5,PASS,Income tax expense (note 12),2020,"label='Income tax expense (note 12)' x1,000,000 sheet=-80.500"
+income_statement,TotalRevenue,2018,mapped,7908100000.0,7908.1,PASS,Revenue (note 7),2020,"label='Revenue (note 7)' x1,000,000 sheet=7,908.100"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2018,derived,254700000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2018,derived,56800000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2018,derived,1467900000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2018,derived,1329300000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2018,derived,863400000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2018,derived,212500000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2018,derived,425100000.0,,PASS,,,identities clean
+balance_sheet,Receivables,2018,derived,1758600000.0,,PASS,,,identities clean
+cash_flow,CapitalExpenditure,2018,derived,-98100000.0,,PASS,,,identities clean
+cash_flow,ChangesInCash,2018,derived,-2400000.0,,PASS,,,identities clean
+cash_flow,FinancingCashFlow,2018,derived,0.0,,PASS,,,identities clean
+cash_flow,FreeCashFlow,2018,derived,571600000.0,,PASS,,,identities clean
+income_statement,CostOfRevenue,2018,derived,0.0,,PASS,,,identities clean
+income_statement,EBIT,2018,derived,329300000.0,,PASS,,,identities clean
+income_statement,EBITDA,2018,derived,329300000.0,,PASS,,,identities clean
+income_statement,GrossProfit,2018,derived,7908100000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2018,derived,248800000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2018,derived,0.0,,PASS,,,identities clean
+income_statement,OperatingIncome,2018,derived,7908100000.0,,PASS,,,identities clean
+balance_sheet,AccountsPayable,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts payable' appears only in notes
+balance_sheet,AccountsReceivable,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+balance_sheet,AccumulatedDepreciation,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accumulated depreciation' appears only in notes
+balance_sheet,AdditionalPaidInCapital,2019,absent_on_face,0.0,,BUG_FACE,Contributed surplus                                                            204.9                    204.2,,zero-filled but concept on FACE (exact): 'Contributed surplus                                                            204.9                    204.2'
+balance_sheet,BuildingsAndImprovements,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2019,mapped,255600000.0,255.6,PASS,Cash,2020,"label='Cash' x1,000,000 sheet=255.600"
+balance_sheet,CommonStock,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'common shares' appears only in notes
+balance_sheet,ConstructionInProgress,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accrued liabilities' appears only in notes
+balance_sheet,CurrentAssets,2019,mapped,3256600000.0,3256.6,PASS,Current assets total,2020,"label='Current assets total' x1,000,000 sheet=3,256.600"
+balance_sheet,CurrentCapitalLeaseObligation,2019,mapped,211700000.0,211.7,PASS,Current portion of lease liabilities (note 17),2020,"label='Current portion of lease liabilities (note 17)' x1,000,000 sheet=211.700"
+balance_sheet,CurrentDebt,2019,mapped,307800000.0,307.8,PASS,Current portion of long-term debt (note 24),2020,"label='Current portion of long-term debt (note 24)' x1,000,000 sheet=307.800"
+balance_sheet,CurrentDeferredLiabilities,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2019,mapped,3036000000.0,3036,PASS,Current liabilities total,2020,"label='Current liabilities total' x1,000,000 sheet=3,036.000"
+balance_sheet,FinishedGoods,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2019,absent_on_face,0.0,,BUG_FACE,Accumulated other comprehensive income                                            216.3                     86.0,,zero-filled but concept on FACE (exact): 'Accumulated other comprehensive income                                            216.3                     86.0'
+balance_sheet,Goodwill,2019,mapped,3568800000.0,3568.8,PASS,Goodwill (note 20),2020,"label='Goodwill (note 20)' x1,000,000 sheet=3,568.800"
+balance_sheet,GrossPPE,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InventoriesAdjustmentsAllowances,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InvestmentsAndAdvances,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'investments' appears only in notes
+balance_sheet,LandAndImprovements,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2019,mapped,838900000.0,838.9,PASS,Lease liabilities (note 17),2020,"label='Lease liabilities (note 17)' x1,000,000 sheet=838.900"
+balance_sheet,LongTermDebt,2019,mapped,1091900000.0,1091.9,PASS,Long-term debt (note 24),2020,"label='Long-term debt (note 24)' x1,000,000 sheet=1,091.900"
+balance_sheet,MachineryFurnitureEquipment,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'equipment' appears only in notes
+balance_sheet,MinorityInterest,2019,mapped,1100000.0,1.1,PASS,Non-controlling interests,2020,"label='Non-controlling interests' x1,000,000 sheet=1.100"
+balance_sheet,NetPPE,2019,mapped,1261100000.0,913.4+347.7,PASS,Right-of-use assets (note 17),2020,"label='Right-of-use assets (note 17)' x1,000,000 sheet=1,261.100"
+balance_sheet,NonCurrentDeferredLiabilities,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2019,mapped,355400000.0,355.4,PASS,Intangible assets (note 19),2020,"label='Intangible assets (note 19)' x1,000,000 sheet=355.400"
+balance_sheet,OtherInventories,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'distributions payable' appears only in notes
+balance_sheet,OtherReceivables,2019,mapped,1767800000.0,1767.8,PASS,Trade receivables and other receivables (note 14),2020,"label='Trade receivables and other receivables (note 14)' x1,000,000 sheet=1,767.800"
+balance_sheet,PayablesAndAccruedExpenses,2019,mapped,1650700000.0,1650.7,PASS,Accounts payable and accrued liabilities (note 22),2020,"label='Accounts payable and accrued liabilities (note 22)' x1,000,000 sheet=1,650.700"
+balance_sheet,PreferredStock,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'preferred shares' appears only in notes
+balance_sheet,RawMaterials,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,ShortTermInvestments,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TotalAssets,2019,mapped,8676100000.0,8676.1,PASS,Total assets,2020,"label='Total assets' x1,000,000 sheet=8,676.100"
+balance_sheet,TotalEquityGrossMinorityInterest,2019,mapped,3331900000.0,3331.9,PASS,Total equity,2020,"label='Total equity' x1,000,000 sheet=3,331.900"
+balance_sheet,TotalLiabilities,2019,mapped,5344200000.0,5344.2,PASS,Total liabilities,2020,"label='Total liabilities' x1,000,000 sheet=5,344.200"
+balance_sheet,TotalNonCurrentAssets,2019,mapped,5419500000.0,5419.5,PASS,Non-current assets total,2020,"label='Non-current assets total' x1,000,000 sheet=5,419.500"
+balance_sheet,TotalNonCurrentLiabilities,2019,mapped,2308200000.0,2308.2,PASS,Non-current liabilities total,2020,"label='Non-current liabilities total' x1,000,000 sheet=2,308.200"
+balance_sheet,TotalTaxPayable,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'treasury stock' appears only in notes
+balance_sheet,WorkInProcess,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CapitalExpenditure,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'capital expenditures' appears only in notes
+cash_flow,CashDividendsPaid,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'dividends paid' appears only in notes
+cash_flow,CashFromDiscontinuedInvestingActivities,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInOtherWorkingCapital,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'increase decrease in accounts payable' appears only in notes
+cash_flow,ChangeInPrepaidAssets,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'prepaid expenses' appears only in notes
+cash_flow,ChangeInReceivables,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+cash_flow,ChangeInWorkingCapital,2019,mapped,-29100000.0,-29.1,PASS,Change in non-cash working capital items (note 28),2020,"label='Change in non-cash working capital items (note 28)' x1,000,000 sheet=-29.100"
+cash_flow,DepreciationAmortizationDepletion,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2019,mapped,-12000000.0,-12,PASS,Effect of exchange rate change on cash,2020,"label='Effect of exchange rate change on cash' x1,000,000 sheet=-12.000"
+cash_flow,InvestingCashFlow,2019,mapped,-322100000.0,-322.1,PASS,Cash outflows from investing activities,2020,"label='Cash outflows from investing activities' x1,000,000 sheet=-322.100"
+cash_flow,IssuanceOfCapitalStock,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIncomeFromContinuingOperations,2019,mapped,285700000.0,285.7,PASS,Net earnings,2020,"label='Net earnings' x1,000,000 sheet=285.700"
+cash_flow,NetIntangiblesPurchaseAndSale,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherInvestingChanges,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2019,absent_on_face,0.0,,BUG_FACE,Additions to property and equipment                                                       (98.1)                       (79.7),,zero-filled but concept on FACE (exact): 'Additions to property and equipment                                                       (98.1)                       (79.7)'
+cash_flow,RepaymentOfDebt,2019,mapped,-260700000.0,-260.7,PASS,Lease payments (note 17),2020,"label='Lease payments (note 17)' x1,000,000 sheet=-260.700"
+cash_flow,RepurchaseOfCapitalStock,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfPPE,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'stock based compensation' appears only in notes
+income_statement,DepreciationAmortizationDepletion,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestIncomeNonOperating,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'interest income' appears only in notes
+income_statement,MinorityInterests,2019,mapped,800000.0,-0.8,PASS,Non-controlling interests,2020,"label='Non-controlling interests' x1,000,000 sheet=0.800"
+income_statement,NetIncome,2019,mapped,285700000.0,285.7,PASS,Net earnings,2020,"label='Net earnings' x1,000,000 sheet=285.700"
+income_statement,NetIncomeDiscontinuousOperations,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'foreign exchange gain' appears only in notes
+income_statement,OtherOperatingExpenses,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'office' appears only in notes
+income_statement,PretaxIncome,2019,mapped,385800000.0,385.8,PASS,Earnings before income taxes,2020,"label='Earnings before income taxes' x1,000,000 sheet=385.800"
+income_statement,ResearchAndDevelopment,2019,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,SellingGeneralAndAdministration,2019,absent_on_face,0.0,,NOTE_ONLY,,,alias 'travel' appears only in notes
+income_statement,TaxProvision,2019,mapped,100100000.0,100.1,PASS,Income tax expense (note 12),2020,"label='Income tax expense (note 12)' x1,000,000 sheet=-100.100"
+income_statement,TotalRevenue,2019,mapped,8916100000.0,8916.1,PASS,Revenue (note 7),2020,"label='Revenue (note 7)' x1,000,000 sheet=8,916.100"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2019,derived,255600000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2019,derived,519500000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2019,derived,1930800000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2019,derived,1233200000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2019,derived,865800000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2019,derived,234200000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2019,derived,377400000.0,,PASS,,,identities clean
+balance_sheet,Receivables,2019,derived,1767800000.0,,PASS,,,identities clean
+balance_sheet,StockholdersEquity,2019,derived,3330800000.0,,PASS,,,identities clean
+cash_flow,ChangesInCash,2019,derived,480200000.0,,PASS,,,identities clean
+cash_flow,FinancingCashFlow,2019,derived,0.0,,PASS,,,identities clean
+cash_flow,FreeCashFlow,2019,derived,814300000.0,,PASS,,,identities clean
+cash_flow,NetIssuancePaymentsOfDebt,2019,derived,-260700000.0,,PASS,,,identities clean
+income_statement,CostOfRevenue,2019,derived,0.0,,PASS,,,identities clean
+income_statement,EBIT,2019,derived,385800000.0,,PASS,,,identities clean
+income_statement,EBITDA,2019,derived,385800000.0,,PASS,,,identities clean
+income_statement,GrossProfit,2019,derived,8916100000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2019,derived,285700000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2019,derived,0.0,,PASS,,,identities clean
+income_statement,OperatingIncome,2019,derived,8916100000.0,,PASS,,,identities clean
+balance_sheet,AccountsPayable,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AccountsReceivable,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AccumulatedDepreciation,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,AdditionalPaidInCapital,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,BuildingsAndImprovements,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2021,mapped,927400000.0,927.4,PASS,Cash and cash equivalents (note 29),2023,"label='Cash and cash equivalents (note 29)' x1,000,000 sheet=927.400"
+balance_sheet,CommonStock,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,ConstructionInProgress,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAssets,2021,mapped,4340800000.0,4340.8,PASS,Current assets total,2023,"label='Current assets total' x1,000,000 sheet=4,340.800"
+balance_sheet,CurrentCapitalLeaseObligation,2021,mapped,254200000.0,254.2,PASS,Current portion of lease liabilities (note 18),2023,"label='Current portion of lease liabilities (note 18)' x1,000,000 sheet=254.200"
+balance_sheet,CurrentDebt,2021,mapped,297400000.0,297.4,PASS,Current portion of long-term debt (note 25),2023,"label='Current portion of long-term debt (note 25)' x1,000,000 sheet=297.400"
+balance_sheet,CurrentDeferredLiabilities,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2021,mapped,3791500000.0,3791.5,PASS,Current liabilities total,2023,"label='Current liabilities total' x1,000,000 sheet=3,791.500"
+balance_sheet,FinishedGoods,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Goodwill,2021,mapped,4762300000.0,4762.3,PASS,Goodwill (note 21),2023,"label='Goodwill (note 21)' x1,000,000 sheet=4,762.300"
+balance_sheet,GrossPPE,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InventoriesAdjustmentsAllowances,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InvestmentsAndAdvances,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LandAndImprovements,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2021,mapped,766100000.0,766.1,PASS,Lease liabilities (note 18),2023,"label='Lease liabilities (note 18)' x1,000,000 sheet=766.100"
+balance_sheet,LongTermDebt,2021,mapped,1479300000.0,1479.3,PASS,Long-term debt (note 25),2023,"label='Long-term debt (note 25)' x1,000,000 sheet=1,479.300"
+balance_sheet,MachineryFurnitureEquipment,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,MinorityInterest,2021,mapped,700000.0,0.7,PASS,Non-controlling interests,2023,"label='Non-controlling interests' x1,000,000 sheet=0.700"
+balance_sheet,NetPPE,2021,mapped,1225100000.0,861.5+363.6,PASS,Right-of-use assets (note 18),2023,"label='Right-of-use assets (note 18)' x1,000,000 sheet=1,225.100"
+balance_sheet,NonCurrentDeferredLiabilities,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2021,mapped,549900000.0,549.9,PASS,Intangible assets (note 19),2023,"label='Intangible assets (note 19)' x1,000,000 sheet=549.900"
+balance_sheet,OtherInventories,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherReceivables,2021,mapped,1916800000.0,1916.8,PASS,Trade receivables and other receivables (note 15),2023,"label='Trade receivables and other receivables (note 15)' x1,000,000 sheet=1,916.800"
+balance_sheet,PayablesAndAccruedExpenses,2021,mapped,2217300000.0,2217.3,PASS,Accounts payable and accrued liabilities (note 23),2023,"label='Accounts payable and accrued liabilities (note 23)' x1,000,000 sheet=2,217.300"
+balance_sheet,PreferredStock,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,RawMaterials,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,ShortTermInvestments,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TotalAssets,2021,mapped,11250400000.0,11250.4,PASS,Total assets,2023,"label='Total assets' x1,000,000 sheet=11,250.400"
+balance_sheet,TotalEquityGrossMinorityInterest,2021,mapped,4665200000.0,4665.2,PASS,Total equity,2023,"label='Total equity' x1,000,000 sheet=4,665.200"
+balance_sheet,TotalLiabilities,2021,mapped,6585200000.0,6585.2,PASS,Total liabilities,2023,"label='Total liabilities' x1,000,000 sheet=6,585.200"
+balance_sheet,TotalNonCurrentAssets,2021,mapped,6909600000.0,6909.6,PASS,Non-current assets total,2023,"label='Non-current assets total' x1,000,000 sheet=6,909.600"
+balance_sheet,TotalNonCurrentLiabilities,2021,mapped,2793700000.0,2793.7,PASS,Non-current liabilities total,2023,"label='Non-current liabilities total' x1,000,000 sheet=2,793.700"
+balance_sheet,TotalTaxPayable,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,WorkInProcess,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CapitalExpenditure,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashDividendsPaid,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedInvestingActivities,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInOtherWorkingCapital,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPrepaidAssets,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInReceivables,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInWorkingCapital,2021,mapped,32900000.0,32.9,PASS,Change in non-cash working capital items (note 29),2023,"label='Change in non-cash working capital items (note 29)' x1,000,000 sheet=32.900"
+cash_flow,ChangesInCash,2021,mapped,491600000.0,491.6,PASS,Change in net cash and cash equivalents,2023,"label='Change in net cash and cash equivalents' x1,000,000 sheet=491.600"
+cash_flow,DepreciationAmortizationDepletion,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,FinancingCashFlow,2021,mapped,790200000.0,790.2,PASS,Cash inflows from financing activities,2023,"label='Cash inflows from financing activities' x1,000,000 sheet=790.200"
+cash_flow,InvestingCashFlow,2021,mapped,-1344900000.0,-1344.9,PASS,Cash outflows from investing activities,2023,"label='Cash outflows from investing activities' x1,000,000 sheet=-1,344.900"
+cash_flow,IssuanceOfCapitalStock,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIncomeFromContinuingOperations,2021,mapped,474100000.0,474.1,PASS,Net earnings,2023,"label='Net earnings' x1,000,000 sheet=474.100"
+cash_flow,NetIntangiblesPurchaseAndSale,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherInvestingChanges,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,RepaymentOfDebt,2021,mapped,-303200000.0,-303.2,PASS,Lease payments (note 18),2023,"label='Lease payments (note 18)' x1,000,000 sheet=-303.200"
+cash_flow,RepurchaseOfCapitalStock,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfPPE,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,DepreciationAmortizationDepletion,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestIncomeNonOperating,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,MinorityInterests,2021,mapped,-500000.0,0.5,PASS,Non-controlling interests,2023,"label='Non-controlling interests' x1,000,000 sheet=-0.500"
+income_statement,NetIncome,2021,mapped,474100000.0,474.1,PASS,Net earnings,2023,"label='Net earnings' x1,000,000 sheet=474.100"
+income_statement,NetIncomeDiscontinuousOperations,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherOperatingExpenses,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,PretaxIncome,2021,mapped,645100000.0,645.1,PASS,Earnings before income taxes,2023,"label='Earnings before income taxes' x1,000,000 sheet=645.100"
+income_statement,ResearchAndDevelopment,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,SellingGeneralAndAdministration,2021,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,TaxProvision,2021,mapped,171000000.0,171,PASS,Income tax expense (note 13),2023,"label='Income tax expense (note 13)' x1,000,000 sheet=-171.000"
+income_statement,TotalRevenue,2021,mapped,10279100000.0,10279.1,PASS,Revenues (note 7),2023,"label='Revenues (note 7)' x1,000,000 sheet=10,279.100"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2021,derived,927400000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2021,derived,551600000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2021,derived,2245400000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2021,derived,1496600000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2021,derived,1022600000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2021,derived,372300000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2021,derived,548300000.0,,PASS,,,identities clean
+balance_sheet,Receivables,2021,derived,1916800000.0,,PASS,,,identities clean
+balance_sheet,StockholdersEquity,2021,derived,4664500000.0,,PASS,,,identities clean
+cash_flow,FreeCashFlow,2021,derived,1060099999.9999999,,MISMATCH,,,identity failed: cashflow_recon_fail
+cash_flow,NetIssuancePaymentsOfDebt,2021,derived,-303200000.0,,MISMATCH,,,identity failed: cashflow_recon_fail
+income_statement,CostOfRevenue,2021,derived,0.0,,PASS,,,identities clean
+income_statement,EBIT,2021,derived,645100000.0,,PASS,,,identities clean
+income_statement,EBITDA,2021,derived,645100000.0,,PASS,,,identities clean
+income_statement,GrossProfit,2021,derived,10279100000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2021,derived,474100000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2021,derived,0.0,,PASS,,,identities clean
+income_statement,OperatingIncome,2021,derived,10279100000.0,,PASS,,,identities clean
+balance_sheet,AccountsPayable,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts payable' appears only in notes
+balance_sheet,AccountsReceivable,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+balance_sheet,AccumulatedDepreciation,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accumulated depreciation' appears only in notes
+balance_sheet,AdditionalPaidInCapital,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'contributed surplus' appears only in notes
+balance_sheet,BuildingsAndImprovements,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2022,mapped,495600000.0,495.6,PASS,Cash and cash equivalents (note 28),2024,"label='Cash and cash equivalents (note 28)' x1,000,000 sheet=495.600"
+balance_sheet,CommonStock,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'common shares' appears only in notes
+balance_sheet,ConstructionInProgress,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accrued liabilities' appears only in notes
+balance_sheet,CurrentAssets,2022,mapped,5034200000.0,5034.2,PASS,Current assets total,2024,"label='Current assets total' x1,000,000 sheet=5,034.200"
+balance_sheet,CurrentCapitalLeaseObligation,2022,mapped,273000000.0,273,PASS,Current portion of lease liabilities (note 17),2024,"label='Current portion of lease liabilities (note 17)' x1,000,000 sheet=273.000"
+balance_sheet,CurrentDebt,2022,mapped,173400000.0,173.4,PASS,Current portion of long-term debt (note 24),2024,"label='Current portion of long-term debt (note 24)' x1,000,000 sheet=173.400"
+balance_sheet,CurrentDeferredLiabilities,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2022,mapped,4615200000.0,4615.2,PASS,Current liabilities total,2024,"label='Current liabilities total' x1,000,000 sheet=4,615.200"
+balance_sheet,FinishedGoods,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accumulated other comprehensive income' appears only in notes
+balance_sheet,Goodwill,2022,mapped,6792200000.0,6792.2,PASS,Goodwill (note 20),2024,"label='Goodwill (note 20)' x1,000,000 sheet=6,792.200"
+balance_sheet,GrossPPE,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InventoriesAdjustmentsAllowances,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InvestmentsAndAdvances,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'investments' appears only in notes
+balance_sheet,LandAndImprovements,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2022,mapped,856800000.0,856.8,PASS,Lease liabilities (note 17),2024,"label='Lease liabilities (note 17)' x1,000,000 sheet=856.800"
+balance_sheet,LongTermDebt,2022,mapped,2781100000.0,2781.1,PASS,Long-term debt (note 24),2024,"label='Long-term debt (note 24)' x1,000,000 sheet=2,781.100"
+balance_sheet,MachineryFurnitureEquipment,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'equipment' appears only in notes
+balance_sheet,MinorityInterest,2022,mapped,3100000.0,3.1,PASS,Non-controlling interests,2024,"label='Non-controlling interests' x1,000,000 sheet=3.100"
+balance_sheet,NetPPE,2022,mapped,1377800000.0,978.9+398.9,PASS,Right-of-use assets (note 17),2024,"label='Right-of-use assets (note 17)' x1,000,000 sheet=1,377.800"
+balance_sheet,NonCurrentDeferredLiabilities,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2022,mapped,1102600000.0,1102.6,PASS,Intangible assets (note 18),2024,"label='Intangible assets (note 18)' x1,000,000 sheet=1,102.600"
+balance_sheet,OtherInventories,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'other payable' appears only in notes
+balance_sheet,OtherReceivables,2022,mapped,2625800000.0,2625.8,PASS,Trade receivables and other receivables (note 14),2024,"label='Trade receivables and other receivables (note 14)' x1,000,000 sheet=2,625.800"
+balance_sheet,PayablesAndAccruedExpenses,2022,mapped,2736400000.0,2736.4,PASS,Accounts payable and accrued liabilities (note 22),2024,"label='Accounts payable and accrued liabilities (note 22)' x1,000,000 sheet=2,736.400"
+balance_sheet,PreferredStock,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'preferred shares' appears only in notes
+balance_sheet,RawMaterials,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,ShortTermInvestments,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TotalAssets,2022,mapped,14841700000.0,14841.7,PASS,Total assets,2024,"label='Total assets' x1,000,000 sheet=14,841.700"
+balance_sheet,TotalEquityGrossMinorityInterest,2022,mapped,6009100000.0,6009.1,PASS,Total equity,2024,"label='Total equity' x1,000,000 sheet=6,009.100"
+balance_sheet,TotalLiabilities,2022,mapped,8832600000.0,8832.6,PASS,Total liabilities,2024,"label='Total liabilities' x1,000,000 sheet=8,832.600"
+balance_sheet,TotalNonCurrentAssets,2022,mapped,9807500000.0,9807.5,PASS,Non-current assets total,2024,"label='Non-current assets total' x1,000,000 sheet=9,807.500"
+balance_sheet,TotalNonCurrentLiabilities,2022,mapped,4217399999.9999995,4217.4,PASS,Non-current liabilities total,2024,"label='Non-current liabilities total' x1,000,000 sheet=4,217.400"
+balance_sheet,TotalTaxPayable,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'treasury stock' appears only in notes
+balance_sheet,WorkInProcess,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CapitalExpenditure,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'capital expenditures' appears only in notes
+cash_flow,CashDividendsPaid,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'dividends paid' appears only in notes
+cash_flow,CashFromDiscontinuedInvestingActivities,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInOtherWorkingCapital,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'increase decrease in accounts payable' appears only in notes
+cash_flow,ChangeInPrepaidAssets,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'prepaid expenses' appears only in notes
+cash_flow,ChangeInReceivables,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+cash_flow,ChangeInWorkingCapital,2022,mapped,-284700000.0,-284.7,PASS,Change in non-cash working capital items (note 28),2024,"label='Change in non-cash working capital items (note 28)' x1,000,000 sheet=-284.700"
+cash_flow,ChangesInCash,2022,mapped,-435300000.0,-435.3,PASS,Change in net cash and cash equivalents,2024,"label='Change in net cash and cash equivalents' x1,000,000 sheet=-435.300"
+cash_flow,DepreciationAmortizationDepletion,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'effect of exchange rate changes' appears only in notes
+cash_flow,FinancingCashFlow,2022,mapped,1420700000.0,1420.7,PASS,Cash inflows from financing activities,2023,"label='Cash inflows from financing activities' x1,000,000 sheet=1,420.700"
+cash_flow,InvestingCashFlow,2022,mapped,-2682700000.0,-2682.7,PASS,Cash outflows used in investing activities,2024,"label='Cash outflows used in investing activities' x1,000,000 sheet=-2,682.700"
+cash_flow,IssuanceOfCapitalStock,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIncomeFromContinuingOperations,2022,mapped,434700000.0,434.7,PASS,Net earnings,2024,"label='Net earnings' x1,000,000 sheet=434.700"
+cash_flow,NetIntangiblesPurchaseAndSale,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'share issuance costs' appears only in notes
+cash_flow,NetOtherInvestingChanges,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'additions to property and equipment' appears only in notes
+cash_flow,RepaymentOfDebt,2022,mapped,-576500000.0,-235.2+-341.3,PASS,Net repayment of long-term debt,2024,"label='Net repayment of long-term debt' x1,000,000 sheet=-576.500"
+cash_flow,RepurchaseOfCapitalStock,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfPPE,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'stock based compensation' appears only in notes
+income_statement,DepreciationAmortizationDepletion,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'interest expense on lease liabilities' appears only in notes
+income_statement,InterestIncomeNonOperating,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'interest income' appears only in notes
+income_statement,MinorityInterests,2022,mapped,-2900000.0,2.9,PASS,Non-controlling interests,2024,"label='Non-controlling interests' x1,000,000 sheet=-2.900"
+income_statement,NetIncome,2022,mapped,434700000.0,434.7,PASS,Net earnings,2024,"label='Net earnings' x1,000,000 sheet=434.700"
+income_statement,NetIncomeDiscontinuousOperations,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'foreign exchange gain' appears only in notes
+income_statement,OtherOperatingExpenses,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'office' appears only in notes
+income_statement,PretaxIncome,2022,mapped,587500000.0,587.5,PASS,Earnings before income taxes,2024,"label='Earnings before income taxes' x1,000,000 sheet=587.500"
+income_statement,ResearchAndDevelopment,2022,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,SellingGeneralAndAdministration,2022,absent_on_face,0.0,,NOTE_ONLY,,,alias 'legal fees' appears only in notes
+income_statement,TaxProvision,2022,mapped,152800000.0,152.8,PASS,Income tax expense (note 12),2024,"label='Income tax expense (note 12)' x1,000,000 sheet=-152.800"
+income_statement,TotalRevenue,2022,mapped,11932900000.0,11932.9,PASS,Revenues (note 7),2024,"label='Revenues (note 7)' x1,000,000 sheet=11,932.900"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2022,derived,495600000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2022,derived,446400000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2022,derived,3637900000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2022,derived,1912800000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2022,derived,1432400000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2022,derived,534900000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2022,derived,579499999.9999995,,PASS,,,identities clean
+balance_sheet,Receivables,2022,derived,2625800000.0,,PASS,,,identities clean
+balance_sheet,StockholdersEquity,2022,derived,6006000000.0,,PASS,,,identities clean
+cash_flow,FreeCashFlow,2022,derived,814800000.0,,MISMATCH,,,identity failed: cashflow_recon_fail
+cash_flow,NetIssuancePaymentsOfDebt,2022,derived,-576500000.0,,MISMATCH,,,identity failed: cashflow_recon_fail
+income_statement,CostOfRevenue,2022,derived,0.0,,PASS,,,identities clean
+income_statement,EBIT,2022,derived,587500000.0,,PASS,,,identities clean
+income_statement,EBITDA,2022,derived,587500000.0,,PASS,,,identities clean
+income_statement,GrossProfit,2022,derived,11932900000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2022,derived,434700000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2022,derived,0.0,,PASS,,,identities clean
+income_statement,OperatingIncome,2022,derived,11932900000.0,,PASS,,,identities clean
+balance_sheet,AccountsPayable,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts payable' appears only in notes
+balance_sheet,AccountsReceivable,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+balance_sheet,AccumulatedDepreciation,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accumulated depreciation' appears only in notes
+balance_sheet,AdditionalPaidInCapital,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'contributed surplus' appears only in notes
+balance_sheet,BuildingsAndImprovements,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2023,mapped,378000000.0,378,PASS,Cash and cash equivalents (note 28),2025,"label='Cash and cash equivalents (note 28)' x1,000,000 sheet=378.000"
+balance_sheet,CommonStock,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'common shares' appears only in notes
+balance_sheet,ConstructionInProgress,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accrued liabilities' appears only in notes
+balance_sheet,CurrentAssets,2023,mapped,5417100000.0,5417.1,PASS,Current assets total,2025,"label='Current assets total' x1,000,000 sheet=5,417.100"
+balance_sheet,CurrentCapitalLeaseObligation,2023,mapped,257500000.0,257.5,PASS,Current portion of lease liabilities (note 17),2025,"label='Current portion of lease liabilities (note 17)' x1,000,000 sheet=257.500"
+balance_sheet,CurrentDebt,2023,mapped,204200000.0,204.2,PASS,Current portion of long-term debt (note 24),2025,"label='Current portion of long-term debt (note 24)' x1,000,000 sheet=204.200"
+balance_sheet,CurrentDeferredLiabilities,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2023,mapped,4710600000.0,4710.6,PASS,Current liabilities total,2025,"label='Current liabilities total' x1,000,000 sheet=4,710.600"
+balance_sheet,FinishedGoods,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accumulated other comprehensive income' appears only in notes
+balance_sheet,Goodwill,2023,mapped,7155800000.0,7155.8,PASS,Goodwill (note 20),2025,"label='Goodwill (note 20)' x1,000,000 sheet=7,155.800"
+balance_sheet,GrossPPE,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InventoriesAdjustmentsAllowances,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InvestmentsAndAdvances,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'investments' appears only in notes
+balance_sheet,LandAndImprovements,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2023,mapped,744600000.0,744.6,PASS,Lease liabilities (note 17),2025,"label='Lease liabilities (note 17)' x1,000,000 sheet=744.600"
+balance_sheet,LongTermDebt,2023,mapped,3058300000.0,3058.3,PASS,Long-term debt (note 24),2025,"label='Long-term debt (note 24)' x1,000,000 sheet=3,058.300"
+balance_sheet,MachineryFurnitureEquipment,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'equipment' appears only in notes
+balance_sheet,MinorityInterest,2023,mapped,4500000.0,4.5,PASS,Non-controlling interests,2025,"label='Non-controlling interests' x1,000,000 sheet=4.500"
+balance_sheet,NetPPE,2023,mapped,1259500000.0,824.2+435.3,PASS,Right-of-use assets (note 17),2025,"label='Right-of-use assets (note 17)' x1,000,000 sheet=1,259.500"
+balance_sheet,NonCurrentDeferredLiabilities,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2023,mapped,1104100000.0,1104.1,PASS,Intangible assets (note 18),2025,"label='Intangible assets (note 18)' x1,000,000 sheet=1,104.100"
+balance_sheet,OtherInventories,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'other payable' appears only in notes
+balance_sheet,OtherReceivables,2023,mapped,2726400000.0,2726.4,PASS,Trade receivables and other receivables (note 14),2025,"label='Trade receivables and other receivables (note 14)' x1,000,000 sheet=2,726.400"
+balance_sheet,PayablesAndAccruedExpenses,2023,mapped,2738200000.0,2738.2,PASS,Accounts payable and accrued liabilities (note 22),2025,"label='Accounts payable and accrued liabilities (note 22)' x1,000,000 sheet=2,738.200"
+balance_sheet,PreferredStock,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'preferred shares' appears only in notes
+balance_sheet,RawMaterials,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,ShortTermInvestments,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TotalAssets,2023,mapped,15583100000.0,15583.1,PASS,Total assets,2025,"label='Total assets' x1,000,000 sheet=15,583.100"
+balance_sheet,TotalEquityGrossMinorityInterest,2023,mapped,6333400000.0,6333.4,PASS,Total equity,2025,"label='Total equity' x1,000,000 sheet=6,333.400"
+balance_sheet,TotalLiabilities,2023,mapped,9249700000.0,9249.7,PASS,Total liabilities,2025,"label='Total liabilities' x1,000,000 sheet=9,249.700"
+balance_sheet,TotalNonCurrentAssets,2023,mapped,10166000000.0,10166,PASS,Non-current assets total,2025,"label='Non-current assets total' x1,000,000 sheet=10,166.000"
+balance_sheet,TotalNonCurrentLiabilities,2023,mapped,4539100000.0,4539.1,PASS,Non-current liabilities total,2025,"label='Non-current liabilities total' x1,000,000 sheet=4,539.100"
+balance_sheet,TotalTaxPayable,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'treasury stock' appears only in notes
+balance_sheet,WorkInProcess,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CapitalExpenditure,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'capital expenditures' appears only in notes
+cash_flow,CashDividendsPaid,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'dividends paid' appears only in notes
+cash_flow,CashFromDiscontinuedInvestingActivities,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInOtherWorkingCapital,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'increase decrease in accounts payable' appears only in notes
+cash_flow,ChangeInPrepaidAssets,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'prepaid expenses' appears only in notes
+cash_flow,ChangeInReceivables,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+cash_flow,ChangeInWorkingCapital,2023,mapped,-285700000.0,-285.7,PASS,Change in non-cash working capital items (note 28),2025,"label='Change in non-cash working capital items (note 28)' x1,000,000 sheet=-285.700"
+cash_flow,ChangesInCash,2023,mapped,-129100000.0,-129.1,PASS,Change in net cash and cash equivalents,2025,"label='Change in net cash and cash equivalents' x1,000,000 sheet=-129.100"
+cash_flow,DepreciationAmortizationDepletion,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'effect of exchange rate changes' appears only in notes
+cash_flow,InvestingCashFlow,2023,mapped,-510400000.0,-510.4,PASS,Cash outflows used in investing activities,2025,"label='Cash outflows used in investing activities' x1,000,000 sheet=-510.400"
+cash_flow,IssuanceOfCapitalStock,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIncomeFromContinuingOperations,2023,mapped,553000000.0,553,PASS,Net earnings,2025,"label='Net earnings' x1,000,000 sheet=553.000"
+cash_flow,NetIntangiblesPurchaseAndSale,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherInvestingChanges,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'additions to property and equipment' appears only in notes
+cash_flow,RepaymentOfDebt,2023,mapped,-375100000.0,-375.1,PASS,Lease payments (note 17),2025,"label='Lease payments (note 17)' x1,000,000 sheet=-375.100"
+cash_flow,RepurchaseOfCapitalStock,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'sale of investment' appears only in notes
+cash_flow,SaleOfPPE,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'stock based compensation' appears only in notes
+income_statement,DepreciationAmortizationDepletion,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'interest expense on lease liabilities' appears only in notes
+income_statement,InterestIncomeNonOperating,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'interest income' appears only in notes
+income_statement,MinorityInterests,2023,mapped,-3000000.0,3,PASS,Non-controlling interests,2025,"label='Non-controlling interests' x1,000,000 sheet=-3.000"
+income_statement,NetIncome,2023,mapped,553000000.0,553,PASS,Net earnings,2025,"label='Net earnings' x1,000,000 sheet=553.000"
+income_statement,NetIncomeDiscontinuousOperations,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2023,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'foreign exchange gain' appears only in notes
+income_statement,OtherOperatingExpenses,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'office' appears only in notes
+income_statement,PretaxIncome,2023,mapped,744900000.0,744.9,PASS,Earnings before income taxes,2025,"label='Earnings before income taxes' x1,000,000 sheet=744.900"
+income_statement,ResearchAndDevelopment,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'research and development' appears only in notes
+income_statement,SellingGeneralAndAdministration,2023,absent_on_face,0.0,,NOTE_ONLY,,,alias 'legal fees' appears only in notes
+income_statement,TaxProvision,2023,mapped,191900000.0,191.9,PASS,Income tax expense (note 12),2025,"label='Income tax expense (note 12)' x1,000,000 sheet=-191.900"
+income_statement,TotalRevenue,2023,mapped,14437200000.0,14437.2,PASS,Revenues (note 7),2025,"label='Revenues (note 7)' x1,000,000 sheet=14,437.200"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2023,derived,378000000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2023,derived,461700000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2023,derived,3802900000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2023,derived,2312700000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2023,derived,1510700000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2023,derived,646600000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2023,derived,736200000.0,,PASS,,,identities clean
+balance_sheet,Receivables,2023,derived,2726400000.0,,PASS,,,identities clean
+balance_sheet,StockholdersEquity,2023,derived,6328900000.0,,PASS,,,identities clean
+cash_flow,FinancingCashFlow,2023,derived,-605000000.0,,PASS,,,identities clean
+cash_flow,FreeCashFlow,2023,derived,986300000.0,,PASS,,,identities clean
+cash_flow,NetIssuancePaymentsOfDebt,2023,derived,-375100000.0,,PASS,,,identities clean
+income_statement,CostOfRevenue,2023,derived,0.0,,PASS,,,identities clean
+income_statement,EBIT,2023,derived,744900000.0,,PASS,,,identities clean
+income_statement,EBITDA,2023,derived,744900000.0,,PASS,,,identities clean
+income_statement,GrossProfit,2023,derived,14437200000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2023,derived,553000000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2023,derived,0.0,,PASS,,,identities clean
+income_statement,OperatingIncome,2023,derived,14437200000.0,,PASS,,,identities clean
+balance_sheet,AccountsPayable,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts payable' appears only in notes
+balance_sheet,AccountsReceivable,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+balance_sheet,AccumulatedDepreciation,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accumulated depreciation' appears only in notes
+balance_sheet,AdditionalPaidInCapital,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'contributed surplus' appears only in notes
+balance_sheet,BuildingsAndImprovements,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2024,mapped,623500000.0,623.5,PASS,Cash and cash equivalents (note 28),2026,"label='Cash and cash equivalents (note 28)' x1,000,000 sheet=623.500"
+balance_sheet,CommonStock,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'common shares' appears only in notes
+balance_sheet,ConstructionInProgress,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accrued liabilities' appears only in notes
+balance_sheet,CurrentAssets,2024,mapped,7008900000.0,7008.9,PASS,Current assets total,2026,"label='Current assets total' x1,000,000 sheet=7,008.900"
+balance_sheet,CurrentCapitalLeaseObligation,2024,mapped,285000000.0,285,PASS,Current portion of lease liabilities (note 17),2026,"label='Current portion of lease liabilities (note 17)' x1,000,000 sheet=285.000"
+balance_sheet,CurrentDebt,2024,mapped,704900000.0,704.9,PASS,Current portion of long-term debt (note 24),2026,"label='Current portion of long-term debt (note 24)' x1,000,000 sheet=704.900"
+balance_sheet,CurrentDeferredLiabilities,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2024,mapped,6280400000.0,6280.4,PASS,Current liabilities total,2026,"label='Current liabilities total' x1,000,000 sheet=6,280.400"
+balance_sheet,FinishedGoods,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accumulated other comprehensive income' appears only in notes
+balance_sheet,Goodwill,2024,mapped,9451500000.0,9451.5,PASS,Goodwill (note 20),2026,"label='Goodwill (note 20)' x1,000,000 sheet=9,451.500"
+balance_sheet,GrossPPE,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InventoriesAdjustmentsAllowances,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InvestmentsAndAdvances,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'investments' appears only in notes
+balance_sheet,LandAndImprovements,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2024,mapped,907200000.0,907.2,PASS,Lease liabilities (note 17),2026,"label='Lease liabilities (note 17)' x1,000,000 sheet=907.200"
+balance_sheet,LongTermDebt,2024,mapped,3894500000.0,3894.5,PASS,Long-term debt (note 24),2026,"label='Long-term debt (note 24)' x1,000,000 sheet=3,894.500"
+balance_sheet,MachineryFurnitureEquipment,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'equipment' appears only in notes
+balance_sheet,MinorityInterest,2024,absent_on_face,0.0,,BUG_FACE,Non-controlling interests                                                                                          4.5                     3.1,,zero-filled but concept on FACE (exact): 'Non-controlling interests                                                                                          4.5                     3.1'
+balance_sheet,NetPPE,2024,mapped,1560000000.0,1066.6+493.4,PASS,Right-of-use assets (note 17),2026,"label='Right-of-use assets (note 17)' x1,000,000 sheet=1,560.000"
+balance_sheet,NonCurrentDeferredLiabilities,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2024,mapped,1539300000.0,1539.3,PASS,Intangible assets (note 18),2026,"label='Intangible assets (note 18)' x1,000,000 sheet=1,539.300"
+balance_sheet,OtherInventories,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'other payable' appears only in notes
+balance_sheet,OtherReceivables,2024,mapped,3390700000.0,3390.7,PASS,Trade receivables and other receivables (note 14),2026,"label='Trade receivables and other receivables (note 14)' x1,000,000 sheet=3,390.700"
+balance_sheet,PayablesAndAccruedExpenses,2024,mapped,3261200000.0,3261.2,PASS,Accounts payable and accrued liabilities (note 22),2026,"label='Accounts payable and accrued liabilities (note 22)' x1,000,000 sheet=3,261.200"
+balance_sheet,PreferredStock,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'preferred shares' appears only in notes
+balance_sheet,RawMaterials,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,ShortTermInvestments,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TotalAssets,2024,mapped,20199200000.0,20199.2,PASS,Total assets,2026,"label='Total assets' x1,000,000 sheet=20,199.200"
+balance_sheet,TotalEquityGrossMinorityInterest,2024,mapped,8272500000.0,8272.5,PASS,Total equity,2026,"label='Total equity' x1,000,000 sheet=8,272.500"
+balance_sheet,TotalLiabilities,2024,mapped,11926700000.0,11926.7,PASS,Total liabilities,2026,"label='Total liabilities' x1,000,000 sheet=11,926.700"
+balance_sheet,TotalNonCurrentAssets,2024,mapped,13190300000.0,13190.3,PASS,Non-current assets total,2026,"label='Non-current assets total' x1,000,000 sheet=13,190.300"
+balance_sheet,TotalNonCurrentLiabilities,2024,mapped,5646300000.0,5646.3,PASS,Non-current liabilities total,2026,"label='Non-current liabilities total' x1,000,000 sheet=5,646.300"
+balance_sheet,TotalTaxPayable,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'treasury stock' appears only in notes
+balance_sheet,WorkInProcess,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CapitalExpenditure,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'capital expenditures' appears only in notes
+cash_flow,CashDividendsPaid,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'dividends paid' appears only in notes
+cash_flow,CashFromDiscontinuedInvestingActivities,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInOtherWorkingCapital,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'increase decrease in accounts payable' appears only in notes
+cash_flow,ChangeInPrepaidAssets,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'prepaid expenses' appears only in notes
+cash_flow,ChangeInReceivables,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+cash_flow,ChangeInWorkingCapital,2024,mapped,-195900000.0,-195.9,PASS,Change in non-cash working capital items (note 28),2026,"label='Change in non-cash working capital items (note 28)' x1,000,000 sheet=-195.900"
+cash_flow,ChangesInCash,2024,mapped,257399999.99999997,257.4,PASS,Change in net cash and cash equivalents,2026,"label='Change in net cash and cash equivalents' x1,000,000 sheet=257.400"
+cash_flow,DepreciationAmortizationDepletion,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'effect of exchange rate changes' appears only in notes
+cash_flow,InvestingCashFlow,2024,mapped,-2436600000.0,-2436.6,PASS,Cash outflows used in investing activities,2026,"label='Cash outflows used in investing activities' x1,000,000 sheet=-2,436.600"
+cash_flow,IssuanceOfCapitalStock,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIncomeFromContinuingOperations,2024,mapped,681400000.0,681.4,PASS,Net earnings,2026,"label='Net earnings' x1,000,000 sheet=681.400"
+cash_flow,NetIntangiblesPurchaseAndSale,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherInvestingChanges,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'additions to property and equipment' appears only in notes
+cash_flow,RepaymentOfDebt,2024,mapped,-375700000.0,-375.7,PASS,Lease payments (note 17),2026,"label='Lease payments (note 17)' x1,000,000 sheet=-375.700"
+cash_flow,RepurchaseOfCapitalStock,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfPPE,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'stock based compensation' appears only in notes
+income_statement,DepreciationAmortizationDepletion,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'interest expense on lease liabilities' appears only in notes
+income_statement,InterestIncomeNonOperating,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'interest income' appears only in notes
+income_statement,MinorityInterests,2024,absent_on_face,0.0,,BUG_FACE,Non-controlling interests                                                                              3.0                  2.9,,zero-filled but concept on FACE (fuzzy): 'Non-controlling interests                                                                              3.0                  2.9'
+income_statement,NetIncome,2024,mapped,681400000.0,681.4,PASS,Net earnings,2025,"label='Net earnings' x1,000,000 sheet=681.400"
+income_statement,NetIncomeDiscontinuousOperations,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2024,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'foreign exchange loss' appears only in notes
+income_statement,OtherOperatingExpenses,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'office' appears only in notes
+income_statement,PretaxIncome,2024,mapped,928000000.0,928,PASS,Earnings before income taxes,2026,"label='Earnings before income taxes' x1,000,000 sheet=928.000"
+income_statement,ResearchAndDevelopment,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'research and development' appears only in notes
+income_statement,SellingGeneralAndAdministration,2024,absent_on_face,0.0,,NOTE_ONLY,,,alias 'legal fees' appears only in notes
+income_statement,TaxProvision,2024,mapped,246600000.0,246.6,PASS,Income tax expense (note 12),2026,"label='Income tax expense (note 12)' x1,000,000 sheet=-246.600"
+income_statement,TotalRevenue,2024,mapped,16166800000.0,16166.8,PASS,Revenues (note 7),2026,"label='Revenues (note 7)' x1,000,000 sheet=16,166.800"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2024,derived,623500000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2024,derived,989900000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2024,derived,4801700000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2024,derived,2994700000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2024,derived,2029300000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2024,derived,639500000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2024,derived,844600000.0,,PASS,,,identities clean
+balance_sheet,Receivables,2024,derived,3390700000.0,,PASS,,,identities clean
+balance_sheet,StockholdersEquity,2024,derived,8272500000.0,,PASS,,,identities clean
+cash_flow,FinancingCashFlow,2024,derived,1312100000.0,,PASS,,,identities clean
+cash_flow,FreeCashFlow,2024,derived,1381900000.0,,PASS,,,identities clean
+cash_flow,NetIssuancePaymentsOfDebt,2024,derived,-375700000.0,,PASS,,,identities clean
+income_statement,CostOfRevenue,2024,derived,0.0,,PASS,,,identities clean
+income_statement,EBIT,2024,derived,928000000.0,,PASS,,,identities clean
+income_statement,EBITDA,2024,derived,928000000.0,,PASS,,,identities clean
+income_statement,GrossProfit,2024,derived,16166800000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2024,derived,681400000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2024,derived,0.0,,PASS,,,identities clean
+income_statement,OperatingIncome,2024,derived,16166800000.0,,PASS,,,identities clean
+balance_sheet,AccountsPayable,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts payable' appears only in notes
+balance_sheet,AccountsReceivable,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+balance_sheet,AccumulatedDepreciation,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accumulated depreciation' appears only in notes
+balance_sheet,AdditionalPaidInCapital,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'contributed surplus' appears only in notes
+balance_sheet,BuildingsAndImprovements,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CashAndCashEquivalents,2025,mapped,1561400000.0,1561.4,PASS,Cash and cash equivalents (note 28),2026,"label='Cash and cash equivalents (note 28)' x1,000,000 sheet=1,561.400"
+balance_sheet,CommonStock,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'common shares' appears only in notes
+balance_sheet,ConstructionInProgress,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentAccruedExpenses,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accrued liabilities' appears only in notes
+balance_sheet,CurrentAssets,2025,mapped,7430800000.0,7430.8,PASS,Current assets total,2026,"label='Current assets total' x1,000,000 sheet=7,430.800"
+balance_sheet,CurrentCapitalLeaseObligation,2025,mapped,278100000.0,278.1,PASS,Current portion of lease liabilities (note 17),2026,"label='Current portion of lease liabilities (note 17)' x1,000,000 sheet=278.100"
+balance_sheet,CurrentDebt,2025,mapped,389400000.0,389.4,PASS,Current portion of long-term debt (note 24),2026,"label='Current portion of long-term debt (note 24)' x1,000,000 sheet=389.400"
+balance_sheet,CurrentDeferredLiabilities,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredRevenue,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentDeferredTaxesLiabilities,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,CurrentLiabilities,2025,mapped,5863400000.0,5863.4,PASS,Current liabilities total,2026,"label='Current liabilities total' x1,000,000 sheet=5,863.400"
+balance_sheet,FinishedGoods,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,GainsLossesNotAffectingRetainedEarnings,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accumulated other comprehensive income' appears only in notes
+balance_sheet,Goodwill,2025,mapped,9730700000.0,9730.7,PASS,Goodwill (note 20),2026,"label='Goodwill (note 20)' x1,000,000 sheet=9,730.700"
+balance_sheet,GrossPPE,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InventoriesAdjustmentsAllowances,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,Inventory,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,InvestmentsAndAdvances,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'investments' appears only in notes
+balance_sheet,LandAndImprovements,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LoansReceivable,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,LongTermCapitalLeaseObligation,2025,mapped,867400000.0,867.4,PASS,Lease liabilities (note 17),2026,"label='Lease liabilities (note 17)' x1,000,000 sheet=867.400"
+balance_sheet,LongTermDebt,2025,mapped,3441800000.0,3441.8,PASS,Long-term debt (note 24),2026,"label='Long-term debt (note 24)' x1,000,000 sheet=3,441.800"
+balance_sheet,MachineryFurnitureEquipment,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'equipment' appears only in notes
+balance_sheet,MinorityInterest,2025,mapped,-500000.0,-0.5,PASS,Non-controlling interests,2026,"label='Non-controlling interests' x1,000,000 sheet=-0.500"
+balance_sheet,NetPPE,2025,mapped,1559700000.0,1022.1+537.6,PASS,Right-of-use assets (note 17),2026,"label='Right-of-use assets (note 17)' x1,000,000 sheet=1,559.700"
+balance_sheet,NonCurrentDeferredLiabilities,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredRevenue,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentDeferredTaxesLiabilities,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NonCurrentPensionAndOtherPostretirementBenefitPlans,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,NotesReceivable,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherIntangibleAssets,2025,mapped,1377300000.0,1377.3,PASS,Intangible assets (note 18),2026,"label='Intangible assets (note 18)' x1,000,000 sheet=1,377.300"
+balance_sheet,OtherInventories,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,OtherPayable,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'other payable' appears only in notes
+balance_sheet,OtherReceivables,2025,mapped,3083200000.0,3083.2,PASS,Trade receivables and other receivables (note 14),2026,"label='Trade receivables and other receivables (note 14)' x1,000,000 sheet=3,083.200"
+balance_sheet,PayablesAndAccruedExpenses,2025,mapped,3196700000.0,3196.7,PASS,Accounts payable and accrued liabilities (note 22),2026,"label='Accounts payable and accrued liabilities (note 22)' x1,000,000 sheet=3,196.700"
+balance_sheet,PreferredStock,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'preferred shares' appears only in notes
+balance_sheet,RawMaterials,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,ShortTermInvestments,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TotalAssets,2025,mapped,20840000000.0,20840,PASS,Total assets,2026,"label='Total assets' x1,000,000 sheet=20,840.000"
+balance_sheet,TotalEquityGrossMinorityInterest,2025,mapped,9841500000.0,9841.5,PASS,Total equity,2026,"label='Total equity' x1,000,000 sheet=9,841.500"
+balance_sheet,TotalLiabilities,2025,mapped,10998500000.0,10998.5,PASS,Total liabilities,2026,"label='Total liabilities' x1,000,000 sheet=10,998.500"
+balance_sheet,TotalNonCurrentAssets,2025,mapped,13409200000.0,13409.2,PASS,Non-current assets total,2026,"label='Non-current assets total' x1,000,000 sheet=13,409.200"
+balance_sheet,TotalNonCurrentLiabilities,2025,mapped,5135100000.0,5135.1,PASS,Non-current liabilities total,2026,"label='Non-current liabilities total' x1,000,000 sheet=5,135.100"
+balance_sheet,TotalTaxPayable,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+balance_sheet,TreasuryStock,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'treasury stock' appears only in notes
+balance_sheet,WorkInProcess,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,AssetImpairmentCharge,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CapitalExpenditure,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'capital expenditures' appears only in notes
+cash_flow,CashDividendsPaid,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'dividends paid' appears only in notes
+cash_flow,CashFromDiscontinuedInvestingActivities,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,CashFromDiscontinuedOperatingActivities,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInInventory,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInOtherWorkingCapital,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,ChangeInPayablesAndAccruedExpense,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'increase decrease in accounts payable' appears only in notes
+cash_flow,ChangeInPrepaidAssets,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'prepaid expenses' appears only in notes
+cash_flow,ChangeInReceivables,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'accounts receivable' appears only in notes
+cash_flow,ChangeInWorkingCapital,2025,mapped,325500000.0,325.5,PASS,Change in non-cash working capital items (note 28),2026,"label='Change in non-cash working capital items (note 28)' x1,000,000 sheet=325.500"
+cash_flow,ChangesInCash,2025,mapped,925800000.0,925.8,PASS,Change in net cash and cash equivalents,2026,"label='Change in net cash and cash equivalents' x1,000,000 sheet=925.800"
+cash_flow,DepreciationAmortizationDepletion,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,EffectOfExchangeRateChanges,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'effect of exchange rate changes' appears only in notes
+cash_flow,InvestingCashFlow,2025,mapped,-753000000.0,-753,PASS,Cash outflows used in investing activities,2026,"label='Cash outflows used in investing activities' x1,000,000 sheet=-753.000"
+cash_flow,IssuanceOfCapitalStock,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,IssuanceOfDebt,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetIncomeFromContinuingOperations,2025,mapped,963800000.0,963.8,PASS,Net earnings,2026,"label='Net earnings' x1,000,000 sheet=963.800"
+cash_flow,NetIntangiblesPurchaseAndSale,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherFinancingCharges,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetOtherInvestingChanges,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,NetPreferredStockIssuance,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,OtherNonCashItems,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfBusiness,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfInvestment,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,PurchaseOfPPE,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'additions to property and equipment' appears only in notes
+cash_flow,RepaymentOfDebt,2025,mapped,-384700000.0,-384.7,PASS,Lease payments (note 17),2026,"label='Lease payments (note 17)' x1,000,000 sheet=-384.700"
+cash_flow,RepurchaseOfCapitalStock,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfInvestment,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,SaleOfPPE,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+cash_flow,StockBasedCompensation,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'stock based compensation' appears only in notes
+income_statement,DepreciationAmortizationDepletion,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,InterestExpenseNonOperating,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'interest expense on lease liabilities' appears only in notes
+income_statement,InterestIncomeNonOperating,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'interest income' appears only in notes
+income_statement,MinorityInterests,2025,mapped,500000.0,-0.5,PASS,Non-controlling interests,2026,"label='Non-controlling interests' x1,000,000 sheet=0.500"
+income_statement,NetIncomeDiscontinuousOperations,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,NetNonOperatingInterestIncomeExpense,2025,absent_on_face,0.0,,PASS,,,no face/notes hit
+income_statement,OtherIncomeExpense,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'foreign exchange gain' appears only in notes
+income_statement,OtherOperatingExpenses,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'office' appears only in notes
+income_statement,PretaxIncome,2025,mapped,1310300000.0,1310.3,PASS,Earnings before income taxes,2026,"label='Earnings before income taxes' x1,000,000 sheet=1,310.300"
+income_statement,ResearchAndDevelopment,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'research and development' appears only in notes
+income_statement,SellingGeneralAndAdministration,2025,absent_on_face,0.0,,NOTE_ONLY,,,alias 'legal fees' appears only in notes
+income_statement,TaxProvision,2025,mapped,346500000.0,346.5,PASS,Income tax expense (note 12),2026,"label='Income tax expense (note 12)' x1,000,000 sheet=-346.500"
+income_statement,TotalRevenue,2025,mapped,18285000000.0,18285,PASS,Revenues (note 7),2026,"label='Revenues (note 7)' x1,000,000 sheet=18,285.000"
+balance_sheet,CashCashEquivalentsAndShortTermInvestments,2025,derived,1561400000.0,,PASS,,,identities clean
+balance_sheet,CurrentDebtAndCapitalLeaseObligation,2025,derived,667500000.0,,PASS,,,identities clean
+balance_sheet,LongTermDebtAndCapitalLeaseObligation,2025,derived,4309200000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentAssets,2025,derived,2786200000.0,,PASS,,,identities clean
+balance_sheet,OtherCurrentLiabilities,2025,derived,1999200000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentAssets,2025,derived,741500000.0,,PASS,,,identities clean
+balance_sheet,OtherNonCurrentLiabilities,2025,derived,825900000.0,,PASS,,,identities clean
+balance_sheet,Receivables,2025,derived,3083200000.0,,PASS,,,identities clean
+balance_sheet,StockholdersEquity,2025,derived,9842000000.0,,PASS,,,identities clean
+cash_flow,FinancingCashFlow,2025,derived,-567200000.0,,PASS,,,identities clean
+cash_flow,FreeCashFlow,2025,derived,2246000000.0,,PASS,,,identities clean
+cash_flow,NetIssuancePaymentsOfDebt,2025,derived,-384700000.0,,PASS,,,identities clean
+income_statement,CostOfRevenue,2025,derived,0.0,,PASS,,,identities clean
+income_statement,EBIT,2025,derived,1310300000.0,,PASS,,,identities clean
+income_statement,EBITDA,2025,derived,1310300000.0,,PASS,,,identities clean
+income_statement,GrossProfit,2025,derived,18285000000.0,,PASS,,,identities clean
+income_statement,NetIncome,2025,derived,963800000.0,,PASS,,,identities clean
+income_statement,NetIncomeContinuousOperations,2025,derived,963800000.0,,PASS,,,identities clean
+income_statement,OperatingExpense,2025,derived,0.0,,PASS,,,identities clean
+income_statement,OperatingIncome,2025,derived,18285000000.0,,PASS,,,identities clean
