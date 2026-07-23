@@ -101,8 +101,20 @@ def _looks_like_prose(by_line: dict[int, list[dict]]) -> bool:
     return len(by_line) >= 8 and valued < 0.3 * len(by_line)
 
 # Contra-asset keys the PDFs print as parenthesized deductions (negative) but
-# QuoteMedia/GuruFocus store as POSITIVE magnitudes.
-_ABS_VALUE_KEYS = {"AllowanceForLoansAndLeaseLosses", "AccumulatedDepreciation"}
+# QuoteMedia/GuruFocus store as POSITIVE magnitudes. Also expense-magnitude
+# income-statement keys: some filers print their expense subtotal as a
+# negative/parenthesized figure (deducted from revenue on the page) rather
+# than a bare positive cost -- confirmed on AGMR (2025 "Total operating
+# expenses" printed as -4,247,593). derive.py's identities (GrossProfit =
+# Revenue - CostOfRevenue, OperatingIncome = GrossProfit - OperatingExpense)
+# assume these are positive magnitudes like every other expense-type row
+# (see the f6b4cee TaxProvision/InterestExpense commit for the established
+# convention); a source-negative value flips OperatingIncome's sign instead
+# of just reducing it. abs() is a no-op for the common positive-printed case.
+_ABS_VALUE_KEYS = {"AllowanceForLoansAndLeaseLosses", "AccumulatedDepreciation",
+                   "CostOfRevenue", "OperatingExpense",
+                   "SellingGeneralAndAdministration", "ResearchAndDevelopment",
+                   "OtherOperatingExpenses", "DepreciationAmortizationDepletion"}
 # Attribution keys stored NEGATED by QM/GuruFocus (income attributable to
 # non-controlling interests is a deduction from group income: screenshot shows
 # "Other Income (Minority Interest)" as -5, -7).

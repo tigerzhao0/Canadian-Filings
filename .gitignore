@@ -27,6 +27,13 @@ output/*.xlsx
 output/financials_xlsx/
 # (output/financials.db itself is already caught by the *.db rule above)
 
+# Same AUX/PRN reserved-device-name problem (see above) also occurs in the
+# ACTIVE pdf-extraction pipeline's export dir -- these two are genuinely
+# un-committable from any Windows machine, so exclude them explicitly rather
+# than have `git add -A` silently skip/error on them every run.
+output/pdf_financials_xlsx/AUX.xlsx
+output/pdf_financials_xlsx/PRN.xlsx
+
 # Python
 __pycache__/
 *.pyc

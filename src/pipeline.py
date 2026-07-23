@@ -43,12 +43,14 @@ SCHEMA_PATH = Path(__file__).resolve().parent.parent / "sql" / "schema.sql"
 # Fiscal-year targeting
 # --------------------------------------------------------------------------- #
 def expected_annual_year(today: date | None = None) -> int:
-    """The fiscal year whose annual report we're targeting right now (e.g.
-    2026 for the whole of calendar 2026). Derived from the system clock so
-    this advances every January rather than being hardcoded to any particular
-    year."""
+    """The most recent fiscal year whose annual report should already be
+    filed by now (e.g. 2025 for the whole of calendar 2026 -- a Dec-FYE
+    company's FY2026 report isn't filed until early 2027, so targeting the
+    current calendar year is always premature). Derived from the system
+    clock so this advances every January rather than being hardcoded to any
+    particular year."""
     today = today or date.today()
-    return today.year
+    return today.year - 1
 
 
 # How many years of annual-report PDFs the PDF finder tries to collect per
