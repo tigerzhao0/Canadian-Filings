@@ -65,6 +65,19 @@ AGGREGATE_KEYS = {
     # "Interest expense on lease liabilities" together ARE GuruFocus's
     # Interest Expense figure (exact-match verified on RAY/Stingray).
     "InterestExpenseNonOperating",
+    # small-cap equity sections routinely split "contributed capital beyond
+    # par" over multiple sibling lines (Contributed Surplus + Reserves +
+    # Reserve for Warrants + Share-based Payment Reserve) that must all sum
+    # into the one template row -- identity-verified on two real filings:
+    # ABA 2023 (Share Capital 5,894,172 + Contributed Surplus 122,500 +
+    # Reserves 1,655,483 + Deficit -6,199,841 = Equity Total 1,472,314) and
+    # ACAP.P 2023 (317,249 + 14,248 + 48,083 - 167,879 = 211,701).
+    "AdditionalPaidInCapital",
+    # same pattern for OCI-style equity reserves (translation/hedging/
+    # revaluation) -- a company rarely has more than one, but when it does
+    # (AD.UN, BKMT, ITR, ORIO: ~2% of cases) they're distinct sibling
+    # components of the one OCI template row, not alternates.
+    "GainsLossesNotAffectingRetainedEarnings",
 }
 
 # Prose guard: a "statement" whose lines read like sentences is a mis-isolated
@@ -120,6 +133,29 @@ _ABS_VALUE_KEYS = {"AllowanceForLoansAndLeaseLosses", "AccumulatedDepreciation",
 # "Other Income (Minority Interest)" as -5, -7).
 _NEGATE_KEYS = {"MinorityInterests"}
 
+# Bottom-line result keys where some filers convey the sign PURELY through
+# the caption word ("Net loss for the year   7,121", no minus sign or
+# parens -- the page relies on the reader knowing "loss" means negative)
+# rather than through the printed number itself. Root-caused via a
+# ground-truth diff against QuoteMedia (ASCU 2022: our NetIncome=+7,121 vs
+# their -7,121 -- exact magnitude match); confirmed the whole statement's
+# own arithmetic sums to +7,121 (a magnitude), and the line is captioned
+# "Loss and comprehensive loss for the year" with no negative sign anywhere
+# on the page. A label that mixes in "income"/"earnings"/"gain" (e.g. "Net
+# income (loss) for the year") is the OPPOSITE case -- an alternating
+# caption where the source's own signed number must be trusted as printed
+# -- so this only fires on an unambiguous, pure "loss" caption.
+_NET_INCOME_KEYS = {"NetIncome", "NetIncomeFromContinuingOperations",
+                    "NetIncomeContinuousOperations", "NetIncomeCommonStockholders",
+                    "NetIncomeFromContinuingAndDiscontinuedOperation",
+                    "NetIncomeDiscontinuousOperations"}
+_PURE_LOSS_LABEL_RE = re.compile(r"\bloss\b", re.I)
+_INCOME_OR_GAIN_RE = re.compile(r"\b(?:income|earnings|gain)\b", re.I)
+
+
+def _is_pure_loss_label(label: str) -> bool:
+    return bool(_PURE_LOSS_LABEL_RE.search(label)) and not _INCOME_OR_GAIN_RE.search(label)
+
 # QuoteMedia stores the SAME value under several synonym keys (verified: their
 # values are identical for these). After mapping, replicate to the sibling keys
 # that are still absent so the xlsx template rows referencing either fill in.
@@ -148,6 +184,21 @@ EQUIVALENT_FANOUT: dict[str, list[str]] = {
     # still wins on its own via direct mapping, since fanout only fills an
     # EMPTY slot (confirmed on RAY/Stingray: "Share capital" 322.366 -> both).
     "CapitalStock": ["CommonStock"],
+}
+
+# A raw label that explicitly says "basic and diluted" (one combined figure,
+# common when a company has no dilutive securities so the two are equal by
+# definition, e.g. "Weighted average number of common shares outstanding
+# (basic and diluted)") maps to only ONE of the Basic/Diluted pair via the
+# normal matcher, leaving its sibling empty even though the source states
+# they're identical -- confirmed at 12,692 ticker-years corpus-wide. Safe to
+# duplicate the value across, unlike a bare "Basic" or "Diluted" label alone
+# (which must NOT be assumed equal to its sibling).
+_BASIC_AND_DILUTED_RE = re.compile(r"\bbasic\b\s*(?:and|&|/)\s*diluted\b", re.I)
+_BASIC_DILUTED_SIBLING = {
+    "BasicEPS": "DilutedEPS", "DilutedEPS": "BasicEPS",
+    "BasicAverageShares": "DilutedAverageShares",
+    "DilutedAverageShares": "BasicAverageShares",
 }
 
 
@@ -267,6 +318,7 @@ def _process_ticker(ticker: str, by_pdf: dict, hints: dict, already: set,
     bank_tickers: set[str] = set()
     rev_labelled: set[tuple] = set()      # (ticker, col_year) whose IS mentions revenue/sales
     prov: dict[tuple, str] = {}           # slot -> 'derived' | 'absent_on_face'
+    combined_basic_diluted: set[tuple] = set()  # slots whose raw label said "basic and diluted"
     log_lines: list[str] = []
 
     if True:
@@ -351,6 +403,9 @@ def _process_ticker(ticker: str, by_pdf: dict, hints: dict, already: set,
                                 val = abs(val)
                             if key in _NEGATE_KEYS and val is not None:
                                 val = -val
+                            if (key in _NET_INCOME_KEYS and val is not None
+                                    and val > 0 and _is_pure_loss_label(label)):
+                                val = -val
                             val = _coerce_numeric(val)
                         full_rows.append(dict(
                             ticker=ticker, fiscal_year=y, statement_type=stmt,
@@ -360,6 +415,9 @@ def _process_ticker(ticker: str, by_pdf: dict, hints: dict, already: set,
                         if key and val is not None:
                             slot = (ticker, y, stmt, key)
                             cand = (val, _KIND_RANK.get(kind, 0), conf)
+                            if (key in _BASIC_DILUTED_SIBLING
+                                    and _BASIC_AND_DILUTED_RE.search(label)):
+                                combined_basic_diluted.add(slot)
                             prev = picked.get(slot)
                             if prev is None:
                                 picked[slot] = cand
@@ -452,6 +510,18 @@ def _process_ticker(ticker: str, by_pdf: dict, hints: dict, already: set,
             slot = (t, y, s, sibling)
             if slot not in picked:
                 picked[slot] = v
+
+    # Same idea, but conditional on the raw label itself saying "basic and
+    # diluted" (tracked per-slot above) rather than an unconditional key ->
+    # key mapping -- a bare "Basic" label must NOT fan to Diluted.
+    for slot in combined_basic_diluted:
+        t, y, s, k = slot
+        v = picked.get(slot)
+        if v is None:
+            continue
+        sib_slot = (t, y, s, _BASIC_DILUTED_SIBLING[k])
+        if sib_slot not in picked:
+            picked[sib_slot] = v
 
     # ---- derivation + zero-fill (identity fixpoint; NEVER overwrites mapped) ----
     # "bank" here = actually MAPPED a bank display key. The looser _BANK_RE

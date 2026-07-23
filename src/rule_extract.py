@@ -401,7 +401,10 @@ CURATED_ALIASES: dict[str, list[str]] = {
     "CapitalStock": ["share capital", "capital stock"],
     "CommonStock": ["common stock", "common shares"],
     "AdditionalPaidInCapital": ["additional paid in capital", "contributed surplus",
-                                "additional paid-in capital"],
+                                "additional paid-in capital", "reserves",
+                                "reserve for warrants", "warrants reserve",
+                                "share-based payment reserve",
+                                "share-based payments reserve"],
     "TotalLiabilitiesAndTotalEquityGrossMinorityInterest":
         ["total liabilities and equity", "total liabilities and shareholders equity",
          "total liabilities and shareholders equity (deficiency)",
@@ -466,7 +469,16 @@ CURATED_ALIASES: dict[str, list[str]] = {
 # relied on weak humanized-key fuzzy matching. (Aliases are per-statement scoped
 # by build_alias_index, so e.g. "inventories" -> ChangeInInventory only within
 # cash_flow, and -> Inventory only within balance_sheet.)
-CURATED_ALIASES.update({
+# NOTE: was a raw CURATED_ALIASES.update({...}) -- 3 of these keys (EBIT,
+# EBITDA, DepreciationAmortizationDepletion) already existed above, and a
+# raw .update() replaces rather than merges a dict value, so it silently
+# discarded the base dict's list for each. Verified benign (this block's
+# list was a strict superset in all 3 cases, so no alias was actually
+# lost) -- converted to the safe merge helper below to remove the latent
+# risk for future additions. _extend_aliases() isn't defined until just
+# below this dict literal, so this is built as a plain dict here and
+# merged in via _extend_aliases() right after its own definition.
+_COVERAGE_CRITICAL_ALIASES: dict[str, list[str]] = {
     # income statement
     "EBIT": ["ebit", "earnings before interest and taxes"],
     "EBITDA": ["ebitda", "adjusted ebitda", "earnings before interest taxes depreciation"],
@@ -502,7 +514,7 @@ CURATED_ALIASES.update({
                                           "accounts payable and accrued liabilities"],
     "CashDividendsPaid": ["dividends paid", "cash dividends paid",
                           "payment of dividends"],
-})
+}
 
 def _extend_aliases(additions: dict[str, list[str]]) -> None:
     """Append aliases to CURATED_ALIASES without clobbering existing lists."""
@@ -511,6 +523,9 @@ def _extend_aliases(additions: dict[str, list[str]]) -> None:
         for a in aliases:
             if a not in CURATED_ALIASES[key]:
                 CURATED_ALIASES[key].append(a)
+
+
+_extend_aliases(_COVERAGE_CRITICAL_ALIASES)
 
 
 # Backlog aliases measured from real statements (RY bank + RAY industrial) --
@@ -641,7 +656,10 @@ _extend_aliases({
     "GainsLossesNotAffectingRetainedEarnings": [
         "accumulated other comprehensive income",
         "accumulated other comprehensive income (loss)",
-        "accumulated other comprehensive loss"],
+        "accumulated other comprehensive loss",
+        "foreign currency translation reserve", "translation reserve",
+        "currency translation reserve", "hedging reserve",
+        "revaluation reserve", "fair value reserve"],
     "AccountsReceivable": ["amounts receivable", "trade and other receivables"],
     "CurrentAccruedExpenses": ["accrued liabilities"],
     "OtherReceivables": ["dividends receivable", "interest receivable",
@@ -841,11 +859,21 @@ _extend_aliases({
         "travel and promotion", "advertising and promotion",
         "transfer agent", "listing and filing fees",
         "bank charges and interest", "salaries and benefits",
+        # unambiguous expense-context label (unlike bare "Royalties", which
+        # the corpus sweep showed is usually a REVENUE-section deduction for
+        # oil & gas issuers -- negative-signed, netted against gross sales --
+        # not an operating expense; left unmapped, needs its own netting
+        # logic rather than a plain alias).
+        "royalty expense",
     ],
     # --- balance sheet ---
     "RestrictedCash": ["restricted cash"],
     "TaxesReceivable": ["income taxes recoverable", "income tax recoverable"],
     "MachineryFurnitureEquipment": ["equipment"],
+    # Reordered phrasing of the already-mapped "deposits and prepaid
+    # expenses" (-> PrepaidAssets via suffix match) -- same combined-line
+    # concept, just words swapped; not a new interpretation.
+    "PrepaidAssets": ["prepaids and deposits"],
     # --- cash flow ---
     # Standard supplemental cash-paid disclosures -- dedicated keys already
     # exist in the vocab, just had no alias pointing to the plain-English
@@ -855,6 +883,13 @@ _extend_aliases({
     "InterestPaidSupplementalData": ["interest paid", "interest paid $"],
     "IncomeTaxPaidSupplementalData": ["income taxes paid", "income tax paid",
                                        "income taxes paid $", "income tax paid $"],
+    "ChangeInPrepaidAssets": ["prepaids and deposits"],
+    # Same concept, different noun, as the already-aliased "exploration and
+    # evaluation assets" (-> NetOtherInvestingChanges, an AGGREGATE_KEYS
+    # bucket) -- "expenditures on"/"expenditures" is just the spending-side
+    # phrasing of the same investing-activity line.
+    "NetOtherInvestingChanges": ["exploration and evaluation expenditures",
+                                 "exploration and evaluation asset expenditures"],
 })
 
 # CONTEXT-DEPENDENT aliases: the same label means different things under
