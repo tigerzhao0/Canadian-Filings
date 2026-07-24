@@ -89,6 +89,16 @@ AGGREGATE_KEYS = {
     # "Non-current assets total" (19,337,794) -- distinct sibling
     # non-current-asset lines, common for mining/exploration issuers.
     "RestrictedCash", "ChangeInRestrictedCash",
+    # Found via a manual line-by-line read of WSP's real 2023 filing against
+    # the sheet (not the vocabulary sweep): by-nature reporters print D&A as
+    # separate lines (WSP: right-of-use 316.4 + PP&E 135.1 + intangibles 221.7
+    # = 673.2, each a genuine distinct add-back) instead of one combined line;
+    # without this, only one survived and EBITDA silently equalled EBIT.
+    "DepreciationAmortizationDepletion",
+    # WSP 2023: "Dividends paid to shareholders" (162.2) + "Dividends paid to
+    # non-controlling interests" (0.4), two genuinely separate cash outflows,
+    # no combined "total dividends" line on the face to double-count against.
+    "CashDividendsPaid",
 }
 
 # Prose guard: a "statement" whose lines read like sentences is a mis-isolated

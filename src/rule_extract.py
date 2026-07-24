@@ -921,6 +921,101 @@ _extend_aliases({
                         "principal portion of lease payment"],
 })
 
+# BY-NATURE income statements (services/engineering/mining: WSP, SNC, many
+# miners) report costs by nature -- "Personnel costs", "Subconsultants and
+# direct costs" -- not by function (COGS/SG&A), and print an operating
+# subtotal captioned "Earnings before net financing expense and income taxes"
+# / "Earnings before finance costs and income taxes" rather than "Operating
+# income". Two consequences the line-item audit surfaced on WSP:
+#   1. that operating subtotal was SUFFIX-matching TaxProvision (it ends in
+#      "income taxes"), losing to the real tax line and being DROPPED, so
+#      OperatingIncome fell back to derive = Revenue (nonsense). Mapping it
+#      explicitly (exact) both fixes OperatingIncome AND out-ranks the bad
+#      suffix match.
+#   2. the by-nature expense lines mapped to nothing, so Personnel costs (WSP's
+#      single largest expense) never appeared and Operating Expense showed 0.
+_extend_aliases({
+    # The operating (pre-financing, pre-tax) subtotal -> OperatingIncome. All
+    # variants carry "financing"/"finance ... expense/costs" BEFORE "income
+    # taxes", so they stay distinct from bare "earnings before income taxes"
+    # (= PretaxIncome, already mapped). 56 IS rows corpus-wide.
+    "OperatingIncome": ["earnings before net financing expense and income taxes",
+                        "earnings before financing expense and income taxes",
+                        "earnings before finance costs and income taxes",
+                        "earnings before financing costs and income taxes",
+                        "income before net financing expense and income taxes",
+                        "loss before net financing expense and income taxes"],
+    # By-nature operating expenses -> OtherOperatingExpenses (already an
+    # AGGREGATE_KEY, so multiple by-nature lines SUM). "direct costs" (bare) is
+    # deliberately excluded -- for some issuers it's a cost-of-revenue line,
+    # not an operating expense, so it stays unmapped rather than risk a wrong
+    # bucket. These can't double-count a "total operating expenses" line, which
+    # maps to the separate OperatingExpense key.
+    "OtherOperatingExpenses": ["personnel costs", "subconsultants and direct costs",
+                               "other operational costs", "occupancy costs",
+                               "employee costs and benefits"],
+    # Manual line-by-line read of WSP's real 2023 10-K against the sheet (not
+    # the vocabulary-sweep methodology) surfaced these. "Net financing expense"
+    # is WSP's single NET interest-and-financing-costs line (no separate
+    # income/expense split) -- mapping it to InterestExpenseNonOperating makes
+    # derive.py's EBIT = PretaxIncome + InterestExpenseNonOperating -
+    # InterestIncomeNonOperating reproduce the filing's own stated
+    # "Earnings before net financing expense and income taxes" EXACTLY
+    # (744.9 + 202.6 - 0 = 947.5, verified against the real PDF).
+    "InterestExpenseNonOperating": ["net financing expense", "net finance expense",
+                                    "net finance costs", "net financing costs"],
+})
+
+# Depreciation/amortization printed as SEPARATE income-statement lines by
+# by-nature reporters (WSP: "Depreciation of right-of-use assets" 316.4 +
+# "Amortization of intangible assets" 221.7 + "Depreciation of property and
+# equipment" 135.1) rather than one combined "Depreciation, depletion and
+# amortization" line. DepreciationAmortizationDepletion previously had only
+# combined-phrase aliases and was NOT an aggregate key, so at most one of the
+# three survived and EBITDA silently equalled EBIT (D&A add-back = 0).
+# Identity-verified: 316.4+221.7+135.1 = 673.2 (WSP 2023), each a genuine
+# distinct add-back, not a subtotal of the others.
+DEPRECIATION_AMORTIZATION_COMPONENT_ALIASES = {
+    "DepreciationAmortizationDepletion": [
+        "depreciation of right-of-use assets", "depreciation of property and equipment",
+        "amortization of intangible assets", "depreciation of property, plant and equipment",
+    ],
+}
+_extend_aliases(DEPRECIATION_AMORTIZATION_COMPONENT_ALIASES)
+
+# Cash-flow lines confirmed unmapped by the same manual read of WSP's real
+# cash flow statement (2023): every investing/financing sub-line showed 0 in
+# the sheet even though the section TOTAL (a directly-stated line) was
+# correct -- meaning Free Cash Flow (Operating CF - CapEx) silently used
+# CapEx=0 and came out overstated.
+_extend_aliases({
+    "PurchaseOfPPE": ["additions to property and equipment excluding business acquisitions",
+                      "purchase of property and equipment excluding business acquisitions"],
+    "PurchaseOfIntangibles": ["additions to identifiable intangible assets",
+                              "additions to intangible assets",
+                              "additions to identifiable intangible assets excluding business acquisitions"],
+    "SaleOfPPE": ["proceeds from disposal of property and equipment",
+                 "proceeds on disposal of property and equipment"],
+    "PurchaseOfBusiness": ["net disbursements related to business acquisitions and disposals of businesses",
+                          "net disbursements related to business acquisitions"],
+    "IssuanceOfCapitalStock": ["issuance of common shares net of issuance costs",
+                              "issuance of common shares"],
+    "BeginningCashPosition": ["cash and cash equivalents net of bank overdraft beginning of the year",
+                             "cash and cash equivalents net of bank overdraft beginning of year"],
+    "EndCashPosition": ["cash and cash equivalents net of bank overdraft end of the year",
+                       "cash and cash equivalents net of bank overdraft end of year"],
+    # Two genuinely separate dividend outflows on WSP's face (to shareholders
+    # AND to non-controlling interests), no combined "total dividends" line to
+    # double-count against -- CashDividendsPaid joins AGGREGATE_KEYS below so
+    # both sum. NOTE: "dividends paid to shareholders" alone is deliberately
+    # NOT added here -- WSP's actual label is "Dividends paid to shareholders
+    # OF WSP GLOBAL INC.", which would have needed prefix salvage (reverted
+    # above as unsafe) to match; a per-company-name alias isn't generalizable,
+    # so that specific ~$162M line is a known, accepted gap rather than a
+    # forced fix.
+    "CashDividendsPaid": ["dividends paid to non-controlling interests"],
+})
+
 # CONTEXT-DEPENDENT aliases: the same label means different things under
 # different sections/zones ("Loans" under Interest income vs under Assets;
 # "Derivatives" on the asset vs liability side). Tried BEFORE bare aliases.
@@ -941,7 +1036,20 @@ COMPOUND_ALIASES: dict[str, dict[str, str]] = {
         "interest expense > other liabilities": "OtherInterestExpense",
         "interest expense > subordinated debentures":
             "InterestExpenseForLongTermDebtAndCapitalSecurities",
-        "net income attributable to > shareholders": "NetIncome",
+        # NOTE: "net income attributable to > shareholders" -> NetIncome was
+        # REMOVED (not just left unmapped). Found via a manual read of RY's
+        # real 2025 statement against the sheet: RY prints a genuine bare
+        # "Net income $20,369" total AND a "Net income attributable to:
+        # Shareholders $20,362 / Non-controlling interests $7" breakdown.
+        # Since compound (rank 4) outranks a bare exact match (rank 3), the
+        # Shareholders-only figure was SILENTLY OVERWRITING the correct total
+        # whenever both existed -- confirmed corpus-wide: 79 ticker-documents
+        # hit this exact collision (BN $1,853M understated to $641M; IFC
+        # $2,310M to $2,297M; CJR.B $224M to $192M) and ZERO ticker-documents
+        # relied on this alias as their only source for NetIncome. Shareholder
+        # attribution is a SUBSET of NetIncome (excludes non-controlling
+        # interests), never equivalent to it -- unlike the EPS/share-count
+        # compounds above, it should never have been allowed to claim the key.
         "net income attributable to > non-controlling interests": "MinorityInterests",
         "loss per share > basic and diluted": "BasicEPS",
         "earnings per share > basic": "BasicEPS",
@@ -1096,6 +1204,21 @@ def build_compound_index(vocab: dict[str, list[str]]) -> dict[str, dict[str, str
 # bare exact, which beats a suffix salvage, which beats fuzzy.
 _KIND_RANK = {"compound": 4, "exact": 3, "suffix": 2, "fuzzy": 1}
 _SUFFIX_MIN_ALIAS_LEN = 12  # only long, distinctive aliases may suffix-match
+
+# NOTE: a symmetric "prefix salvage" (normalized label STARTS WITH a long
+# alias, to catch "Dividends paid to shareholders OF <Company Name>") was
+# tried and REVERTED. Unlike a suffix, a prefix anchor is unsafe at the same
+# length threshold: several canonical keys' auto-humanized names land exactly
+# at/above 12 chars as a single generic word ("depreciation", "amortization")
+# or a short generic phrase ("income taxes"), and those are common PREFIXES of
+# many unrelated, more specific labels -- e.g. "Depreciation of right-of-use
+# asset (note 5)" started prefix-matching the bare "Depreciation" key instead
+# of DepreciationAmortizationDepletion, and "Income taxes payable (note 6)
+# 160,069 177,461 Audit fee..." (a garbled multi-value row) started
+# prefix-matching TaxProvision. Confirmed via a corpus-wide scan (24,561
+# candidate labels) before it ever reached a real remap. If revisited, prefix
+# salvage needs its own, much stricter anchor requirements (e.g. multi-word
+# AND excluding single generic terms) -- not the same threshold as suffix.
 
 
 def match_label_ctx(label: str, section: str | None, zone: str | None,
