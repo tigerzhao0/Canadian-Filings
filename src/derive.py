@@ -275,7 +275,13 @@ def derive_year(vals: dict[tuple[str, str], float], *,
             ocf = get(CF, "OperatingCashFlow")
             if get(CF, "FreeCashFlow") is None and ocf is not None \
                     and get(CF, "CapitalExpenditure") is not None:
-                put(CF, "FreeCashFlow", ocf + get(CF, "CapitalExpenditure"))
+                # capex is ALWAYS an outflow, but filings print it either as a
+                # parenthesized negative or a bare positive magnitude -- and a
+                # directly-mapped CapitalExpenditure keeps the source's sign.
+                # `ocf + capex` silently ADDED capex back for positive-printed
+                # sources (FCF overstated by 2x capex; GuruFocus cross-check
+                # caught FTS/CHR/ADW.A). -abs() is convention-proof.
+                put(CF, "FreeCashFlow", ocf - abs(get(CF, "CapitalExpenditure")))
             elif get(CF, "FreeCashFlow") is None and ocf is not None \
                     and get(CF, "PurchaseOfPPE") is None:
                 put(CF, "FreeCashFlow", ocf)  # no capex reported

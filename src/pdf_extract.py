@@ -168,17 +168,46 @@ def _collapse(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
+# Fallback tier: DOCUMENT-GLOBAL units declarations ("Tabular amounts ... are in
+# millions of Canadian dollars", "amounts expressed in thousands"). Strongly
+# anchored so an incidental "$300 million of notes" can never match -- that
+# looseness is exactly why whole-doc scanning with the bare patterns was
+# reverted (see the RY hazard note below).
+_SCALE_GLOBAL_RES = [
+    (re.compile(r"(?:tabular\s+amounts|all\s+(?:dollar\s+)?amounts|amounts?\s+"
+                r"(?:are|shown|presented|stated|expressed))[^.]{0,60}?in\s+thousands", re.I), 1000.0),
+    (re.compile(r"(?:tabular\s+amounts|all\s+(?:dollar\s+)?amounts|amounts?\s+"
+                r"(?:are|shown|presented|stated|expressed))[^.]{0,60}?in\s+millions", re.I), 1_000_000.0),
+    (re.compile(r"\(\s*(?:in\s+)?thousands\s+of\s+(?:canadian|u\.?s\.?|us)\s+dollars", re.I), 1000.0),
+    (re.compile(r"\(\s*(?:in\s+)?millions\s+of\s+(?:canadian|u\.?s\.?|us)\s+dollars", re.I), 1_000_000.0),
+]
+
+
 def _detect_unit_scale_hint(pages: list[str], primary_pages: list[int]) -> float | None:
     """Units note from the PRIMARY-STATEMENTS span only, most-frequent match wins.
     (Scanning the whole doc was wrong: RY's statements say '(Millions of Canadian
     dollars)' on every statement page, but a distant page mentioning 'thousands'
     made the old first-match logic store 1000 -- a 1000x hazard for any consumer
-    trusting the hint.)"""
+    trusting the hint.)
+
+    FALLBACK (added after the GuruFocus cross-check caught ALA storing revenue
+    12,997 raw dollars): some filers declare units ONCE in a document-global
+    preamble outside the statements span ("Tabular amounts and amounts in
+    footnotes to tables are in millions of Canadian dollars") and print nothing
+    on the statement pages. If the primary span yields no hits, scan the WHOLE
+    document but only with the strongly-anchored global-declaration patterns
+    (_SCALE_GLOBAL_RES) that bare-mention text can't trip."""
     counts = {1000.0: 0, 1_000_000.0: 0}
     for i in primary_pages:
         low = pages[i].lower()
         for rx, mult in _SCALE_HINT_RES:
             counts[mult] += len(rx.findall(low))
+    if any(counts.values()):
+        return max(counts, key=lambda k: counts[k])
+    # fallback: document-global declarations only
+    for page in pages:
+        for rx, mult in _SCALE_GLOBAL_RES:
+            counts[mult] += len(rx.findall(page))
     if not any(counts.values()):
         return None
     return max(counts, key=lambda k: counts[k])

@@ -1016,6 +1016,132 @@ _extend_aliases({
     "CashDividendsPaid": ["dividends paid to non-controlling interests"],
 })
 
+# Aliases confirmed MISSING by the GuruFocus API cross-check (gurufocus_compare.py,
+# 2026-07-24): these labels were extracted from the cash-flow face but mapped to no
+# canonical key, so the metric zero-filled while GuruFocus reported a real value.
+# - The capex labels are the highest-value fix: PurchaseOfPPE was 0 for RY (and
+#   many banks/insurers that say "premises and equipment", not "property, plant and
+#   equipment"), which ALSO overstated Free Cash Flow by exactly the missing capex
+#   (verified: RY 2018 FCF 17,474 - capex 1,980 = GuruFocus's 15,494). Both are
+#   cash-flow / investing lines only, so PurchaseOfPPE (cash-flow-vocab-only) can't
+#   misroute to another statement. GuruFocus treats the same NET acquisitions figure
+#   as Capital Expenditure, so this matches their basis.
+# - "share of profit ... associates/joint ventures" is the equity-method line
+#   (income statement); genuinely unmapped before. EarningsFromEquityInterest is
+#   income-statement-vocab-only. "Impairment of investments in ..." / bare "joint
+#   ventures" don't contain "share of profit" so they can't fuzzy-match this.
+_extend_aliases({
+    "PurchaseOfPPE": ["purchase of equipment", "purchases of equipment",
+                      "acquisition of equipment", "acquisitions of equipment",
+                      "net acquisitions of premises and equipment",
+                      "net acquisitions of premises and equipment and other intangibles",
+                      "acquisitions of premises and equipment"],
+    "EarningsFromEquityInterest": ["share of profit in joint ventures and associates",
+                                   "share of profit in associates",
+                                   "share of profit loss in associates",
+                                   "share of profit in joint ventures",
+                                   "share of profit of associates",
+                                   "share of profit of associates and joint ventures"],
+    # cash-flow add-back "expense"-suffixed variants of the already-mapped
+    # "share based compensation" (StockBasedCompensation is cash-flow-vocab-only, so
+    # the income-statement expense-line occurrence can't misroute here).
+    "StockBasedCompensation": ["share based compensation expense",
+                               "share based payment expense",
+                               "share based payments expense",
+                               "stock based compensation expense"],
+})
+
+# VALUE-CONFIRMED batch from the GuruFocus cross-check miner (mine_aliases.py
+# value_confirmed_mine, 2026-07-25): each alias below matched GuruFocus's actual
+# value for the target key in >=3 distinct companies AND is semantically exact.
+# Rejected despite value matches (coincidence, not semantics): "income tax expense"
+# -> DeferredTax (only equal when a no-current-tax junior's whole tax line IS the
+# deferred piece); "items not affecting cash total" -> OperatingCashFlow (subtotal);
+# "finance costs net" -> NetInterestIncome (the deliberate finance-costs omission
+# stands). Per-statement vocab scoping keeps each key in its own statement.
+_extend_aliases({
+    # the deferred/future income-tax add-back family (CF; "future income taxes" is
+    # the pre-IFRS Canadian term for deferred taxes)
+    "DeferredTax": ["deferred income tax recovery", "deferred income tax expense",
+                    "deferred tax expense recovery", "deferred income tax expense recovery",
+                    "deferred tax expense", "deferred tax recovery",
+                    "future income taxes", "future income tax expense",
+                    "future income tax recovery"],
+    "RepurchaseOfCapitalStock": ["share repurchases", "repurchase of common shares",
+                                 "repurchase of shares"],
+    "NetIntangiblesPurchaseAndSale": ["acquisition of intangible assets",
+                                      "purchase of intangible assets",
+                                      "purchases of intangible assets"],
+    "NetIncomeDiscontinuousOperations": ["net loss from discontinued operations",
+                                         "net income from discontinued operations",
+                                         "net income loss from discontinued operations"],
+    "InterestIncome": ["interest revenue"],
+    "GoodwillAndOtherIntangibleAssets": ["intangible assets and goodwill",
+                                         "goodwill and intangible assets"],
+    "OperatingCashFlow": ["net cash generated from operating activities",
+                          "net cash generated from used in operating activities"],
+    "NetIncome": ["net earnings loss"],
+    "CurrentCapitalLeaseObligation": ["current portion of lease obligations"],
+})
+
+# Round 2 of the value-confirmed batch (2026-07-25). Every entry below was confirmed
+# against GuruFocus's own value in >=2 distinct companies AND is conflict-free (the
+# miner reports when one normalized label value-matches several different keys, which
+# means coincidence rather than semantics). Rejected from this round despite matching
+# values: "income tax expense"->DeferredTax and "items not affecting cash total"->
+# OperatingCashFlow (both heavily conflicted -- a subtotal that happens to equal the
+# target), and "finance costs net" (the standing deliberate omission).
+_extend_aliases({
+    "TotalRevenue": ["metal sales"],                      # producing miners' revenue line
+    "OperatingIncome": ["earnings from operations"],
+    "PreferredStockDividends": ["distributions on preferred shares"],
+    "DepreciationAmortizationDepletion": ["amortization expense"],
+    "CommonStockIssuance": ["private placement", "proceeds from share issuance"],
+    "IssuanceOfDebt": ["increase in long term debt"],
+    "NetOtherFinancingCharges": ["financing fees paid"],
+    "SaleOfPPE": ["proceeds from disposition of property plant and equipment"],
+    "ChangeInPrepaidAssets": ["prepaid expenses and other current assets"],
+    "ChangeInWorkingCapital": ["net changes in non cash balances related to operations",
+                               "net change in non cash operating working capital"],
+    "AssetImpairmentCharge": ["impairment loss on goodwill", "impairment charges"],
+    "PurchaseOfInvestment": ["purchase of marketable securities", "acquisition of investments"],
+    "SaleOfInvestment": ["proceeds from short term investments"],
+    "BeginningCashPosition": ["cash at beginning of the year"],
+    "EndCashPosition": ["cash at end of the year"],
+    "StockBasedCompensation": ["stock option expense"],
+    "NetIncomeFromContinuingOperations": ["net loss from continuing operations"],
+    "PurchaseOfBusiness": ["acquisition of business"],
+})
+
+# Round 3 -- corpus-wide breadth mining (2026-07-25), min 30 companies, hand-vetted
+# (the miner's FUZZY suggestion is only a hint; several were textually close but
+# semantically WRONG and are corrected below, not followed blindly):
+#   "proceeds from sale of ..." fuzzy-suggested PurchaseOfInvestment (opposite
+#     direction of cash flow -- a sale is a source of cash, not a use);
+#   "shares issued for cash" fuzzy-suggested NetOtherFinancingCharges instead of
+#     the actual proceeds-from-issuance key;
+#   "accretion expense" fuzzy-suggested DepreciationAmortizationDepletion, but
+#     accretion (of an asset-retirement/decommissioning provision) is a discount-
+#     unwind, not depreciation -- routed to the OtherNonCashItems add-back instead.
+# "office expenses"/"directors fees" sum into SG&A (AGGREGATE_KEYS-eligible, so a
+# company with BOTH a fee line and a broader SG&A line gets both, not one clobbering
+# the other). "income tax recovery" is the loss-year alternate label for the same
+# tax line "income tax expense" already covers (TaxProvision, single -- not an
+# AGGREGATE_KEYS member, so this is an alternate label, not a component to sum).
+_extend_aliases({
+    "NetIncomeFromContinuingOperations": ["net income loss"],
+    "TaxProvision": ["income tax recovery", "income tax recovery expense",
+                     "income tax expense recovery"],
+    "NetIncomeContinuousOperations": ["net loss from continuing operations"],
+    "SellingGeneralAndAdministration": ["office expenses", "directors fees",
+                                        "director fees"],
+    "SaleOfInvestment": ["proceeds from sale of marketable securities",
+                         "proceeds from sale of investments"],
+    "CommonStockIssuance": ["shares issued for cash"],
+    "OtherNonCashItems": ["accretion expense", "accretion"],
+    "ChangeInReceivables": ["gst receivable", "gst recoverable", "hst receivable"],
+})
+
 # CONTEXT-DEPENDENT aliases: the same label means different things under
 # different sections/zones ("Loans" under Interest income vs under Assets;
 # "Derivatives" on the asset vs liability side). Tried BEFORE bare aliases.
@@ -1126,6 +1252,12 @@ COMPOUND_ALIASES: dict[str, dict[str, str]] = {
         "non-current liabilities > credit facilities": "LongTermDebt",
         "current liabilities > current portion of lease liabilities": "CurrentCapitalLeaseObligation",
         "non-current liabilities > lease liabilities": "LongTermCapitalLeaseObligation",
+        # bare "lease liabilities/obligations" printed under BOTH sections with the
+        # identical label (334+312 companies unmapped, GuruFocus-value-confirmed) --
+        # the section is the only disambiguator, exactly the credit-facilities case.
+        "current liabilities > lease liabilities": "CurrentCapitalLeaseObligation",
+        "current liabilities > lease obligations": "CurrentCapitalLeaseObligation",
+        "non-current liabilities > lease obligations": "LongTermCapitalLeaseObligation",
     },
     "cash_flow": {},
 }

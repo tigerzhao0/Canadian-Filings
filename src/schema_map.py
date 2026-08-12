@@ -317,8 +317,36 @@ def _match_cached(label, section, zone, statement_type):
                            _WORKER_ALIAS_INDEX, _WORKER_COMPOUND_INDEX)
 
 
+def _load_note_values(src_db: str, tickers: set[str] | None) -> dict[str, dict]:
+    """Values recovered from the NOTES by note_extract.py (table raw_note_items).
+    -> {ticker: {(col_year, statement, canonical_key): scaled_value}}.
+
+    These are a strict GAP-FILLER: the notes are where GuruFocus/Morningstar source
+    GrossPPE, AccumulatedDepreciation, the AP/accrued split and the receivables
+    breakdown, none of which appear on the statement face. Newest source PDF wins,
+    mirroring the face merge."""
+    out: dict[str, dict] = {}
+    conn = sqlite3.connect(src_db)
+    try:
+        rows = conn.execute(
+            "SELECT ticker, pdf_year, target_statement, canonical_key, col_year, "
+            "value_printed, unit_scale FROM raw_note_items "
+            "WHERE value_printed IS NOT NULL ORDER BY pdf_year ASC").fetchall()
+    except sqlite3.OperationalError:
+        return out                      # table absent -> notes stage not run yet
+    finally:
+        conn.close()
+    for tk, _py, stmt, key, cy, val, scale in rows:
+        if tickers and tk not in tickers:
+            continue
+        # ascending pdf_year means a newer filing's restated figure overwrites
+        out.setdefault(tk, {})[(cy, stmt, key)] = val * (scale or 1.0)
+    return out
+
+
 def _process_ticker(ticker: str, by_pdf: dict, hints: dict, already: set,
-                    identity_entry: dict, is_new_company: bool) -> dict:
+                    identity_entry: dict, is_new_company: bool,
+                    note_vals: dict | None = None) -> dict:
     # compound_index is read directly by _match_cached from the process
     # globals; only alias_index is still needed locally (for _reroute_statement).
     alias_index = _WORKER_ALIAS_INDEX
@@ -519,6 +547,24 @@ def _process_ticker(ticker: str, by_pdf: dict, hints: dict, already: set,
                                      currency=latest_currency,
                                      primary_source="cse_pdf_extract"))
 
+    # ---- NOTES gap-filler (see note_extract.py) --------------------------------
+    # Runs AFTER the whole face merge and BEFORE derive/zero-fill, and fills a slot
+    # ONLY when the face left it empty. Three properties make this safe:
+    #  1. `slot not in picked` bypasses the AGGREGATE_KEYS summation branch entirely,
+    #     so a notes figure can never be added on top of a face figure (several
+    #     notes-adjacent keys -- NetPPE, OtherReceivables, ChangeInReceivables -- are
+    #     in AGGREGATE_KEYS and WOULD silently double-count otherwise);
+    #  2. rank 0 is below every real match kind, so even if ordering changed later a
+    #     notes value could not outrank the face;
+    #  3. landing before zero_fill means the slot isn't already claimed by a 0.0.
+    # Ordering also lets notes values feed the identity solvers (GrossPPE +
+    # AccumulatedDepreciation -> NetPPE in derive.py).
+    for (cy, stmt, key), val in (note_vals or {}).items():
+        slot = (ticker, cy, stmt, key)
+        if slot not in picked:
+            picked[slot] = (val, 0, 0.50)
+            prov[slot] = "from_notes"
+
     # Synonym fanout FIRST (known-equivalent data), before derive/zero-fill:
     # fanning CapitalStock -> CommonStock etc. must win the slot before
     # zero-fill's "we truly found nothing" fallback claims it -- zero-fill
@@ -652,6 +698,8 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
     hints_by_ticker: dict[str, dict] = {}
     for key in hints:
         hints_by_ticker.setdefault(key[0], {})[key] = hints[key]
+    # notes-sourced values (optional enrichment -- empty when the stage hasn't run)
+    note_vals_by_ticker = _load_note_values(src_db, tickers)
 
     company_rows: list[dict] = []
     year_rows: list[dict] = []
@@ -678,7 +726,8 @@ def run_schema_mapping(cfg, *, force: bool = False, limit: int | None = None,
             pool.submit(_process_ticker, ticker, by_pdf,
                        hints_by_ticker.get(ticker, {}),
                        already_by_ticker.get(ticker, set()),
-                       identity.get(ticker, {}), ticker not in prior_tickers)
+                       identity.get(ticker, {}), ticker not in prior_tickers,
+                       note_vals_by_ticker.get(ticker, {}))
             for ticker, by_pdf in grouped.items()
         ]
         for fut in as_completed(futures):

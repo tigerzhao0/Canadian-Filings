@@ -197,6 +197,21 @@ tmx_financials:
   # error). Raising this deepens history but grows financials.db proportionally.
   num_years: 20
 
+# GuruFocus API comparison (src/gurufocus_compare.py) -- a QA/validation tool that
+# diffs our PDF-extracted numbers against GuruFocus's fundamentals. The api_token is
+# resolved config-first, then the GURUFOCUS_API_TOKEN env var (same pattern as the
+# Google-CSE key above). Leave api_token blank here and set it in your git-ignored
+# config.yaml (or the env var) so the real token never commits. Each call is a PAID
+# request, so responses are cached under cache_dir and reused across runs
+# (--from-cache replays the cache with no network calls at all).
+gurufocus:
+  api_token: ""                       # or export GURUFOCUS_API_TOKEN
+  # Token goes in the URL PATH: /public/user/{token}/stock/{EXCH:SYM}/financials
+  base_url: "https://api.gurufocus.com/public/user"
+  cache_dir: "output/gurufocus_cache"
+  timeout_seconds: 20
+  tolerance_pct: 2.0                  # a metric within this %% of GuruFocus counts as a match
+
 storage:
   # SQLite database file (created if missing).
   db_path: "output/filings.db"

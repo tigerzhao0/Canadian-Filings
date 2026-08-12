@@ -1,0 +1,811 @@
+statement_type,normalized_label,n_tickers,n_lines,example_raw_label,section,suggested_key,fuzzy_ratio,gf_confirms_key_fillable
+income_statement,share based compensation,954,4880,Share based compensation 4,Expenses,SellingGeneralAndAdministration,0.64,yes
+balance_sheet,warrants,382,2624,Warrants (Note 9),SHAREHOLDERS' EQUITY,AdditionalPaidInCapital,0.667,yes
+cash_flow,net income loss,309,974,Net income (loss),Operating activities,NetIncomeFromContinuingOperations,0.8,yes
+income_statement,deferred income tax recovery,270,821,Deferred income tax recovery (notes 6 and 10),Expenses,TaxProvision,0.691,yes
+income_statement,comprehensive loss,264,1206,COMPREHENSIVE LOSS $,OTHER COMPREHENSIVE (INCOME) LOSS,NetIncome,0.735,yes
+income_statement,finance costs,259,1920,Finance costs 11 $,ALLIED GOLD,InterestExpenseNonOperating,0.867,yes
+cash_flow,interest income,258,1317,Interest income,Adjusted for,NetIncomeFromContinuingOperations,0.8,yes
+cash_flow,foreign exchange,223,800,Foreign exchange,Non-cash items,EffectOfExchangeRateChanges,0.681,yes
+income_statement,weighted average number of shares outstanding basic and diluted,211,1212,Weighted average number of shares outstanding – basic and diluted,Weighted average number of shares outsta,DilutedAverageShares,0.862,yes
+cash_flow,gst receivable,204,933,GST receivable,Net change in non-cash working capital i,ChangeInReceivables,0.8,yes
+cash_flow,proceeds from sale of marketable securities,187,654,Proceeds from sale of marketable securities,Investing,PurchaseOfInvestment,0.789,yes
+income_statement,directors fees,186,1044,Directors' fees,Expenses,SellingGeneralAndAdministration,0.69,yes
+cash_flow,accretion expense,184,606,Accretion expense,Items not affected by cash,DepreciationAmortizationDepletion,0.757,yes
+cash_flow,other income,184,453,Other income,Items not affecting cash,NetIncomeFromContinuingOperations,0.727,yes
+income_statement,income tax recovery,181,473,Income tax recovery (note 12a),Expenses,TaxProvision,0.826,yes
+income_statement,total comprehensive loss,181,956,Total comprehensive loss $,Cash-flow hedges,NetIncome,0.8,yes
+balance_sheet,share based compensation,170,658,Share-based compensation (Note 6f)),Expenses,AdditionalPaidInCapital,0.627,yes
+cash_flow,shares issued for cash,169,608,Shares issued for cash,FINANCING ACTIVITIES,NetOtherFinancingCharges,0.718,yes
+income_statement,finance expense,162,1013,Finance expense,Operating Expenses,InterestExpenseNonOperating,0.882,yes
+income_statement,transaction costs,158,576,Transaction costs,Expenses,InterestExpenseNonOperating,0.667,yes
+cash_flow,finance costs,158,974,Finance costs,Adjustments for,NetOtherFinancingCharges,0.667,yes
+cash_flow,foreign exchange loss,157,360,Foreign exchange loss,Items not affecting cash,EffectOfExchangeRateChanges,0.731,yes
+cash_flow,accrued interest,153,441,Accrued interest,Adjustments for non-cash items,ChangeInPayablesAndAccruedExpense,0.686,yes
+balance_sheet,other long term liabilities,139,1016,Other long-term liabilities 16,Non-current liabilities,TotalNonCurrentLiabilities,0.889,yes
+cash_flow,foreign exchange loss gain,139,363,Foreign exchange loss (gain),Items not affecting cash,EffectOfExchangeRateChanges,0.667,yes
+cash_flow,proceeds from private placements,136,467,Proceeds from private placements,Cash flows from financing activities,SaleOfInvestment,0.706,yes
+income_statement,comprehensive income,135,733,Comprehensive income $,Other comprehensive income (loss): unrea,NetIncome,0.727,yes
+income_statement,income tax recovery expense,128,376,Income tax recovery (expense) 22,Income (loss) before taxes and non-contr,TaxProvision,0.8,yes
+cash_flow,listing expense,125,149,Listing expense,Items not involving cash,StockBasedCompensation,0.686,yes
+cash_flow,repayment of lease liabilities,125,629,Repayment of lease liabilities 20,Financing activities,RepaymentOfDebt,0.681,yes
+income_statement,other comprehensive income,124,449,Other comprehensive income,Operating expenses,NetIncome,0.754,yes
+cash_flow,unrealized foreign exchange,124,478,Unrealized foreign exchange,Unrealized gain on Simmer & Jack,EffectOfExchangeRateChanges,0.623,yes
+income_statement,future income tax recovery,121,249,Future income tax recovery (Note 10),General And Administrative Expenses,TaxProvision,0.717,yes
+income_statement,comprehensive income loss,118,359,COMPREHENSIVE (INCOME) LOSS $,currency,NetIncome,0.714,yes
+cash_flow,proceeds from sale of investments,111,487,Proceeds from sale of investments 4,Purchase of long-term investments       ,SaleOfInvestment,0.812,yes
+cash_flow,shares issued for services,111,173,Shares issued for services,Items not involving cash,NetOtherFinancingCharges,0.698,yes
+income_statement,net loss from continuing operations,110,378,Net loss from continuing operations,Loss on settlement of,NetIncomeContinuousOperations,0.909,yes
+income_statement,deferred income tax recovery expense,110,290,"Deferred income tax recovery (expense) 11, 12",Share based compensation                ,TaxProvision,0.667,yes
+income_statement,other comprehensive loss,107,320,Other comprehensive loss,Other comprehensive loss,NetIncome,0.727,yes
+income_statement,office expenses,103,572,Office expenses,EXPENSES,OtherIncomeExpense,0.714,yes
+income_statement,total comprehensive income,102,632,Total comprehensive income $,Foreign currency translation differences,NetIncome,0.787,yes
+cash_flow,impairment,102,319,Impairment,Adjustments for items not involving cash,AssetImpairmentCharge,0.714,yes
+income_statement,other comprehensive income loss,101,332,Other comprehensive income (loss),Other comprehensive income (loss),NetIncome,0.737,yes
+cash_flow,finance expense,101,533,Finance expense,Non-cash items,RepaymentOfDebt,0.703,yes
+income_statement,director fees,100,403,Director fees,OTHER OPERATING EXPENSES,SellingGeneralAndAdministration,0.714,yes
+income_statement,shareholders of the company,100,802,Shareholders of the Company $,(Loss) earnings attributable to,SellingGeneralAndAdministration,0.642,yes
+cash_flow,loss on disposal of equipment,94,192,Loss on disposal of equipment,Adjustments for non-cash items,SaleOfPPE,0.72,yes
+cash_flow,financing costs,94,435,Financing costs (note 8a(iii)),Items not affecting cash,FinancingCashFlow,0.706,yes
+cash_flow,net loss income,93,211,Net (loss) income $,Operating activities,NetIncomeFromContinuingOperations,0.8,yes
+income_statement,total comprehensive income loss,93,291,Total comprehensive income (loss) $,Foreign currency translation differences,NetIncome,0.763,yes
+balance_sheet,interest expense,93,319,Interest expense,Expenses,OtherReceivables,0.686,yes
+balance_sheet,depreciation,93,321,Depreciation 4,Expenses,AccumulatedDepreciation,0.667,yes
+balance_sheet,share based payments,92,357,"Share-based payments - Note 12 2,523,681",Reserves,AdditionalPaidInCapital,0.851,yes
+cash_flow,financing total,91,441,Financing total,Financing,FinancingCashFlow,0.732,yes
+income_statement,other income expense total,88,422,Other income (expense) total,Other income (expense),OtherIncomeExpense,0.87,yes
+income_statement,loss before taxes,87,345,Loss before taxes,Expenses,PretaxIncome,0.829,yes
+cash_flow,loss on sale of marketable securities,83,147,Loss on sale of marketable securities,Items not involving cash,PurchaseOfInvestment,0.771,yes
+cash_flow,repayment of loan payable,83,195,Repayment of loan payable 6,Financing activities,RepaymentOfDebt,0.692,yes
+balance_sheet,equity reserves,82,683,"Equity reserves (Notes 9, 10, and 11)",Shareholders’ equity,AdditionalPaidInCapital,0.696,yes
+cash_flow,proceeds on sale of marketable securities,81,284,Proceeds on sale of marketable securities,INVESTING ACTIVITIES,PurchaseOfInvestment,0.811,yes
+cash_flow,bad debt expense,81,168,Bad debt expense,Items not affecting cash,StockBasedCompensation,0.651,yes
+cash_flow,gain on sale of marketable securities,80,176,Gain on sale of marketable securities,Items not affecting cash,PurchaseOfInvestment,0.8,yes
+cash_flow,impairment of goodwill,79,134,Impairment of goodwill,Add (deduct) items not requiring cash,AssetImpairmentCharge,0.857,yes
+income_statement,administration,79,591,Administration 17,Expenses,SellingGeneralAndAdministration,0.848,yes
+cash_flow,loss on disposal of property plant and equipment,78,226,"Loss on disposal of property, plant and equipment",Adjustments for,SaleOfPPE,0.851,yes
+cash_flow,impairment of intangible assets,78,140,Impairment of intangible assets (Note 24),Operating activities,NetIntangiblesPurchaseAndSale,0.8,yes
+cash_flow,sales tax receivable,78,373,Sales tax receivable,Changes in non-cash working capital,ChangeInReceivables,0.683,yes
+cash_flow,proceeds from sale of equipment,77,167,Proceeds from sale of equipment,Investing activities,SaleOfPPE,0.759,yes
+balance_sheet,net loss and comprehensive loss,77,416,Net loss and comprehensive loss,Operating expenses,GainsLossesNotAffectingRetainedEarnings,0.627,yes
+cash_flow,loan receivable,76,166,Loan receivable,Investing activities,ChangeInReceivables,0.788,yes
+cash_flow,repayment of lease liability,75,323,Repayment of lease liability,Cashflows from financing activities,RepaymentOfDebt,0.711,yes
+income_statement,business development,74,352,Business development,Expenses,ResearchAndDevelopment,0.636,yes
+income_statement,operating,73,517,Operating,Expenses,OperatingIncome,0.783,yes
+cash_flow,impairment loss,72,160,Impairment loss (note 23),Add (deduct) items not affecting cash,AssetImpairmentCharge,0.727,yes
+cash_flow,net earnings loss,71,247,Net earnings (loss) $,Operating activities,NetIncomeFromContinuingOperations,0.828,yes
+income_statement,regulatory and filing fees,71,472,Regulatory and filing fees,Expenses,SellingGeneralAndAdministration,0.732,yes
+cash_flow,loan payable,71,157,Loan payable,Cash flows from financing activities,ChangeInPayablesAndAccruedExpense,0.714,yes
+income_statement,total other items,71,292,Total other items,OTHER ITEMS,OtherIncomeExpense,0.698,yes
+cash_flow,options exercised,71,240,Options exercised (note 11),FINANCING ACTIVITIES,StockBasedCompensation,0.649,yes
+income_statement,financing costs,70,417,Financing costs (note 8a(iii)),Expenses,InterestExpenseNonOperating,0.882,yes
+balance_sheet,gross profit,70,265,Gross profit,Subsequent Events,GrossPPE,0.667,yes
+cash_flow,payment of lease liabilities,70,313,Payment of lease liabilities 4,Financing,RepaymentOfDebt,0.622,yes
+cash_flow,impairment of property plant and equipment,68,142,"Impairment of property, plant and equipment 11",Adjustments for non-cash items,PurchaseOfPPE,0.854,yes
+income_statement,other expense income,68,210,Other expense (income) (note 9a),Costs and expenses,OtherIncomeExpense,0.788,yes
+cash_flow,gain on sale of equipment,68,138,Gain on sale of equipment,Items not affecting cash,PurchaseOfPPE,0.72,yes
+cash_flow,shares issued for debt settlement,68,115,Shares issued for debt settlement,FINANCING ACTIVITIES,NetOtherFinancingCharges,0.6,yes
+income_statement,loss from continuing operations,67,252,Loss from continuing operations,Finance items,NetIncomeContinuousOperations,0.875,yes
+cash_flow,stock options exercised,67,194,Stock options exercised,Financing activities,StockBasedCompensation,0.837,yes
+balance_sheet,gst recoverable,66,275,GST recoverable,CURRENT,OtherReceivables,0.828,yes
+income_statement,comprehensive income for the year,66,231,Comprehensive income for the year,Other comprehensive (loss) income,NetIncome,0.767,yes
+income_statement,salaries,65,316,Salaries,EXPENSES,TotalRevenue,0.769,yes
+cash_flow,loan repayment,64,125,Loan repayment,Financing activities,RepaymentOfDebt,0.714,yes
+cash_flow,equipment,64,163,Equipment $,Deferred tax assets are attributable to ,PurchaseOfPPE,0.6,yes
+cash_flow,gst recoverable,63,293,GST recoverable,Changes in non-cash working capital acco,ChangeInReceivables,0.625,yes
+balance_sheet,depreciation and amortization,62,240,"Depreciation and amortization 9, 12",Expense,AccumulatedDepreciation,0.829,yes
+income_statement,income taxes total,62,255,Income taxes total,Income taxes,TaxProvision,0.8,yes
+balance_sheet,exploration advances,62,209,Exploration advances (Note 6),Current Assets,NetPPE,0.717,yes
+cash_flow,non controlling interest,62,188,Non-controlling interest,Adjustments to reconcile to net cash fro,CashDividendsPaid,0.716,yes
+income_statement,impairment of property plant and equipment,61,141,"Impairment of property, plant and equipment 11, 12",Other Income (expense),DepreciationAmortizationDepletion,0.837,yes
+cash_flow,repayment of convertible debentures,61,124,Repayment of convertible debentures,Expenses related to the issuance of conv,RepaymentOfDebt,0.71,yes
+income_statement,weighted average shares outstanding basic and diluted,60,327,"Weighted average shares outstanding – basic and diluted 25,054,774",Weighted average shares outstanding – ba,DilutedAverageShares,0.896,yes
+balance_sheet,share subscriptions receivable,60,135,Share subscriptions receivable (Note 7),Shareholders’ equity,OtherReceivables,0.64,yes
+income_statement,deficit beginning of the year,60,174,"Deficit, beginning of the year",Expenses,NetIncome,0.615,yes
+income_statement,net loss attributable to total,60,240,Net loss attributable to total,Net loss attributable to,NetIncome,0.605,yes
+cash_flow,shares issued for debt,59,108,Shares issued for debt $,Supplemental disclosure,NetOtherFinancingCharges,0.718,yes
+cash_flow,exploration advances,59,192,Exploration advances,INVESTING ACTIVITIES,NetOtherInvestingChanges,0.717,yes
+income_statement,deficit end of the year,59,165,"Deficit, end of the year",Expenses,NetIncome,0.667,yes
+balance_sheet,plant and equipment,58,392,Plant and Equipment 8,Current,NetPPE,0.809,yes
+cash_flow,finance income,58,239,Finance income,Adjustments for,NetIncomeFromContinuingOperations,0.75,yes
+cash_flow,gain on disposal of equipment,58,107,Gain on disposal of equipment,Adjustments for,PurchaseOfPPE,0.667,yes
+income_statement,corporate development,58,300,Corporate development,Expenses,ResearchAndDevelopment,0.622,yes
+cash_flow,amortization of property and equipment,57,301,Amortization of property and equipment,Items not affecting cash,DepreciationAmortizationDepletion,0.868,yes
+cash_flow,decrease increase in receivables,57,187,Decrease (Increase) in receivables,Changes in non-cash working capital item,ChangeInReceivables,0.861,yes
+balance_sheet,intangible assets net,56,331,"Intangible assets, net (note 9)",Current assets,OtherIntangibleAssets,0.895,yes
+income_statement,interest income expense,56,113,Interest income (expense),Other items,OtherIncomeExpense,0.837,yes
+cash_flow,increase in receivables,56,139,Increase in receivables,Changes in non-cash working capital item,ChangeInReceivables,0.773,yes
+cash_flow,acquisitions,56,236,Acquisitions 5,Cash flows from investing activities,PurchaseOfBusiness,0.686,yes
+balance_sheet,cost of sales,55,202,Cost of sales,Subsequent Events,CommonStock,0.615,yes
+cash_flow,bank indebtedness,54,236,Bank indebtedness,Financing activities,RepaymentOfDebt,0.714,yes
+cash_flow,adjustments for non cash items total,54,297,Adjustments for non-cash items total,Adjustments for non-cash items,ChangeInWorkingCapital,0.649,yes
+cash_flow,proceeds from sale of property plant and equipment,53,195,"Proceeds from sale of property, plant and equipment",Investing activities,SaleOfPPE,0.879,yes
+cash_flow,purchase of capital assets,53,183,Purchase of capital assets,Investing,NetIntangiblesPurchaseAndSale,0.836,yes
+balance_sheet,other comprehensive income,53,184,Other comprehensive income,Accumulated other comprehensive income (,GainsLossesNotAffectingRetainedEarnings,0.812,yes
+cash_flow,gain on disposal of property and equipment,52,119,Gain on disposal of property and equipment,Items not involving cash,SaleOfPPE,0.864,yes
+cash_flow,gain on disposal of property plant and equipment,52,168,"Gain on disposal of property, plant and equipment",Items not involving cash,SaleOfPPE,0.809,yes
+income_statement,shareholder information,52,350,Shareholder information,GENERAL AND ADMINISTRATIVE EXPENSES,SellingGeneralAndAdministration,0.735,yes
+balance_sheet,subscription receivable,52,80,Subscription receivable,Current Assets,OtherReceivables,0.703,yes
+balance_sheet,equity reserve,52,393,Equity reserve 12,SHAREHOLDERS' EQUITY,GainsLossesNotAffectingRetainedEarnings,0.69,yes
+cash_flow,net change in non cash working capital items,51,341,Net change in non-cash working capital items 27,Adjustments for,ChangeInWorkingCapital,0.909,yes
+cash_flow,amortization of property plant and equipment,51,246,"Amortization of property, plant and equipment",Items not involving cash:               ,DepreciationAmortizationDepletion,0.886,yes
+cash_flow,property plant and equipment,51,290,"Property, plant and equipment",Investing activities,PurchaseOfPPE,0.824,yes
+cash_flow,impairment of property and equipment,50,120,Impairment of property and equipment,Items not involving cash,PurchaseOfPPE,0.829,yes
+balance_sheet,taxes payable,50,233,Taxes payable,Current liabilities,AccountsPayable,0.815,yes
+balance_sheet,total shareholders equity and liabilities,50,354,"Total shareholders’ equity and liabilities $ 99,034 $",Shareholders’ equity/Unitholders’ defici,TotalEquityGrossMinorityInterest,0.812,yes
+cash_flow,dividends,50,340,Dividends (note 30),Debt,CashDividendsPaid,0.783,yes
+income_statement,total comprehensive income for the year,49,245,Total comprehensive income for the year $,tax,NetIncome,0.785,yes
+income_statement,loss before the following,49,256,Loss before the following,EXPENSES,OperatingIncome,0.708,yes
+cash_flow,write off of equipment,49,76,Write-off of equipment (note 5),Non-cash adjustments,PurchaseOfPPE,0.698,yes
+cash_flow,loans received,49,129,Loans received,Financing Activities,ChangeInReceivables,0.688,yes
+income_statement,deferred tax expense,49,124,Deferred tax expense 15,Other income (expenses),TaxProvision,0.684,yes
+income_statement,other comprehensive income loss total,49,205,Other comprehensive income (loss) total,Other comprehensive income (loss),NetIncome,0.683,yes
+income_statement,audit fees,49,285,Audit fees,Expenses,SellingGeneralAndAdministration,0.621,yes
+balance_sheet,promissory notes,49,183,Promissory notes (note 8),Current liabilities,MinorityInterest,0.606,yes
+cash_flow,prepaid expenses and other assets,48,281,Prepaid expenses and other assets,Add (deduct) items not involving cash,ChangeInPrepaidAssets,0.892,yes
+income_statement,finance cost,48,259,Finance cost,Revenues,InterestExpenseNonOperating,0.828,yes
+income_statement,loss before tax,48,186,Loss before tax,Operating expenses,PretaxIncome,0.769,yes
+cash_flow,depreciation expense,48,216,Depreciation expense 9,Add (deduct) items not requiring cash,DepreciationAmortizationDepletion,0.75,yes
+cash_flow,proceeds from convertible debentures,48,71,Proceeds from convertible debentures,Financing activities,IssuanceOfDebt,0.719,yes
+balance_sheet,sales tax recoverable,47,217,Sales tax recoverable,Current assets,OtherReceivables,0.878,yes
+income_statement,total other expenses,47,153,Total other expenses,Other (expenses) income,OtherIncomeExpense,0.851,yes
+income_statement,net loss before tax,47,153,Net loss before tax,Other items,PretaxIncome,0.837,yes
+cash_flow,gain on sale of property plant and equipment,47,127,"Gain on sale of property, plant and equipment 20",Add (deduct) items not requiring cash,PurchaseOfPPE,0.833,yes
+income_statement,deferred tax expense recovery,47,108,Deferred tax (expense) recovery 19,Operating expenses,TaxProvision,0.786,yes
+income_statement,office and sundry,47,367,Office and sundry,Expenses,SellingGeneralAndAdministration,0.743,yes
+cash_flow,repayment of lease obligations,47,228,Repayment of lease obligations,Financing activities,RepaymentOfDebt,0.681,yes
+cash_flow,mineral property expenditures,47,271,Mineral property expenditures,Investing activities,CapitalExpenditure,0.653,yes
+balance_sheet,exploration and evaluation,46,269,"Exploration and evaluation (note 6) 10,332,831",Non-current,NetPPE,0.881,yes
+income_statement,income tax expense total,46,210,Income tax expense total,Income tax expense,TaxProvision,0.857,yes
+income_statement,finance expenses,46,278,Finance expenses 14,Expenses,InterestExpenseNonOperating,0.857,yes
+income_statement,impairment of property and equipment,46,98,Impairment of property and equipment (note 8),Expenses,DepreciationAmortizationDepletion,0.811,yes
+balance_sheet,goods and services tax receivable,46,170,Goods and services tax receivable 8,Current assets,OtherReceivables,0.717,yes
+income_statement,other comprehensive loss income,46,123,Other comprehensive (loss) income,Other comprehensive income,NetIncome,0.697,yes
+cash_flow,business acquisitions,46,220,Business acquisitions (note 7),Investing activities,PurchaseOfBusiness,0.667,yes
+cash_flow,changes in non cash operating working capital total,45,237,Changes in non-cash operating working capital total,Changes in non-cash operating working ca,ChangeInWorkingCapital,0.891,yes
+cash_flow,impairment of exploration and evaluation asset,45,82,Impairment of exploration and evaluation asset,Adjustments for,NetOtherInvestingChanges,0.81,yes
+cash_flow,hst receivable,45,143,HST receivable,Changes in non-cash working capital,ChangeInReceivables,0.8,yes
+cash_flow,loan repayments,45,117,Loan repayments,Financing activities,RepaymentOfDebt,0.759,yes
+income_statement,income total,45,191,Income total,Income,TaxProvision,0.75,yes
+cash_flow,interest income received,45,260,Interest income received,Cash flows used in investing activities,NetIncomeFromContinuingOperations,0.653,yes
+income_statement,shareholders,45,421,Shareholders $,Net Loss (Income) Attributed to,SellingGeneralAndAdministration,0.632,yes
+income_statement,net loss before income tax,44,172,Net loss before income tax $,ALLIED GOLD,PretaxIncome,0.88,yes
+cash_flow,gain on sale of property and equipment,44,96,Gain on sale of property and equipment,Adjustments for items not affecting cash,PurchaseOfPPE,0.806,yes
+cash_flow,accrued interest expense,44,158,Accrued interest expense,Adjustments for non-cash items,StockBasedCompensation,0.615,yes
+income_statement,loss on disposal of property and equipment,43,80,Loss on disposal of property and equipment,Other expenses,DepreciationAmortizationDepletion,0.7,yes
+cash_flow,impairment of assets,43,125,Impairment of assets - 38,OPERATING EXPENSES,AssetImpairmentCharge,0.684,yes
+cash_flow,repayment of promissory notes,43,73,Repayment of promissory notes,Cash flows from financing activities,RepaymentOfDebt,0.609,yes
+cash_flow,proceeds on sale of property plant and equipment,42,242,"Proceeds on sale of property, plant and equipment",Investing activities,SaleOfPPE,0.872,yes
+cash_flow,issuance costs,42,133,Issuance costs,FINANCING ACTIVITIES,NetOtherFinancingCharges,0.824,yes
+cash_flow,decrease in receivables,42,123,Decrease in receivables,Changes in non-cash working capital item,ChangeInReceivables,0.818,yes
+income_statement,cost of sales total,42,224,COST OF SALES total,COST OF SALES,CostOfRevenue,0.812,yes
+cash_flow,loss on marketable securities,42,84,Loss on marketable securities,adjustment,PurchaseOfInvestment,0.806,yes
+income_statement,gain on disposal of property plant and equipment,42,100,"Gain on disposal of property, plant and equipment","Selling, general and administrative expe",DepreciationAmortizationDepletion,0.783,yes
+income_statement,listing fees,42,115,Listing fees,Expenses,SellingGeneralAndAdministration,0.783,yes
+balance_sheet,long term lease liabilities,42,193,Long-term lease liabilities (Note 25),Current liabilities,TotalNonCurrentLiabilities,0.778,yes
+cash_flow,issuance of long term debt,42,201,Issuance of long-term debt,Financing activities,IssuanceOfDebt,0.769,yes
+cash_flow,loans payable,42,116,Loans payable 8,Cash flows from financing activities,ChangeInPayablesAndAccruedExpense,0.759,yes
+cash_flow,proceeds on sale of equipment,42,104,Proceeds on sale of equipment,INVESTING ACTIVITIES,SaleOfPPE,0.747,yes
+cash_flow,amortization of right of use assets,41,162,Amortization of right-of-use assets (note 10),Items not involving cash,DepreciationAmortizationDepletion,0.857,yes
+cash_flow,taxes receivable,41,236,Taxes receivable,Changes in non-cash operating working ca,ChangeInReceivables,0.788,yes
+cash_flow,interest receivable,41,126,Interest receivable,Changes in non-cash working capital acco,ChangeInReceivables,0.778,yes
+income_statement,loss before the undernoted,41,231,Loss before the undernoted,General and Administrative Expenses,NetIncome,0.756,yes
+cash_flow,proceeds on sale of investments,41,147,Proceeds on sale of investments (Note 5),INVESTING ACTIVITIES,SaleOfInvestment,0.746,yes
+income_statement,write off of equipment,41,61,Write-off of equipment (note 5),"Selling, general and administrative expe",DepreciationAmortizationDepletion,0.6,yes
+cash_flow,net cash generated from financing activities,40,203,Net cash generated from financing activities $,Financing activities,OperatingCashFlow,0.886,yes
+cash_flow,net earnings for the year,40,228,Net earnings for the year $,Operating activities,NetIncomeFromContinuingOperations,0.792,yes
+income_statement,total assets,40,124,"Total Assets 46,890","($ millions, except ratios and share amo",TotalRevenue,0.696,yes
+cash_flow,subscriptions receivable,40,67,Subscriptions receivable $,SUPPLEMENTAL CASH FLOW DISCLOSURES,ChangeInReceivables,0.667,yes
+balance_sheet,convertible debt,40,107,"Convertible debt 20, 23, 22",Current liabilities,LongTermDebt,0.6,yes
+balance_sheet,exploration and evaluation properties,39,284,Exploration and evaluation properties (note 7),Current,NetPPE,0.857,yes
+cash_flow,prepaid expenses and advances,39,280,Prepaid expenses and advances,Changes in non-cash working capital item,ChangeInPrepaidAssets,0.828,yes
+balance_sheet,hst recoverable,39,94,HST recoverable,Current assets,OtherReceivables,0.828,yes
+cash_flow,gain on sale of investments,39,88,Gain on sale of investments,Items not affecting cash,SaleOfInvestment,0.8,yes
+income_statement,comprehensive loss income for the year,39,99,Comprehensive (loss) income for the year,Other comprehensive loss,NetIncome,0.795,yes
+income_statement,net earnings for the year,39,301,Net earnings for the year $,Provision for income taxes,NetIncome,0.792,yes
+cash_flow,property and equipment,39,134,Property and equipment,Investing activities,PurchaseOfPPE,0.786,yes
+cash_flow,investments,39,93,Investments 10,Investing activities,SaleOfInvestment,0.69,yes
+cash_flow,repayment of promissory note,39,65,Repayment of promissory note,Cash flows from financing activities,RepaymentOfDebt,0.622,yes
+balance_sheet,total operating expenses,39,113,Total operating expenses,EXPENSE,TotalNonCurrentAssets,0.609,yes
+income_statement,weighted average number of shares basic and diluted,38,155,Weighted average number of shares - basic and diluted,Weighted average number of shares - basi,DilutedAverageShares,0.891,yes
+income_statement,net loss before taxes,38,123,Net loss before taxes,Foreign exchange gain                   ,PretaxIncome,0.889,yes
+income_statement,other income loss,38,122,Other income (loss) (note 22),EXPENSES,OtherIncomeExpense,0.828,yes
+cash_flow,acquisition of mineral properties,38,150,Acquisition of mineral properties,Cash flows from investing activities,PurchaseOfBusiness,0.679,yes
+cash_flow,proceeds from disposal of equipment,37,64,Proceeds from disposal of equipment,Investing Activities,SaleOfPPE,0.843,yes
+income_statement,gross loss,37,90,Gross loss,Recasted - Note 2(h),GrossProfit,0.741,yes
+cash_flow,lease liability payments,37,173,Lease liability payments,Financing Activities,RepaymentOfDebt,0.737,yes
+income_statement,deferred income tax,37,143,Deferred income tax,INCOME TAXES,PretaxIncome,0.698,yes
+cash_flow,repayment of notes payable,37,97,Repayment of notes payable 10,Net proceeds from (repayment of) loans p,RepaymentOfDebt,0.679,yes
+balance_sheet,commitment to issue shares,37,88,Commitment to issue shares,Current liabilities,CommonStock,0.615,yes
+cash_flow,common shares issued for cash,37,154,Common shares issued for cash,Cash flows from financing activities,NetOtherFinancingCharges,0.609,yes
+income_statement,operating costs,36,209,Operating costs,Cost of sales,OperatingIncome,0.897,yes
+cash_flow,sale of marketable securities,36,95,Sale of marketable securities,Cash flows used in investing activities,PurchaseOfInvestment,0.871,yes
+cash_flow,financing fees,36,175,Financing fees Note 7,entities,NetOtherFinancingCharges,0.848,yes
+cash_flow,loss gain on disposal of property plant and equipment,36,93,"Loss (gain) on disposal of property, plant and equipment",Adjustments for non-cash items,SaleOfPPE,0.808,yes
+income_statement,financing fees,36,93,Financing fees,Other (income) expenses,SellingGeneralAndAdministration,0.8,yes
+balance_sheet,intangibles,36,216,Intangibles 14,Non-current assets,OtherIntangibleAssets,0.786,yes
+income_statement,total other comprehensive income loss,36,132,Total other comprehensive income (loss),($ thousands)                           ,NetIncome,0.707,yes
+cash_flow,debt issuance costs,35,135,Debt issuance costs –,"Issuance of common shares and warrants,",NetOtherFinancingCharges,0.821,yes
+income_statement,regulatory,35,223,Regulatory,Expenses,SellingGeneralAndAdministration,0.8,yes
+income_statement,administrative,35,254,Administrative 10,General and Administrative Expenses,SellingGeneralAndAdministration,0.788,yes
+cash_flow,intangible assets,35,107,Intangible assets,Deferred tax assets are attributable to ,NetIntangiblesPurchaseAndSale,0.739,yes
+income_statement,loss on disposal of property plant and equipment,35,88,"Loss on disposal of property, plant and equipment",Other gains (losses),DepreciationAmortizationDepletion,0.739,yes
+cash_flow,shares issued,35,144,Shares issued Note 11,Financing,NetOtherFinancingCharges,0.733,yes
+income_statement,comprehensive loss income,35,74,Comprehensive (loss) income $,Unrealized (loss) gain on translation of,NetIncome,0.667,yes
+balance_sheet,net income and comprehensive income,35,190,Net income and comprehensive income $,Expenses,GainsLossesNotAffectingRetainedEarnings,0.658,yes
+cash_flow,forgiveness of debt,35,50,Forgiveness of debt (note 14(a)),Cash flows provided by (used in) operati,IssuanceOfDebt,0.629,yes
+cash_flow,cash provided by financing activity,34,82,Cash provided by financing activity -,FINANCING ACTIVITY,FinancingCashFlow,0.895,yes
+cash_flow,proceeds on disposal of equipment,34,82,Proceeds on disposal of equipment,Investing activities,SaleOfPPE,0.835,yes
+cash_flow,depreciation and depletion,34,191,Depreciation and depletion,Items not affecting cash,DepreciationAmortizationDepletion,0.82,yes
+income_statement,gain on sale of property plant and equipment,34,70,"Gain on sale of property, plant and equipment",Other (loss) income,DepreciationAmortizationDepletion,0.818,yes
+income_statement,financial expenses,34,189,Financial expenses Note 7,Operating expenses,InterestExpenseNonOperating,0.769,yes
+income_statement,other expenses income,34,78,Other expenses (income),"COSTS, EXPENSES AND OTHER INCOME",OtherIncomeExpense,0.765,yes
+income_statement,total other comprehensive loss,34,86,Total other comprehensive loss $,Cash-flow hedges,OtherIncomeExpense,0.737,yes
+balance_sheet,promissory note receivable,34,88,Promissory note receivable 5,Cash and cash equivalents               ,NotesReceivable,0.714,yes
+income_statement,current income tax recovery expense,34,68,Current income tax recovery (expense),Income taxes,TaxProvision,0.679,yes
+income_statement,foreign currency translation gain loss,34,124,Foreign currency translation gain (loss),Other comprehensive income (loss),OtherIncomeExpense,0.656,yes
+cash_flow,payment of lease liability,34,140,Payment of lease liability (note 14),Cash flows provided by (used in) financi,RepaymentOfDebt,0.651,yes
+balance_sheet,investor relations,34,106,Investor relations,Expenses,Inventory,0.621,yes
+cash_flow,write down of inventory,34,99,Write-down of inventory,Changes to operations not involving cash,ChangeInInventory,0.619,yes
+cash_flow,change in non cash operating working capital total,33,253,Change in non-cash operating working capital total,Change in non-cash operating working cap,ChangeInWorkingCapital,0.898,yes
+balance_sheet,cash and equivalents,33,174,Cash and equivalents $,Current assets,CashAndCashEquivalents,0.889,yes
+income_statement,interest on lease liabilities,33,108,Interest on lease liabilities,23. Net Finance Costs,InterestExpenseNonOperating,0.879,yes
+income_statement,net comprehensive loss,33,131,Net comprehensive loss $,OTHER ITEMS,NetIncome,0.83,yes
+income_statement,current tax expense,33,172,Current tax expense (Note 12),Expenses,TaxProvision,0.757,yes
+cash_flow,dividends received,33,195,Dividends received,Investing activities,CashDividendsPaid,0.75,yes
+cash_flow,change in fair value of marketable securities,33,106,Change in fair value of marketable securities,Impairment of prepaid expenses and depos,PurchaseOfInvestment,0.744,yes
+cash_flow,proceeds from convertible debenture,33,45,Proceeds from convertible debenture,Financing activities,IssuanceOfDebt,0.73,yes
+income_statement,other comprehensive loss total,33,77,Other comprehensive loss total,Other comprehensive loss,NetIncome,0.657,yes
+balance_sheet,revenues,33,112,"Revenues 28,009",2016 Q4      2015 Q4     $ Change  % Cha,AdditionalPaidInCapital,0.625,yes
+income_statement,weighted average number of common shares basic and diluted,32,179,Weighted average number of common shares - basic and diluted,Other expenses (income),DilutedAverageShares,0.898,yes
+cash_flow,acquisitions net of cash acquired,32,121,Acquisitions (net of cash acquired) 6,Cash flows from investing activities,PurchaseOfBusiness,0.88,yes
+cash_flow,operating activities,32,122,OPERATING ACTIVITIES,CASH FLOWS USED IN,OperatingCashFlow,0.87,yes
+income_statement,amortization of property and equipment,32,181,Amortization of property and equipment,Operating Expenses,DepreciationAmortizationDepletion,0.868,yes
+income_statement,rental income,32,93,Rental income,Other income,PretaxIncome,0.846,yes
+balance_sheet,other comprehensive loss,32,133,Other comprehensive loss,TO SHAREHOLDERS,GainsLossesNotAffectingRetainedEarnings,0.8,yes
+income_statement,gain on sale of property and equipment,32,64,Gain on sale of property and equipment,Other income (expense),DepreciationAmortizationDepletion,0.789,yes
+income_statement,gain on disposal of property and equipment,32,70,Gain on disposal of property and equipment,Expenses,DepreciationAmortizationDepletion,0.75,yes
+cash_flow,realized gain on sale of marketable securities,32,66,Realized gain on sale of marketable securities,Adjustment for,PurchaseOfInvestment,0.734,yes
+cash_flow,impairment of equipment,32,43,Impairment of equipment,Items not involving cash,PurchaseOfPPE,0.727,yes
+cash_flow,other liabilities,32,155,Other liabilities,Adjustments for,ChangeInPayablesAndAccruedExpense,0.722,yes
+income_statement,investor relations and marketing,32,138,Investor relations and marketing,Operating Expenses,SellingGeneralAndAdministration,0.72,yes
+balance_sheet,share purchase warrants,32,183,Share purchase warrants (Note 11),Shareholders’ equity,AdditionalPaidInCapital,0.605,yes
+cash_flow,exploration and evaluation,31,184,Exploration and evaluation 5,INVESTING ACTIVITIES,NetOtherInvestingChanges,0.881,yes
+cash_flow,prepaid expenses and other,31,222,Prepaid expenses and other,Change in non-cash operating working cap,ChangeInPrepaidAssets,0.836,yes
+cash_flow,expenditures on property plant and equipment,31,222,"Expenditures on property, plant and equipment 9",Investing Activities,PurchaseOfPPE,0.833,yes
+cash_flow,gain loss on disposal of property plant and equipment,31,68,"(Gain) loss on disposal of property, plant and equipment",Adjustments for non-cash items,SaleOfPPE,0.808,yes
+cash_flow,impairment expense,31,80,Impairment expense (note 10),Adjustments for non-cash items,AssetImpairmentCharge,0.722,yes
+cash_flow,repayment of convertible debenture,31,46,Repayment of convertible debenture,Financing activities,RepaymentOfDebt,0.721,yes
+income_statement,management and directors fees,31,114,Management and directors fees (Note 14),EXPENSES,SellingGeneralAndAdministration,0.682,yes
+cash_flow,payment of lease obligations,31,142,Payment of lease obligations,Financing,RepaymentOfDebt,0.622,yes
+cash_flow,unrealized loss on foreign exchange,31,83,Unrealized loss on foreign exchange,Deferred income tax recovery            ,EffectOfExchangeRateChanges,0.609,yes
+balance_sheet,long term deposits,30,130,Long term deposits 4,Non-Current Assets,LongTermDebt,0.812,yes
+cash_flow,loss on sale of investments,30,52,Loss on sale of investments,Items not involving cash,SaleOfInvestment,0.8,yes
+income_statement,shareholder relations,30,192,Shareholder relations,EXPENSES,SellingGeneralAndAdministration,0.766,yes
+cash_flow,net income and comprehensive income,30,105,Net income and comprehensive income – – – – –,Shares        Amount          translatio,NetIncomeFromContinuingOperations,0.758,yes
+cash_flow,sales taxes receivable,30,157,Sales taxes receivable,Changes in non-cash working capital item,ChangeInReceivables,0.7,yes
+income_statement,other comprehensive income total,30,74,Other comprehensive income total,Other comprehensive income,NetIncome,0.687,yes
+cash_flow,additions to investment properties,30,210,Additions to investment properties,INVESTING,PurchaseOfInvestment,0.667,yes
+balance_sheet,share subscription receivable,30,59,Share subscription receivable,Current,OtherReceivables,0.653,yes
+cash_flow,goods and services tax receivable,30,128,- Goods and Services Tax receivable -,Changes in non-cash working capital item,ChangeInReceivables,0.633,yes
+cash_flow,hst recoverable,30,66,- HST recoverable,Changes in non-cash working capital item,ChangeInReceivables,0.625,yes
+cash_flow,shares to be issued,30,48,Shares to be issued,CASH FLOWS FROM FINANCING ACTIVITIES,NetOtherFinancingCharges,0.611,yes
+income_statement,stock based compensation,695,3080,Stock-based compensation (note 9b),General and Administrative Expenses,,0.545,
+income_statement,share based payments,655,3753,"Share based payments (Note 9) - - 4,566",#,,0.579,
+cash_flow,interest received,411,2934,Interest received,SUPPLEMENTAL INFORMATION,InterestPaidSupplementalData,0.733,
+cash_flow,interest expense,397,1703,Interest expense,Items not affected by cash,InterestPaidSupplementalData,0.69,
+cash_flow,due to related parties,350,2465,Due to related parties,Net changes in non-cash working capital ,,0.481,
+balance_sheet,lease liability,334,1651,Lease liability (Note 5),Current,TotalLiabilities,0.625,
+cash_flow,items not affecting cash total,324,2272,Items not affecting cash total,Items not affecting cash,,0.571,
+income_statement,impairment of exploration and evaluation assets,323,971,Impairment of exploration and evaluation assets (Note 3),OTHER ITEMS,ImpairmentOfCapitalAssets,0.667,
+income_statement,deficit beginning of year,312,882,Deficit - Beginning of year,General and Administrative Expenses,,0.5,
+income_statement,other items total,304,1809,Other items total,Other items,OtherWriteOff,0.688,
+income_statement,deficit end of year,304,863,Deficit - End of Year,General and Administrative Expenses,,0.541,
+cash_flow,proceeds from exercise of warrants,291,800,Proceeds from exercise of warrants,Financing Activities,ProceedsFromIssuanceOfWarrants,0.853,
+balance_sheet,convertible debentures,288,1367,Convertible debentures (Note 7),Current,,0.537,
+income_statement,interest,263,1131,Interest,Expenses,InterestIncomeNonOperating,0.696,
+cash_flow,restricted cash,225,731,Restricted cash,FINANCING ACTIVITIES,ChangeInRestrictedCash,0.75,
+balance_sheet,deposits,220,1234,Deposits,Current  Cash and cash equivalents      ,TotalDeposits,0.727,
+cash_flow,unrealized foreign exchange loss,218,565,Unrealized foreign exchange loss,Adjustments for,NetForeignCurrencyExchangeGainLoss,0.676,
+cash_flow,exercise of warrants,217,570,Exercise of warrants,FINANCING ACTIVITIES,ProceedsFromIssuanceOfWarrants,0.667,
+cash_flow,unrealized foreign exchange gain loss,204,655,Unrealized foreign exchange (gain) loss,used in operating activities,NetForeignCurrencyExchangeGainLoss,0.763,
+cash_flow,unrealized foreign exchange loss gain,203,654,Unrealized foreign exchange loss (gain),"Provision for loan, interest, dividend, ",NetForeignCurrencyExchangeGainLoss,0.632,
+cash_flow,gain on settlement of debt,199,355,Gain on settlement of debt,Non-cash items,GainLossOnSaleOfPPE,0.64,
+cash_flow,adjustments for total,197,1611,Adjustments for total,Adjustments for,PaymentForLoans,0.632,
+cash_flow,items not involving cash total,192,1309,Items not involving cash total,Items not involving cash,,0.536,
+cash_flow,income tax expense,191,986,Income tax expense,Operating,DeferredTax,0.837,
+cash_flow,accretion,186,699,Accretion,Items not affecting cash,,0.571,
+income_statement,gain on settlement of debt,183,331,Gain on settlement of debt,Other items,GainOnSaleOfPPE,0.711,
+income_statement,exploration and evaluation expenditures,183,963,Exploration and evaluation expenditures (Note 6),EXPENSES,SellingAndMarketingExpense,0.609,
+balance_sheet,deferred income taxes,179,2082,"Deferred income taxes 6 13,967,984",,DeferredCosts,0.743,
+cash_flow,unrealized foreign exchange gain,178,462,Unrealized foreign exchange (gain),used in operating activities,NetForeignCurrencyExchangeGainLoss,0.676,
+income_statement,write off of exploration and evaluation assets,178,608,Write off of exploration and evaluation assets (Note 6),OTHER ITEMS,,0.518,
+balance_sheet,professional fees,173,579,Professional fees,Expenses,,0.5,
+balance_sheet,provisions,166,2144,Provisions 23,Current liabilities,CurrentProvisions,0.714,
+income_statement,gain on debt settlement,165,326,Gain on debt settlement,Expenses,,0.571,
+balance_sheet,interest income,162,524,"Interest income 5,16",Other revenue,UnearnedIncome,0.733,
+cash_flow,gain on debt settlement,161,298,Gain on debt settlement,Items not affecting cash,,0.526,
+cash_flow,cash beginning,158,899,"CASH, BEGINNING",CASH FLOWS FROM INVESTING ACTIVITIES,BeginningCashPosition,0.778,
+balance_sheet,current portion of lease liability,154,549,Current portion of lease liability 12,Current,CurrentCapitalLeaseObligation,0.829,
+balance_sheet,future income taxes,154,630,Future income taxes,Current,,0.595,
+balance_sheet,flow through premium liability,154,416,Flow-through premium liability (Note 9),Current,,0.582,
+income_statement,unrealized loss on marketable securities,154,499,Unrealized loss on marketable securities (Note 4),GENERAL AND ADMINISTRATIVE EXPENSES,,0.545,
+balance_sheet,expenses total,150,602,Expenses total,Expenses,TotalDeposits,0.714,
+cash_flow,cash equivalents,150,588,Cash equivalents,"Cash and cash equivalents, end of year c",ChangesInCash,0.627,
+balance_sheet,lease liabilities,148,802,Lease liabilities (Note 5),Current,TotalLiabilities,0.765,
+balance_sheet,deferred income tax liability,147,776,Deferred income tax liability 14,Non-current liabilities,NonCurrentDeferredTaxesLiabilities,0.792,
+cash_flow,warrants exercised,147,402,Warrants exercised,FINANCING ACTIVITIES,,0.526,
+balance_sheet,subsequent events note,147,190,Subsequent events (note,Shareholder’s equity,,0.524,
+cash_flow,cash ending,146,859,"CASH, ENDING $",CASH FLOWS FROM INVESTING ACTIVITIES,EndCashPosition,0.621,
+income_statement,accretion expense,144,480,"Accretion expense (notes 4, 5, and 6)",Expenses,MarketingExpense,0.824,
+income_statement,listing expense,144,198,Listing expense (Note 4),Financing costs and miscellaneous income,SellingExpense,0.8,
+cash_flow,exercise of stock options,143,469,Exercise of stock options,Financing activities,IssuanceOfCapitalStock,0.781,
+income_statement,deferred,143,1266,Deferred,Income tax recovery,,0.5,
+cash_flow,foreign exchange gain loss,142,384,Foreign exchange (gain) loss,Adjustments for the following items,NetForeignCurrencyExchangeGainLoss,0.8,
+balance_sheet,shares to be issued,142,280,Shares to be issued -,Shareholders' Equity,,0.565,
+income_statement,foreign currency translation adjustment,142,1018,Foreign currency translation adjustment,Other comprehensive loss,,0.492,
+income_statement,accretion,141,480,Accretion $,Expenses,OtherOperatingExpenses,0.667,
+cash_flow,deposits,141,595,Deposits,Investing activities,,0.571,
+cash_flow,unrealized loss on marketable securities,139,450,Unrealized loss on marketable securities,Items not affecting cash,UnrealizedGainLossOnInvestmentSecurities,0.776,
+balance_sheet,convertible debenture,131,371,Convertible debenture 14,Non-current liabilities,,0.514,
+cash_flow,increase decrease in cash during the year,128,519,INCREASE (DECREASE) IN CASH DURING THE YEAR,FINANCING ACTIVITY,ChangesInCash,0.758,
+balance_sheet,reclamation bond,127,644,"Reclamation bond (note 5) 31,606",Non-current,RestrictedCash,0.743,
+cash_flow,foreign exchange gain,125,272,Foreign exchange gain,Adjustments to reconcile to net cash fro,NetForeignCurrencyExchangeGainLoss,0.7,
+income_statement,unrealized gain loss on marketable securities,125,391,Unrealized gain (loss) on marketable securities (Note 4),Operating expenses,NetRealizedGainLossOnInvestments,0.634,
+cash_flow,share subscriptions received,123,217,Share subscriptions received,Financing activities,,0.571,
+balance_sheet,general and administrative,123,505,General and administrative,Expenses,,0.566,
+income_statement,property investigation,122,409,Property investigation (note 4),Expenses,,0.55,
+balance_sheet,deferred income tax liabilities,121,1016,Deferred income tax liabilities (note 29),Non-current liabilities,NonCurrentDeferredTaxesLiabilities,0.873,
+income_statement,exploration and evaluation,121,596,Exploration and evaluation 6,EXPENSES,DepreciationAndAmortization,0.691,
+cash_flow,exercise of options,121,333,Exercise of options,Financing,IssuanceOfCapitalStock,0.655,
+balance_sheet,investment in associate,118,385,Investment in associate (note 11),Current assets,InvestmentsAndAdvances,0.647,
+cash_flow,income tax recovery,117,281,Income tax recovery,Items not affecting cash,DeferredTax,0.844,
+balance_sheet,flow through share premium liability,117,361,Flow-through share premium liability (Note 6),Current,,0.525,
+balance_sheet,net loss for the year,114,679,Net loss for the year – – –,(Date of Incorporation),,0.49,
+income_statement,deferred tax recovery,113,278,Deferred tax recovery 18,Other income (expenses),,0.583,
+balance_sheet,asset retirement obligation,113,571,Asset retirement obligation (note 14),Non-Current,,0.542,
+cash_flow,income tax expense recovery,112,281,Income tax expense (recovery) (note 12),Adjustments for the following items,DeferredTax,0.857,
+balance_sheet,total equity deficiency,112,330,TOTAL EQUITY (DEFICIENCY),EQUITY (DEFICIENCY),StockholdersEquity,0.755,
+income_statement,royalties,112,719,Royalties,Other revenue,OtherOperatingExpenses,0.667,
+cash_flow,deferred financing costs,112,225,Deferred financing costs,FINANCING ACTIVITIES,DeferredIncomeTax,0.651,
+balance_sheet,deposit,111,310,Deposit,NON-CURRENT ASSETS,TotalDeposits,0.667,
+income_statement,write down of exploration and evaluation assets,110,429,Write down of exploration and evaluation assets (Note 6),GENERAL AND ADMINISTRATIVE EXPENSES,,0.558,
+income_statement,write off of accounts payable,109,214,Write off of accounts payable,Other item,,0.519,
+balance_sheet,due from related party,108,243,Due from related party 7,Non-current assets,OtherPayable,0.818,
+income_statement,exploration expenses,108,463,Exploration expenses (note 7) $,EXPENSES,OperatingExpense,0.789,
+balance_sheet,reclamation bonds,108,875,Reclamation bonds (note 4),Current,RestrictedCash,0.778,
+balance_sheet,obligation to issue shares,108,265,Obligation to issue shares,EQUITY (STATEMENT 3),TradingLiabilities,0.6,
+cash_flow,interest,106,492,Interest,Item not involving cash,InterestPaidSupplementalData,0.762,
+income_statement,accounting and audit,105,738,Accounting and audit $,Expenses,BasicAccountingChange,0.605,
+income_statement,balance at december,105,1070,"Balance at December 31, 2010 9,065,571 6,656,345 42,840 39,692,340",outstanding shares       Amount         ,,0.486,
+balance_sheet,april,105,363,April,Director (Brian Morrison),,0.462,
+cash_flow,decrease in cash during the year,104,327,DECREASE IN CASH DURING THE YEAR,FINANCING ACTIVITY,ChangesInCash,0.871,
+balance_sheet,other income,103,287,Other income (Note 6c)),Other income and expenses,OtherInventories,0.69,
+balance_sheet,march,100,337,"March 31, 2017 41,319,015 $ 27,625,170 $ 1,330 $ 4,000,699 $ 4,002,029 $","Balance,",,0.444,
+cash_flow,reclamation bond,98,254,Reclamation bond,CASH FLOWS TO INVESTING ACTIVITY,ChangeInRestrictedCash,0.743,
+cash_flow,proceeds from warrants exercised,98,261,Proceeds from warrants exercised,Financing activities,ProceedsFromStockOptionExercised,0.735,
+balance_sheet,asset retirement obligations,98,595,Asset retirement obligations (note 8),Current liabilities,,0.557,
+income_statement,basic and diluted net loss per share,97,647,Basic and diluted net loss per share,Finance costs and income,BasicEPS,0.941,
+cash_flow,short term investments,97,441,Short-term investments,Investing,SaleOfShortTermInvestments,0.846,
+balance_sheet,revenue,97,464,"Revenue $ 26,074 $",non-operating expense largely resulted f,CurrentDeferredRevenue,0.609,
+income_statement,unrealized gain on marketable securities,97,195,Unrealized gain on marketable securities 8,Unrealized loss on changes in contingent,,0.594,
+balance_sheet,notes payable,96,483,Notes payable (note 9(a)),,OtherPayable,0.846,
+cash_flow,change in cash and cash equivalents during the year,96,508,Change in cash and cash equivalents during the year,CASH FLOWS FROM FINANCING ACTIVITIES,ChangesInCash,0.814,
+cash_flow,unrealized gain on marketable securities,95,157,Unrealized gain on marketable securities,Adjustments for non-cash items,UnrealizedGainLossOnInvestmentSecurities,0.776,
+cash_flow,proceeds from loans payable,94,281,Proceeds from loans payable,Financing activities,ProceedsFromLoans,0.826,
+cash_flow,cash and cash equivalents beginning,92,470,"Cash and cash equivalents, beginning",Financing activities,BeginningCashPosition,0.897,
+income_statement,wages and benefits,92,705,Wages and benefits,Expenses,OtherOperatingExpenses,0.821,
+income_statement,discontinued operations,92,430,- discontinued operations,Foreign currency translation adjustment,BasicDiscontinuousOperations,0.792,
+cash_flow,repayment of loans payable,92,193,Repayment of loans payable,Financing activities,PaymentForLoans,0.698,
+income_statement,impairment,92,286,Impairment (note 8),EXPENSES,Equipment,0.632,
+income_statement,property investigation costs,91,318,Property investigation costs,Expenses,OtherOperatingExpenses,0.627,
+cash_flow,income taxes payable,90,363,Income taxes payable,Write-down of royalty interests on miner,IncomeTaxPaidSupplementalData,0.811,
+income_statement,exploration and evaluation expenses,90,381,Exploration and evaluation expenses,ALLIED GOLD,SellingAndMarketingExpense,0.677,
+income_statement,basic loss per share,89,370,Basic loss per share $,Other items,BasicEPS,0.851,
+balance_sheet,deferred income tax assets,89,675,Deferred income tax assets (note 29),Non-current assets,DeferredTaxAssets,0.844,
+income_statement,exploration expenditures,89,490,Exploration expenditures,General and Administrative Expenses,OperatingExpense,0.667,
+income_statement,loss on settlement of debt,89,118,Loss on settlement of debt (Note 8),Operating expenses,,0.586,
+balance_sheet,share subscriptions received,89,212,Share subscriptions received (note 6),SHAREHOLDERS' EQUITY (DEFICIENCY),,0.571,
+balance_sheet,february,89,370,February,equipment vendors. Varion delivers on Ac,,0.417,
+cash_flow,deferred income tax recovery expense,88,225,Deferred income tax (recovery) expense,Adjustments for items not involving cash,DeferredTax,0.875,
+cash_flow,repayment of loans,88,194,Repayment of loans,Financing activities,PaymentForLoans,0.857,
+cash_flow,increase in cash during the year,87,264,Increase in cash during the year,Financing activities,ChangesInCash,0.848,
+balance_sheet,mineral property interests,87,567,Mineral property interests (Note 5),Current,MineralProperties,0.818,
+income_statement,outstanding,87,379,OUTSTANDING,WEIGHTED AVERAGE NUMBER OF COMMON SHARES,SharesOutstanding,0.759,
+balance_sheet,subsequent events,87,249,Subsequent events,Commitments and contingencies           ,,0.545,
+income_statement,outstanding basic and diluted,86,356,Outstanding – Basic and diluted,Weighted Average Number of Common Shares,BasicEPS,0.739,
+cash_flow,loss on settlement of debt,86,116,Loss on settlement of debt,Items not affecting cash,GainLossOnSaleOfPPE,0.64,
+balance_sheet,as at december,85,273,As at December,PH. (416) 596-1711 FAX (416) 596-7894 mn,,0.588,
+cash_flow,other assets,85,440,Other assets,Changes in operating assets and liabilit,,0.571,
+balance_sheet,promissory,85,274,Promissory note 4,Current liabilities,,0.5,
+income_statement,other income total,84,311,Other Income total,Other Income,InterestIncome,0.821,
+balance_sheet,derivative liability,84,284,Derivative liability (note 12),Current liabilities,DerivativeProductLiabilities,0.76,
+income_statement,bad debt expense,84,176,Bad debt expense,Expenses,MarketingExpense,0.667,
+balance_sheet,subscriptions received in advance,84,178,Subscriptions received in advance (note 10),Shareholders' deficiency,,0.491,
+balance_sheet,net loss,83,332,Net loss,Expenses,NetLoan,0.824,
+balance_sheet,total liabilities and equity deficiency,82,230,Total liabilities and equity (deficiency) $,EQUITY (DEFICIENCY),TotalLiabilitiesAndTotalEquityGrossMinorityInterest,0.857,
+income_statement,gain on sale of marketable securities,82,205,Gain on sale of marketable securities (note 14),Other (income) expenses,GainOnSaleOfSecurity,0.754,
+income_statement,future,82,201,Future Note 7,Recovery of (provision for) income taxes,Fuel,0.6,
+cash_flow,due to related party,82,230,Due to related party,Net changes in non-cash working capital ,,0.49,
+cash_flow,proceeds from loan payable,81,170,Proceeds from loan payable,Financing activities,ProceedsFromLoans,0.8,
+income_statement,gain on settlement of accounts payable,81,173,Gain on settlement of accounts payable,Expenses,GainOnSaleOfSecurity,0.613,
+balance_sheet,foreign exchange gain loss,80,199,Foreign exchange gain (loss),Expenses,UnrealizedGainLoss,0.609,
+income_statement,loss on disposal of equipment,80,169,Loss on disposal of equipment,OPERATING EXPENSES,,0.59,
+income_statement,foreign currency translation,80,387,Foreign currency translation,Other comprehensive income,,0.571,
+balance_sheet,stock based compensation,79,264,Stock-based compensation 9,Operating expenses,,0.591,
+income_statement,exploration,78,419,Exploration,EXPENSES,Depletion,0.7,
+income_statement,loss on sale of marketable securities,78,146,Loss on sale of marketable securities (Note 3),General And Administrative Expenses,GainOnSaleOfSecurity,0.623,
+cash_flow,advances from related parties,78,252,Advances from related parties,Financing activities,,0.576,
+cash_flow,transaction costs,77,165,Transaction costs,Item not involving cash,ChangeInRestrictedCash,0.649,
+balance_sheet,foreign exchange loss,77,177,Foreign exchange loss,Expenses,,0.533,
+balance_sheet,shareholders equity deficit total,76,435,SHAREHOLDERS’ EQUITY (DEFICIT) total,SHAREHOLDERS’ EQUITY (DEFICIT),StockholdersEquity,0.881,
+balance_sheet,current portion of lease liabilities,76,342,Current portion of lease liabilities 8,Current,CurrentCapitalLeaseObligation,0.861,
+cash_flow,cash and cash equivalents ending,76,424,"Cash and cash equivalents, ending $",Financing activities,EndCashPosition,0.845,
+cash_flow,cash and cash equivalents,76,358,Cash and cash equivalents,Cash and cash equivalents consist of,ChangesInCash,0.833,
+cash_flow,income taxes,76,488,Income taxes (Note 13),Operating activities,IncomeTaxPaidSupplementalData,0.828,
+income_statement,currency translation adjustment,76,479,Currency translation adjustment,Other income (expense),,0.481,
+cash_flow,repayment of loan,74,144,Repayment of loan 10,Cash flows from financing activities,PaymentForLoans,0.824,
+income_statement,travel and accommodation,73,512,Travel and accommodation,,OtherOperatingExpenses,0.818,
+cash_flow,issuance of share capital,73,302,Issuance of share capital,Cash flows provided by financing activit,CommonStockIssuance,0.791,
+cash_flow,loss on debt settlement,73,100,Loss on debt settlement,Non cash items,,0.565,
+income_statement,loss on debt settlement,73,100,Loss on debt settlement,Other (income) expenses,,0.511,
+income_statement,part xii 6 tax,73,193,Part XII.6 tax 8,Other items,,0.462,
+cash_flow,unrealized gain loss on marketable securities,72,204,Unrealized (gain) loss on marketable securities,Items not affecting cash,UnrealizedGainLossOnInvestmentSecurities,0.844,
+income_statement,impairment of goodwill,72,141,Impairment of goodwill (note 4),Expenses,ImpairmentOfCapitalAssets,0.64,
+balance_sheet,future income tax liability,72,168,Future income tax liability (c),Liability,NonCurrentDeferredTaxesLiabilities,0.627,
+income_statement,general exploration,72,367,General exploration,Expenses,GeneralAndAdministrativeExpense,0.622,
+cash_flow,due from related parties,72,249,Due from related parties,Net change in non-cash working capital i,,0.556,
+cash_flow,december 31 2025 december,72,148,"December 31, 2025 December",,,0.435,
+balance_sheet,december 31 2025 december,72,154,"December 31, 2025 December",,,0.39,
+balance_sheet,note payable,71,198,Note payable 7,Current liabilities,OtherPayable,0.88,
+balance_sheet,liabilities held for sale,71,112,Liabilities held for sale 12,Current,LoansHeldForSale,0.773,
+balance_sheet,investment properties,71,647,Investment properties 6,,MineralProperties,0.718,
+balance_sheet,subscriptions receivable,71,140,Subscriptions receivable (Note 5),SHAREHOLDERS’ EQUITY,LoansReceivable,0.7,
+income_statement,other expenses income total,70,324,Other expenses (income) total,Other expenses (income),InterestIncome,0.75,
+cash_flow,subscriptions received,69,132,Subscriptions received,Cash Flows From (Used In) Financing Acti,,0.55,
+balance_sheet,equity component of convertible debentures,69,342,Equity component of convertible debentures 7,SHAREHOLDERS’ EQUITY,,0.5,
+income_statement,travel and entertainment,68,436,Travel and entertainment,Operating Expenses,NonInterestIncome,0.612,
+balance_sheet,subscriptions received,68,126,Subscriptions Received,SHAREHOLDERS’ EQUITY,,0.579,
+cash_flow,loan proceeds,68,209,Loan proceeds,CASH FROM FINANCING ACTIVITIES,,0.516,
+income_statement,interest on long term debt,67,273,Interest on long-term debt,Amortization of accumulation partners' c,InterestExpenseForLongTermDebt,0.82,
+cash_flow,cash and cash equivalents consist of total,67,316,Cash and cash equivalents consist of total,Cash and cash equivalents consist of,EndCashPosition,0.81,
+cash_flow,unrealized loss gain on marketable securities,67,168,Unrealized loss (gain) on marketable securities,Items not affecting cash,UnrealizedGainLossOnInvestmentSecurities,0.733,
+cash_flow,investing total,67,336,Investing total,Investing,InvestingCashFlow,0.732,
+balance_sheet,net income,67,336,Net income,Current liabilities                     ,UnearnedIncome,0.72,
+balance_sheet,equity,67,271,"EQUITY $ 680,911 $",TOTAL LIABILITIES AND SHAREHOLDERS’,StockholdersEquity,0.667,
+cash_flow,impairment of mineral properties,67,171,Impairment of mineral properties,Items not involving cash,,0.561,
+cash_flow,subscriptions received in advance,67,113,Subscriptions received in advance,Cash flows from financing activities,,0.492,
+balance_sheet,nature of operations and going concern note,67,90,Nature of operations and going concern (note,Shareholder’s equity,,0.474,
+balance_sheet,income tax receivable,66,309,Income tax receivable,(ii)   International Structure,TaxesReceivable,0.884,
+income_statement,impairment of intangible assets,66,119,Impairment of intangible assets (Note 5),EXPENSES,ImpairmentOfCapitalAssets,0.847,
+balance_sheet,derivative financial instruments,66,1098,Derivative financial instruments (Note 39),Current liabilities,SecuritiesAndInvestments,0.655,
+balance_sheet,promissory note,66,171,Promissory note (note 4),Current liabilities,,0.562,
+balance_sheet,december 31 2024 december,66,83,"December 31, 2024 December",,,0.39,
+income_statement,impairment loss,64,137,Impairment loss (note 23),"COSTS, EXPENSES AND OTHER INCOME",ImpairmentOfCapitalAssets,0.651,
+income_statement,basic and diluted earnings loss per share,63,163,Basic and diluted earnings (loss) per share $,Other Comprehensive Loss,BasicEPS,0.877,
+cash_flow,december 31 2024 december,63,79,"December 31, 2024 December",,,0.435,
+balance_sheet,deferred income tax asset,62,266,Deferred income tax asset 14,Non-current assets,DeferredTaxAssets,0.818,
+income_statement,gain on sale of equipment,61,114,Gain on sale of equipment,Other income (loss),GainOnSaleOfSecurity,0.816,
+cash_flow,cash paid for interest,61,205,Cash paid for interest $,31 March         31 March,,0.558,
+income_statement,unrealized loss on investments,60,156,Unrealized loss on investments 3,Net investment loss,NetRealizedGainLossOnInvestments,0.866,
+balance_sheet,contract liabilities,60,378,Contract liabilities 5,Current liabilities,TotalLiabilities,0.811,
+income_statement,gain on disposal of equipment,60,120,Gain on disposal of equipment,Operating Expenses,GainOnSaleOfSecurity,0.717,
+income_statement,dividends,60,326,DIVIDENDS,EARNINGS BEFORE INCOME TAXES,DividendPerShare,0.667,
+income_statement,bad debt,60,122,Bad debt,Operating expenses,,0.522,
+income_statement,cumulative translation adjustment,60,433,Cumulative translation adjustment $,Write-down of receivables               ,,0.471,
+income_statement,diluted loss per share,59,262,Diluted loss per share 16 $,Income (loss) per share,DilutedEPS,0.863,
+cash_flow,accrued interest income,59,173,Accrued interest income,Items not affecting cash,,0.571,
+balance_sheet,share subscriptions,59,111,Share subscriptions (note 8a),SHAREHOLDERS’ EQUITY,,0.562,
+balance_sheet,basic and diluted loss per share,59,206,Basic and diluted loss per share (Note 15) $,Operating expenses,,0.492,
+cash_flow,proceeds from options exercised,58,180,Proceeds from options exercised 10,Cash flows from financing activities,ProceedsFromStockOptionExercised,0.896,
+balance_sheet,consulting fees,58,164,Consulting fees,Operating expenses,,0.564,
+income_statement,bad debts,58,156,Bad debts,Revenues,,0.556,
+cash_flow,flow through share premium,58,175,Flow-through share premium,Items not involving cash,,0.453,
+income_statement,december 31 2025 december,58,127,"December 31, 2025 December",,,0.409,
+income_statement,investment income,57,297,Investment income $,Revenue,NetInvestmentIncome,0.895,
+cash_flow,non cash items total,57,435,Non-Cash Items total,Non-Cash Items,OtherNonCashItems,0.7,
+balance_sheet,contingent consideration,57,213,Contingent consideration,Current liabilities,,0.561,
+income_statement,gain on sale of exploration and evaluation assets,57,94,Gain on sale of exploration and evaluation assets – Note 6,Other items,,0.545,
+balance_sheet,mineral property,56,154,Mineral property (note 5),Current assets,MineralProperties,0.882,
+balance_sheet,derivative liabilities,56,276,Derivative liabilities 10,Current Liabilities,DerivativeProductLiabilities,0.846,
+income_statement,travel expenses,56,191,Travel Expenses,EXPENSES,OperatingExpense,0.828,
+balance_sheet,total expenses,56,198,Total expenses,Expenses,TotalEmployees,0.759,
+income_statement,impairment of mineral properties,56,143,Impairment of mineral properties (Note 4),Other income (expense),ImpairmentOfCapitalAssets,0.7,
+cash_flow,loss on disposal of assets,56,127,Loss on disposal of assets,Operating activities,GainLossOnSaleOfPPE,0.64,
+balance_sheet,management fees,56,206,Management fees 15,Operating expenses,,0.538,
+cash_flow,write down of mineral properties,56,151,Write down of mineral properties,Items not involving cash,,0.514,
+income_statement,write off of mineral properties,56,124,Write-off of mineral properties (Note 7),General And Administrative Expenses,,0.5,
+balance_sheet,december 31 december,56,113,"December 31, December",,,0.444,
+balance_sheet,december 31 2023 december,56,88,"December 31, 2023 December",,,0.39,
+cash_flow,effect of foreign exchange on cash and cash equivalents,54,328,Effect of foreign exchange on cash and cash equivalents,Financing activities,ChangesInCash,0.787,
+balance_sheet,promissory notes payable,54,182,"Promissory notes payable 7, 12",Non-current liability,CurrentNotesPayable,0.711,
+balance_sheet,decommissioning liabilities,54,547,"Decommissioning liabilities 22 6,123",Non-current liabilities,TradingLiabilities,0.696,
+income_statement,accounting and audit fees,54,331,Accounting and audit fees $,EXPENSES,RentAndLandingFees,0.652,
+balance_sheet,debentures,54,197,Debentures 14,,,0.571,
+balance_sheet,foreign exchange loss gain,54,119,Foreign exchange loss / (gain),Expenses,,0.564,
+income_statement,share based payment,54,159,Share-based payment,Expenses,,0.558,
+cash_flow,deposit,54,131,Deposit,Investing Activities,,0.538,
+cash_flow,income tax payable,53,170,Income tax payable,Net change in non-cash working capital i,IncomeTaxPaidSupplementalData,0.788,
+cash_flow,income tax recovery expense,53,105,Income tax (recovery) expense (note 11),Adjustments for the following items,DeferredTax,0.717,
+income_statement,write down of mineral properties,53,145,Write down of mineral properties 10,Other income (loss),,0.549,
+income_statement,attributable to total,53,381,Attributable to total,Attributable to,,0.537,
+cash_flow,write off of mineral properties,53,125,Write-off of mineral properties,Items not involving cash,,0.483,
+cash_flow,proceeds from the exercise of warrants,52,117,Proceeds from the exercise of warrants,Financing,ProceedsFromIssuanceOfWarrants,0.806,
+income_statement,exploration costs,52,233,Exploration costs $,Expenses,OtherOperatingExpenses,0.7,
+balance_sheet,lease obligation,52,233,Lease obligation 11,NON-CURRENT LIABILITIES,CurrentCapitalLeaseObligation,0.667,
+income_statement,restructuring costs,52,176,Restructuring costs (note 16),,RestructringAndMnAIncome,0.638,
+income_statement,net income loss attributable to total,52,191,Net income (loss) attributable to total,Net income (loss) attributable to,DilutedEPS,0.629,
+income_statement,deficit end of period,52,103,"DEFICIT, END OF PERIOD $",OTHER ITEM,,0.565,
+income_statement,flow through premium recovery,52,144,Flow-through premium recovery (Note 6),EXPENSES,,0.536,
+income_statement,loss per share,51,215,LOSS PER SHARE,LOSS PER SHARE,BasicEPS,0.824,
+cash_flow,reclamation bonds,51,177,Reclamation bonds,INVESTING ACTIVITIES,ChangeInRestrictedCash,0.778,
+balance_sheet,future income tax liabilities,51,117,Future income tax liabilities (Note 12),Non-current liabilities,NonCurrentDeferredTaxesLiabilities,0.717,
+balance_sheet,total deficiency,51,195,TOTAL DEFICIENCY,DEFICIENCY,StockholdersEquity,0.711,
+balance_sheet,flow through share liability,51,159,Flow-through share liability (Note 6c) -,Current Liabilities,OtherCurrentLiabilities,0.604,
+balance_sheet,subsequent event note,51,56,Subsequent event (note,"Common shares, proceeds to be received, ",,0.488,
+balance_sheet,decommissioning liability,50,374,Decommissioning liability 13,Non-current liabilities,,0.591,
+income_statement,balance end of year,50,446,"Balance, end of year",Common shares,,0.571,
+balance_sheet,commitments and contingencies note,50,64,Commitments and contingencies (Note,equity,,0.552,
+cash_flow,flow through premium recovery,50,131,Flow-through premium recovery,Adjustment for,,0.517,
+cash_flow,gain on forgiveness of debt,50,75,Gain on forgiveness of debt,Items not affecting cash,,0.512,
+income_statement,balance beginning of year,50,410,"BALANCE, BEGINNING OF YEAR","assets (liabilities), net",,0.462,
+balance_sheet,december 31 2022 december,50,69,"December 31, 2022 December",,,0.39,
+balance_sheet,income tax expense,49,183,Income tax expense,Expenses,TaxesReceivable,0.7,
+balance_sheet,flow through share premium,49,142,Flow‐through share premium (note 11(b)),Current liabilities,,0.558,
+cash_flow,interest on lease liability,49,200,Interest on lease liability,Items not involving cash,,0.552,
+income_statement,balance march,49,521,"Balance, March 31, 2012 50,213,987 5,256,570 1,862,184 255,100 78,177",Number    Amount     Surplus     Reserve,,0.5,
+income_statement,weighted average number of shares,48,277,WEIGHTED AVERAGE NUMBER OF SHARES,$        0.17           $     (0.32) bas,BasicAverageShares,0.917,
+balance_sheet,prepaid expenses and advances,48,319,Prepaid expenses and advances (note 7),Current assets,PrepaidAssets,0.828,
+balance_sheet,customer deposits,48,327,Customer deposits,Current,OtherDeposits,0.774,
+balance_sheet,equity deficiency total,48,222,Equity (Deficiency) total,Equity (Deficiency),StockholdersEquity,0.686,
+cash_flow,gain on disposal of assets,48,119,Gain on disposal of assets,Operating activities,GainLossOnSaleOfPPE,0.64,
+balance_sheet,nature and continuance of operations note,48,72,Nature and continuance of operations (Note,Shareholders’ Equity,AssetsOfDiscontinuedOperations,0.622,
+cash_flow,due from related party,48,96,Due from related party,Change in non-cash operating working cap,,0.529,
+income_statement,owners of the company,48,416,Owners of the Company $,Attributable to,,0.526,
+income_statement,flow through share premium,48,139,Flow-through share premium (Note 5),Other income (expense),,0.522,
+balance_sheet,note december 31 2025 december,48,98,"Note December 31, 2025 December",,,0.435,
+income_statement,december 31 2024 december,48,87,"December 31, 2024 December",,,0.409,
+cash_flow,proceeds from issuance of units,47,115,Proceeds from issuance of units,Financing activities,ProceedsFromIssuanceOfWarrants,0.892,
+cash_flow,increase decrease in receivables,47,197,(Increase) decrease in receivables,Changes in non-cash working capital item,ChangesInCash,0.842,
+cash_flow,increase in restricted cash,47,95,(Increase) in restricted cash 16,Adjustments for,ChangeInRestrictedCash,0.808,
+balance_sheet,amortization,47,124,Amortization,Other revenue,,0.562,
+income_statement,deficit beginning of period,47,87,"DEFICIT, BEGINNING OF PERIOD",NET LOSS AND COMPREHENSIVE LOSS FOR THE,,0.538,
+balance_sheet,general and administrative expenses,47,200,"General and administrative expenses (Note 21) 2,154,278",Expenses (income),,0.531,
+balance_sheet,weighted average number of common shares outstanding,47,157,Weighted average number of common shares outstanding,Weighted average number of common shares,,0.452,
+balance_sheet,as at december 31 2024 and december,47,54,"As at December 31, 2024 and December",,,0.419,
+cash_flow,redemption of short term investments,46,159,Redemption of short-term investments,Investing,SaleOfShortTermInvestments,0.818,
+cash_flow,gain on sale of assets,46,113,Gain on sale of assets (Note 7),Adjustments for items not involving cash,GainLossOnSaleOfPPE,0.739,
+cash_flow,proceeds from warrant exercise,46,84,Proceeds from warrant exercise,Cash flows from financing activities,ProceedsFromStockOptionExercised,0.727,
+balance_sheet,loans,46,187,Loans 12,Current,NetLoan,0.714,
+balance_sheet,net loss and comprehensive loss for the year,46,171,Net loss and comprehensive loss for the year $,Other income and expenses,,0.556,
+cash_flow,share subscriptions received in advance,46,81,Share subscriptions received in advance,Cash flows from financing activities,,0.535,
+balance_sheet,december 31 2019 december,46,107,"December 31, 2019 December",,,0.39,
+cash_flow,decrease increase in cash during the year,45,106,(Decrease) increase in cash during the year,Financing activities,ChangesInCash,0.789,
+cash_flow,realized loss on marketable securities,45,82,Realized loss on marketable securities,Items not affecting cash,UnrealizedGainLossOnInvestmentSecurities,0.747,
+balance_sheet,deferred income tax,45,307,Deferred income tax Note 10,Current,DeferredCosts,0.727,
+income_statement,production costs,45,231,Production costs,Unrealized gain on changes in fair value,OtherOperatingExpenses,0.645,
+balance_sheet,investment in joint venture,45,183,Investment in joint venture 7,Non-current assets,InvestmentsInVariableInterestEntity,0.636,
+income_statement,common shareholders,45,382,Common shareholders,INCOME FOR THE PERIOD ATTRIBUTABLE TO,NetIncomeCommonStockholders,0.612,
+income_statement,gain on forgiveness of debt,45,74,Gain on forgiveness of debt (Note 8),EXPENSES,GainOnSaleOfPPE,0.609,
+balance_sheet,loans and borrowings,45,406,Loans and borrowings 18,Current,,0.591,
+balance_sheet,loss before income taxes,45,137,Loss before income taxes,Other losses (gains),,0.533,
+balance_sheet,foreign exchange gain,45,89,Foreign exchange gain,Expenses,,0.529,
+balance_sheet,bank overdraft,45,123,Bank overdraft,Current liabilities,,0.513,
+income_statement,balance september,45,400,"Balance, September 30, 2022 42,521,102 24,249,313 2,685,753",#,,0.462,
+cash_flow,december 31 2023 december,45,56,"December 31, 2023 December",Incorporation,,0.435,
+balance_sheet,as at december 31 2025 and december,45,91,"As at December 31, 2025 and December",,,0.419,
+cash_flow,proceeds from issuance of share capital,44,203,Proceeds from issuance of share capital,Financing Activities,CommonStockIssuance,0.873,
+cash_flow,realized gain on marketable securities,44,68,Realized gain on marketable securities,Items not affecting cash,UnrealizedGainLossOnInvestmentSecurities,0.747,
+cash_flow,taxes paid,44,194,Taxes paid,Supplemental cash flow information,IncomeTaxPaidSupplementalData,0.741,
+balance_sheet,fixed assets,44,297,Fixed assets (note 3),Current assets,DeferredAssets,0.741,
+balance_sheet,warrant liability,44,203,Warrant liability (Note 9),Non-current liabilities,CurrentLiabilities,0.722,
+cash_flow,term deposits,44,203,Term deposits,Cash and cash equivalents consist of,ChangeInRestrictedCash,0.606,
+income_statement,loss on disposal of assets,44,86,Loss on disposal of assets,General and Administrative Expenses,,0.587,
+cash_flow,investment in associate,44,90,Investment in associate,Investing activities,,0.582,
+income_statement,balance june,44,392,"Balance, June 30, 2023 52,573,215 5,424,928 392,168",shares,,0.538,
+balance_sheet,travel,44,129,Travel,Expenses,,0.5,
+cash_flow,mineral properties,44,139,Mineral properties,Cash flows from investing activities,,0.483,
+balance_sheet,unitholders equity,43,443,Unitholders’ equity 7,Current liabilities,StockholdersEquity,0.857,
+cash_flow,unrealized loss on investments,43,93,Unrealized loss on investments,Adjustments from non-cash items and othe,UnrealizedGainLossOnInvestmentSecurities,0.8,
+balance_sheet,contract assets,43,277,Contract assets 5,Current assets,TotalAssets,0.741,
+balance_sheet,promissory note payable,43,111,"Promissory note payable 7, 12",Non-current liability,CurrentNotesPayable,0.682,
+balance_sheet,net loss income,43,124,Net (loss) income,Income tax recovery (expense),NetLoan,0.609,
+income_statement,deferred tax recovery expense,43,102,Deferred tax recovery (expense) (Note 10),EXPENSES,,0.578,
+balance_sheet,decommissioning obligations,43,358,Decommissioning obligations (Note 9),Non-current Liabilities,,0.54,
+cash_flow,mineral property acquisition costs,42,240,Mineral property acquisition costs,Investing,ChangeInDeferredAcquisitionCosts,0.686,
+income_statement,impairment of exploration and evaluation asset,42,67,Impairment of exploration and evaluation asset 20,ALLIED GOLD,ImpairmentOfCapitalAssets,0.649,
+cash_flow,decrease in restricted cash,41,84,Decrease in restricted cash (note 7),INVESTING ACTIVITIES,ChangeInRestrictedCash,0.846,
+balance_sheet,total liabilities and deficiency,41,189,Total Liabilities And Deficiency $,DEFICIENCY,TotalLiabilitiesAndTotalEquityGrossMinorityInterest,0.833,
+cash_flow,short term investment,41,107,Short-term investment,Cash flows from investing activities,SaleOfShortTermInvestments,0.824,
+balance_sheet,deferred transaction costs,41,55,Deferred transaction costs (Note 17),Current,DeferredAcquisitionCosts,0.808,
+cash_flow,proceeds on exercise of warrants,41,108,Proceeds on exercise of warrants,Financing activities,ProceedsFromIssuanceOfWarrants,0.788,
+balance_sheet,finance income,41,169,Finance income,Expenses,UnearnedIncome,0.759,
+balance_sheet,net earnings,41,274,Net earnings $,Expenses,RetainedEarnings,0.759,
+income_statement,transportation,41,281,Transportation,Expenses,Amortization,0.692,
+balance_sheet,finance costs,41,185,Finance costs,Non-current assets,DeferredFinancingCosts,0.649,
+income_statement,share based compensation expense,41,160,Share-based compensation expense 11,Operating Expenses,OtherOperatingExpenses,0.643,
+income_statement,unrealized loss gain on marketable securities,41,94,Unrealized (loss) gain on marketable securities 4,Other comprehensive income (loss),,0.551,
+cash_flow,flow through premium,41,122,Flow-through premium,Supplemental cash flow information,,0.462,
+income_statement,december 31 2022 december,41,100,"December 31, 2022 December",Notes,,0.409,
+cash_flow,current income tax expense,40,181,Current income tax expense,Items not involving cash,DeferredTax,0.863,
+balance_sheet,total equity deficit,40,97,Total equity/(deficit),Shareholders' equity,StockholdersEquity,0.755,
+balance_sheet,revenue total,40,172,Revenue total,Revenue,StockholdersEquity,0.64,
+income_statement,net income attributable to total,40,185,Net income attributable to total,Net income attributable to,InterestIncome,0.604,
+cash_flow,due to from related parties,40,216,Due to/from related parties,Changes in non-cash working capital item,,0.557,
+balance_sheet,income before income taxes,40,139,Income before income taxes,Income before the undernoted            ,,0.5,
+cash_flow,april,40,121,April,NOTE 2 – SIGNIFICANT ACCOUNTING POLICIES,,0.462,
+cash_flow,december 31 2022 december,40,49,"December 31, 2022 December",Notes,,0.435,
+cash_flow,other current assets,39,259,Other current assets,Changes in non-cash working capital,ChangeInOtherCurrentAssets,0.8,
+balance_sheet,deficiency,39,101,Deficiency,Shareholders’ Equity (Deficiency),RetainedEarnings,0.706,
+income_statement,stock based compensation expense,39,133,Stock-based compensation expense 9,Operating Expenses,OperatingExpense,0.643,
+income_statement,meals and entertainment,39,168,Meals and entertainment,EXPENSES,,0.583,
+cash_flow,shares issued for mineral properties,39,107,Shares issued for mineral properties $,Non-cash Transactions,,0.566,
+balance_sheet,note december 31 2024 december,39,47,"Note December 31, 2024 December",,,0.435,
+cash_flow,february,39,115,"February 28,",Incorporation on,,0.414,
+cash_flow,decrease in cash and cash equivalents during the year,38,128,Decrease in cash and cash equivalents during the year,Cash flows from financing activities,ChangesInCash,0.822,
+cash_flow,proceeds from issuance of convertible debentures,38,68,Proceeds from issuance of convertible debentures,FINANCING ACTIVITIES,CommonStockIssuance,0.759,
+balance_sheet,short term loan,38,74,Short-term loan 17,Current,CurrentDebt,0.733,
+balance_sheet,income taxes,38,203,Income taxes Note 11,Other income (losses),IncomeTaxPayable,0.733,
+cash_flow,proceeds from warrant exercises,38,85,Proceeds from warrant exercises,Cash flows from financing activities,ProceedsFromStockOptionExercised,0.716,
+balance_sheet,lease obligations,38,203,"Lease obligations 10,205",Liquidity and Capital Resources,CurrentCapitalLeaseObligation,0.653,
+balance_sheet,investment in associates,38,145,Investment in associates 5,Long-term assets,InvestmentsInVariableInterestEntity,0.635,
+balance_sheet,commitments and contingencies,38,161,"Commitments and contingencies (notes 4, 14, 15 and 16)",Shareholders’ equity,InvestmentsAndAdvances,0.604,
+balance_sheet,net income loss,38,87,Net income (loss),Expenses,UnearnedIncome,0.6,
+balance_sheet,cumulative translation adjustment,38,238,Cumulative translation adjustment,Shareholders' equity,,0.59,
+income_statement,realized loss on marketable securities,38,69,Realized loss on marketable securities 4,Expenses,,0.548,
+cash_flow,provisions,38,211,Provisions,Changes in non-cash working capital,,0.545,
+cash_flow,goodwill impairment,38,69,Goodwill impairment,Interest paid,,0.541,
+balance_sheet,advances,38,138,Advances (Note 4e)),Current,,0.538,
+balance_sheet,balance end of year,38,228,"Balance, end of year",- See Accompanying Notes –,,0.522,
+income_statement,balance at january,38,222,"Balance at January 1, 2010 9,408,971 $ 6,908,481 $ 42,840 $ 36,400,895 $",outstanding shares       Amount         ,,0.488,
+balance_sheet,note december 31 2023 december,38,46,"Note December 31, 2023 December",,,0.435,
+cash_flow,december 31 2019 december,38,80,"December 31, 2019 December",Software,,0.435,
+income_statement,weighted average number of common shares outstanding total,37,86,Weighted average number of common shares outstanding total,Weighted average number of common shares,BasicAverageShares,0.931,
+balance_sheet,term deposits,37,138,Term deposits (*),Current assets,OtherDeposits,0.889,
+income_statement,listing expenses,37,65,Listing expenses (note 2),Other (income) expense,SellingExpense,0.774,
+cash_flow,decrease increase in restricted cash,37,125,Decrease (increase) in restricted cash (note 7),INVESTING ACTIVITIES,ChangeInRestrictedCash,0.754,
+cash_flow,increase decrease in bank indebtedness,37,151,Increase (decrease) in bank indebtedness,Financing Activities,ChangesInCash,0.73,
+balance_sheet,short term loans,37,122,Short-term loans (note 5),Current liabilities,CurrentDebt,0.71,
+income_statement,gain loss on sale of marketable securities,37,94,Gain (loss) on sale of marketable securities,Other income (loss),GainOnSaleOfSecurity,0.697,
+cash_flow,gain on sale of subsidiary,37,49,Gain on sale of subsidiary,Adjustments for items not affecting cash,GainLossOnSaleOfBusiness,0.691,
+income_statement,audit and accounting,37,250,"Audit and accounting $ 41,171 $",Expenses,DilutedAccountingChange,0.667,
+balance_sheet,flow through liability,37,88,Flow through liability – Note 8,Current liabilities,OtherLiabilities,0.667,
+income_statement,year ended december,37,167,Year ended December,Net loss per share,,0.558,
+income_statement,gain on write off of accounts payable,37,77,Gain on write off of accounts payable,OTHER ITEMS,,0.557,
+balance_sheet,commitments note,37,56,Commitments - Note,SHAREHOLDERS' EQUITY,,0.537,
+balance_sheet,balance beginning of year,37,250,"Balance, beginning of year",Contributed surplus,,0.462,
+balance_sheet,as at december 31 2023 and december,37,46,"As at December 31, 2023 and December",,,0.419,
+cash_flow,future income tax expense recovery,36,70,Future income tax expense (recovery) 12,Items not affecting cash,DeferredTax,0.886,
+income_statement,interest expense income,36,79,Interest (expense) income,Bad debt expense                        ,InterestExpenseOperating,0.821,
+cash_flow,issuance of common shares and warrants,36,159,Issuance of common shares and warrants,Financing activities,CommonStockIssuance,0.794,
+balance_sheet,term loan,36,112,Term loan 11,Demand loans                            ,NetLoan,0.706,
+cash_flow,common shares issued,36,151,Common shares issued 19,Financing Activities,CommonStockIssuance,0.683,
+income_statement,impairment of equipment,36,48,Impairment of equipment 8,Operating Expenses,ImpairmentOfCapitalAssets,0.627,
+income_statement,exploration and evaluation costs,36,208,Exploration and evaluation costs 8,Operating Expenses,DepreciationAndAmortization,0.623,
+income_statement,loss on marketable securities,36,87,Loss on marketable securities– Note 5,Other items,,0.577,
+income_statement,project investigation costs,36,126,Project investigation costs,Expenses,,0.565,
+balance_sheet,nature of operations note,36,42,Nature of operations (Note,SHAREHOLDERS’ DEFICIENCY,,0.552,
+cash_flow,for the year ended december,36,155,For the Year Ended December,Number                                  ,,0.545,
+cash_flow,obligation to issue shares,36,62,Obligation to issue shares,Financing Activities,,0.545,
+income_statement,exchange differences on translation of foreign operations,36,247,Exchange differences on translation of foreign operations,Other comprehensive income,,0.522,
+balance_sheet,loss for the year,36,177,Loss for the year,Retained earnings (deﬁcit),,0.5,
+balance_sheet,flow through premium,36,94,Flow-through premium 5,Current liabilities,,0.5,
+cash_flow,flow through premium liability,36,88,Flow-through premium liability $,SUPPLEMENTAL CASH FLOW DISCLOSURES,,0.492,
+income_statement,balance as at december,36,278,"Balance as at December 31, 2022 18,990,375 1,168,837 107,588 195,042",Reserves           Reserves,,0.465,
+income_statement,goodwill impairment,36,57,GOODWILL IMPAIRMENT (Note 7),EXPENSES,,0.453,
+income_statement,unrealized gain on investments,35,68,Unrealized gain on investments,Net investment loss,NetRealizedGainLossOnInvestments,0.866,
+cash_flow,issuance of common shares for cash,35,97,Issuance of common shares for cash,Financing activities,CommonStockIssuance,0.847,
+income_statement,gain on sale of investments,35,80,Gain on sale of investments,OTHER INCOME (EXPENSE),GainOnSaleOfBusiness,0.824,
+income_statement,other revenue,35,143,Other revenue,REVENUE,OtherCostofRevenue,0.788,
+cash_flow,net increase decrease in cash during the year,35,153,Net increase (decrease) in cash during the year,CASH FLOWS FROM FINANCING ACTIVITY,ChangesInCash,0.784,
+cash_flow,proceeds from sale of assets,35,125,Proceeds from sale of assets,Investing activities,ProceedsFromIssuanceOfWarrants,0.774,
+income_statement,depreciation expense,35,133,Depreciation expense 9,,OperatingExpense,0.757,
+cash_flow,interest accretion,35,102,Interest accretion,Items not affecting cash,InterestPaidSupplementalData,0.71,
+cash_flow,loss on sale of equipment,35,49,Loss on sale of equipment,Non-cash items,GainLossOnSaleOfPPE,0.694,
+income_statement,interest and accretion,35,123,Interest and accretion (Note 7),GENERAL AND ADMINISTRATIVE EXPENSES,InterestIncomeNonOperating,0.649,
+cash_flow,cash interest received,35,152,Cash interest received,Cash flows provided by (used in) investi,InterestPaidSupplementalData,0.629,
+income_statement,realized gain on marketable securities,35,63,Realized gain on marketable securities,Note             2025             2024(1,GainOnSaleOfSecurity,0.613,
+balance_sheet,cash held in trust,35,102,Cash held in trust,Assets                                  ,,0.588,
+balance_sheet,general and administration,35,145,General and administration,Expense,,0.566,
+cash_flow,advances to related parties,35,72,Advances to related parties -,Investing activities,,0.51,
+cash_flow,bad debt,35,65,Bad debt,Items not affecting cash,,0.5,
+income_statement,basic and diluted net loss per common share,34,164,Basic and diluted net loss per common share $,Expenses,BasicEPS,0.854,
+cash_flow,total cash and cash equivalents,34,163,Total cash and cash equivalents $,Cash and cash equivalents comprise of,ChangesInCash,0.818,
+cash_flow,cash and cash equivalents consists of total,34,151,CASH AND CASH EQUIVALENTS CONSISTS OF total,CASH AND CASH EQUIVALENTS CONSISTS OF,EndCashPosition,0.8,
+income_statement,advertising and marketing,34,155,Advertising and marketing $,Expenses,OtherOperatingExpenses,0.8,
+cash_flow,cash and cash equivalents is comprised of total,34,98,CASH AND CASH EQUIVALENTS IS COMPRISED OF total,CASH AND CASH EQUIVALENTS IS COMPRISED O,EndCashPosition,0.786,
+balance_sheet,investments in associates,34,166,Investments in associates (Note 16),Current assets,InvestmentsAndAdvances,0.735,
+balance_sheet,mortgages payable,34,388,Mortgages payable 7,,CurrentDebt,0.733,
+income_statement,realized gain on sale of marketable securities,34,72,Realized gain on sale of marketable securities (note 15),Other income,GainOnSaleOfSecurity,0.657,
+cash_flow,guaranteed investment certificates,34,112,Guaranteed Investment Certificates,CASH AND CASH EQUIVALENTS CONSISTS OF,GainLossOnInvestmentSecurities,0.618,
+income_statement,retained earnings end of year,34,91,"Retained earnings, end of year $",Taxes,DilutedEPS,0.618,
+balance_sheet,salaries and benefits,34,112,Salaries and benefits,Expenses,,0.596,
+cash_flow,option payments received,34,131,Option payments received,Investing Activities,,0.571,
+income_statement,change in fair value of marketable securities,34,128,Change in fair value of marketable securities – Note 5,Other items,,0.553,
+cash_flow,expenditures on mineral properties,34,140,Expenditures on mineral properties,Investing activities,,0.525,
+cash_flow,bad debts,34,84,"Bad debts 91,168",Items not affecting cash,,0.483,
+income_statement,write off of mineral property,34,53,Write-off of mineral property (Note 4c)),Other income and expenses,,0.481,
+balance_sheet,net income for the year,34,117,Net income for the year,Future income tax provision             ,,0.474,
+balance_sheet,as at december 31 2025 december,34,76,"As at December 31, 2025 December",,,0.392,
+balance_sheet,december 31 2018 december,34,47,"December 31, 2018 December",Note,,0.39,
+cash_flow,march,34,97,March,Reporting Interpretations Committee (“IF,,0.364,
+balance_sheet,other liability,33,77,Other liability (note 9),Current liabilities,OtherLiabilities,0.875,
+cash_flow,deferred acquisition costs,33,73,Deferred acquisition costs,INVESTING ACTIVITIES,ChangeInDeferredAcquisitionCosts,0.839,
+cash_flow,increase in cash and cash equivalents during the year,33,105,Increase in cash and cash equivalents during the year,Investing activities,ChangesInCash,0.822,
+cash_flow,increase decrease in cash for the year,33,101,Increase (decrease) in cash for the year,Financing,ChangesInCash,0.794,
+cash_flow,cash and cash equivalents are comprised of total,33,207,Cash and cash equivalents are comprised of total,Cash and cash equivalents are comprised ,EndCashPosition,0.776,
+balance_sheet,assets classified as held for sale,33,62,Assets classified as held for sale,Current assets,AssetsHeldForSale,0.741,
+cash_flow,discontinued operations,33,167,"Discontinued operations 18,164 5,456 6,293",,CashFlowFromDiscontinuedOperation,0.733,
+income_statement,loss on sale of equipment,33,48,Loss on sale of equipment,Expenses,GainOnSaleOfSecurity,0.653,
+cash_flow,customer deposits,33,154,Customer deposits,Changes in non-cash working capital item,ChangeInRestrictedCash,0.649,
+cash_flow,sales tax recoverable,33,141,Sales tax recoverable,Changes in non-cash working capital item,DeferredTax,0.619,
+cash_flow,interest on lease liabilities,33,134,Interest on lease liabilities 4,Items not affecting cash,,0.594,
+income_statement,forgiveness of debt,33,55,Forgiveness of debt (note 14(a)),Other income (expense),,0.545,
+income_statement,exchange differences on translating foreign operations,33,207,Exchange differences on translating foreign operations,Other comprehensive loss,,0.539,
+income_statement,interest expense net,32,170,Interest expense - net (note 12),Other expenses,InterestExpenseOperating,0.889,
+cash_flow,beginning of year,32,214,Beginning of year,Financing activities,BeginningCashPosition,0.872,
+balance_sheet,deferred taxes,32,330,Deferred taxes —,debentures           debentures         ,DeferredTaxAssets,0.848,
+income_statement,gain on sale of subsidiary,32,43,Gain on sale of subsidiary 8,Operating expenses,GainOnSaleOfSecurity,0.8,
+cash_flow,amortization of deferred financing costs,32,181,Amortization of deferred financing costs (Note 26) 760,Operating activities,AmortizationOfFinancingCostsAndDiscounts,0.729,
+balance_sheet,security deposits,32,163,Security deposits,Current,OtherDeposits,0.71,
+cash_flow,proceeds from promissory notes,32,69,Proceeds from promissory notes,Financing activity,CommonStockIssuance,0.69,
+balance_sheet,interest,32,113,"Interest 286 283 280 279 278 2,660",Debta,InterestPayable,0.667,
+balance_sheet,operating expenses total,32,121,Operating expenses total,Operating expenses,PrepaidAssets,0.65,
+cash_flow,issuance of convertible debentures,32,72,Issuance of convertible debentures,CASH FLOWS FROM FINANCING ACTIVITIES,CommonStockIssuance,0.644,
+cash_flow,cash acquired on acquisition,32,42,Cash acquired on Acquisition,Investing Activities,,0.594,
+balance_sheet,borrowings,32,374,Borrowings 25 $,Non-current liabilities,,0.588,
+balance_sheet,operating loss,32,114,OPERATING LOSS,EXPENSE,,0.583,
+cash_flow,shares issued for property acquisition,32,73,Shares issued for property acquisition,Exploration and evaluation assets accrue,,0.571,
+cash_flow,loan from related party,32,68,Loan from related party,Cash flows from financing activities,,0.565,
+income_statement,retained earnings beginning of year,32,86,"Retained earnings, beginning of year",Taxes,,0.557,
+income_statement,accounts payable and accrued liabilities,32,81,Accounts payable and accrued liabilities,Changes in working capital,,0.545,
+income_statement,balance october,32,330,"BALANCE OCTOBER 1, 2012 $ 7,636,704 $ 113,319 $",Share Capital         Surplus           ,,0.524,
+balance_sheet,subscription receipts,32,53,Subscription receipts (Note 7),Shareholders' equity (deficiency),,0.511,
+income_statement,balance july,32,283,"Balance, July 31, 2023 2,400,000 $ 24,000 $ 364,294 $",Shares        Capital        Reserve    ,,0.417,
+income_statement,december 31 2023 december,32,58,"December 31, 2023 December",Notes,,0.409,
+cash_flow,end of year,31,204,End of year 24,Financing activities,EndCashPosition,0.815,
+income_statement,acquisition costs,31,99,Acquisition costs,Expense,AcquisitionExpense,0.722,
+income_statement,gain on disposal of assets,31,64,Gain on disposal of assets 13,NON-OPERATING INCOME (EXPENSE),GainOnSaleOfSecurity,0.72,
+balance_sheet,bank loan,31,104,Bank loan (note 9),Current,NetLoan,0.706,
+income_statement,travel and related,31,217,Travel and related,ADMINISTRATIVE EXPENSES,OtherOperatingExpenses,0.684,
+income_statement,shares outstanding basic and diluted,31,117,SHARES OUTSTANDING – BASIC AND DILUTED,WEIGHTED AVERAGE NUMBER OF COMMON,SharesOutstanding,0.667,
+balance_sheet,royalties,31,154,Royalties,Other revenue,Properties,0.632,
+income_statement,advertising,31,101,Advertising $,Operating expenses,OtherOperatingExpenses,0.611,
+income_statement,change in fair value of investments,31,112,Change in fair value of investments 8,Finance costs and income,,0.58,
+balance_sheet,lease liability current portion,31,107,Lease liability current portion - Note 10,Current liabilities,,0.531,
+balance_sheet,november,31,130,November,"Vancouver, British Columbia",,0.526,
+income_statement,petroleum and natural gas sales,31,182,Petroleum and natural gas sales 18 $,,,0.524,
+balance_sheet,loss income before income taxes,31,64,(Loss) Income before income taxes,Other income,,0.486,
+balance_sheet,share subscriptions received in advance,31,56,Share subscriptions received in advance,Shareholders' equity,,0.478,
+cash_flow,write off of mineral property,31,55,Write-off of mineral property,Impairment loss on marketable securities,,0.452,
+balance_sheet,approved and authorized by the board on april,31,257,Approved and authorized by the Board on April,Nature and continuance of operations,,0.447,
+balance_sheet,note december 31 2022 december,31,35,"Note December 31, 2022 December",,,0.435,
+balance_sheet,as at december 31 2022 and december,31,36,"As at December 31, 2022 and December",,,0.419,
+income_statement,impairment of assets,30,85,Impairment of assets - 38,OPERATING EXPENSES,ImpairmentOfCapitalAssets,0.833,
+income_statement,gain on sale of assets,30,56,Gain on sale of assets (Note 7),OTHER EXPENSES,GainOnSaleOfPPE,0.829,
+balance_sheet,discontinued operations,30,86,Discontinued operations,Comprehensive income (loss),AssetsOfDiscontinuedOperations,0.821,
+balance_sheet,current portion of convertible debentures,30,69,Current portion of convertible debentures (note 6),Current liabilities,CurrentDebt,0.757,
+balance_sheet,available for sale investments,30,154,Available-for-sale investments (Note 5),Current assets,AvailableForSaleSecurities,0.746,
+income_statement,other income loss total,30,124,Other income (loss) total,Other income (loss),InterestIncome,0.727,
+balance_sheet,deferred income tax recovery,30,61,Deferred income tax recovery 9,Income taxes,TaxesReceivable,0.72,
+income_statement,interest and accretion expense,30,129,"Interest and accretion expense 5, 6",Impairment of exploration and evaluation,SellingAndMarketingExpense,0.712,
+balance_sheet,bank debt,30,223,Bank debt 10,Current liabilities,BankIndebtedness,0.692,
+cash_flow,deferred transaction costs,30,53,Deferred transaction costs -,INVESTING ACTIVITIES,ChangeInDeferredAcquisitionCosts,0.677,
+balance_sheet,equity portion of convertible debentures,30,153,Equity portion of convertible debentures (Note 10(d)),Shareholders’ Equity,CurrentDebt,0.63,
+balance_sheet,finance expense,30,112,Finance expense 14,Operating expenses,CurrentAccruedExpenses,0.615,
+income_statement,project investigation,30,106,Project investigation,EXPENSES,Depreciation,0.606,
+balance_sheet,convertible,30,91,Convertible notes 15,Current,,0.571,
+cash_flow,impairment of mineral property,30,57,Impairment of mineral property (Note 5),Operating Activities,,0.561,
+income_statement,translation adjustment,30,192,Translation adjustment,EXPENSES,,0.556,
+balance_sheet,stock options,30,271,"Stock options (notes 17 and 19) 200,830",Common shares,,0.522,
+cash_flow,broker warrants issued,30,65,"Broker warrants issued 9, 10",Supplementary information,,0.52,
+income_statement,balance april,30,349,"Balance, April 30, 2025 97,869,512 13,749,775 1,398,300 1,865,079",Stock,,0.514,
+balance_sheet,balance at december,30,212,"Balance at December 31, 2010 34,301,902 5,311,589 131,603",shares       capital      Surplus       ,,0.514,
+cash_flow,finders warrants issued,30,98,Finders' warrants issued $,SUPPLEMENTAL INFORMATION,,0.5,
+balance_sheet,going concern note,30,42,Going concern (Note,SHAREHOLDERS’ DEFICIENCY,,0.5,
+cash_flow,adjustments total,30,166,Adjustments total,Adjustments,,0.5,
+balance_sheet,loss per share basic and diluted,30,118,Loss per share – basic and diluted $,Other income and expenses,,0.491,
+income_statement,flow through share premium recovery,30,113,Flow-through share premium recovery 18,Other income (loss),,0.491,
+cash_flow,government grant,30,55,Government grant,Items not affecting cash,,0.485,
+balance_sheet,notes december 31 2025 december,30,60,"Notes December 31, 2025 December",,,0.468,
+balance_sheet,as at december 31 2024 december,30,41,"As at December 31, 2024 December",,,0.392,

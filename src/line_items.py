@@ -80,17 +80,36 @@ class ParsedStatement:
     flags: list[str] = field(default_factory=list)
 
 
-def parse_lines(text: str, statement_type: str) -> ParsedStatement:
+def parse_lines(text: str, statement_type: str,
+                col_years_hint: list[int] | None = None) -> ParsedStatement:
     """TEXT -> every individual line item, with section context. Values are AS
-    PRINTED (pre-scale). Never raises."""
+    PRINTED (pre-scale). Never raises.
+
+    col_years_hint: fallback column years from a SIBLING statement in the same
+    filing, used only when this statement's OWN text has no year header. Root
+    cause (verified on TTZ and a 60-company-year sample: 55/60, 92%): a company
+    prints the "As at <date>, <YYYY> and <YYYY>" header ABOVE the statement
+    title rather than as a column row within it, so the captured section text
+    starts straight into "ASSETS / Current Assets / Cash ... 879,328  842,584"
+    with no year token anywhere -- _detect_columns correctly finds nothing. All
+    three statements in one filing share the same fiscal-year columns, so a
+    sibling that DID find a header (very often true -- e.g. this exact failure
+    hits the balance sheet while income_statement/cash_flow parse fine) is a
+    safe, structurally-guaranteed borrow -- not a guess."""
     out = ParsedStatement()
     out.scale, out.scale_found = _detect_scale(text)
     out.currency = _detect_currency(text)
     out.col_years = _detect_columns(text)
+    borrowed = False
+    if not out.col_years and col_years_hint:
+        out.col_years = list(col_years_hint)
+        borrowed = True
     n_cols = len(out.col_years)
     if n_cols == 0:
         out.flags.append("no_columns")
         return out
+    if borrowed:
+        out.flags.append("borrowed_columns")
     out.period_ends = _detect_period_ends(text, out.col_years)
 
     section: str | None = None
@@ -313,16 +332,31 @@ def run_line_item_parsing(cfg, *, force: bool = False, limit: int | None = None,
             conn.execute("DELETE FROM raw_line_items WHERE ticker=? AND pdf_year=?",
                          (ticker, pdf_year))
             sliced: dict[str, str] | None = None
+            stmt_texts: dict[str, str] = {}
             for stmt in STATEMENTS:
                 text = (row.get(stmt) or "").strip()
                 if not text:
                     if sliced is None:
                         sliced = slice_primary((row.get("primary_block") or ""))
                     text = (sliced.get(stmt) or "").strip()
+                stmt_texts[stmt] = text
+            # Sibling-statement year fallback (see parse_lines docstring): detect
+            # columns from whichever statement's OWN text has a header, so a
+            # statement missing its header (year printed above the title, not in
+            # it) can still be parsed instead of contributing zero rows.
+            sibling_years: list[int] = []
+            for stmt, text in stmt_texts.items():
+                if text:
+                    yrs = _detect_columns(text)
+                    if yrs:
+                        sibling_years = yrs
+                        break
+            for stmt in STATEMENTS:
+                text = stmt_texts[stmt]
                 if not text:
                     empty += 1
                     continue
-                p = parse_lines(text, stmt)
+                p = parse_lines(text, stmt, col_years_hint=sibling_years)
                 if not p.rows:
                     empty += 1
                     continue
